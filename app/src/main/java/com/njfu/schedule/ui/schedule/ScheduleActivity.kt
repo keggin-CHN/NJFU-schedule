@@ -242,6 +242,9 @@ class ScheduleActivity : AppCompatActivity() {
             allDetails.filter { d -> !(d.startWeek <= week && d.endWeek >= week) }
         } else emptyList()
 
+        val gridLineColor = Color.parseColor("#F0F0F0")
+        val gridLineWidth = 1 // px
+
         // 节次列
         val nodeCol = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -251,7 +254,9 @@ class ScheduleActivity : AppCompatActivity() {
         for (node in 1..maxNode) {
             val time = TimeNode.getStartTime(node)
             val tv = TextView(this).apply {
-                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, cellHeight)
+                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, cellHeight).apply {
+                    // 底部边框用 background drawable 模拟不方便，用 margin+divider 代替
+                }
                 gravity = Gravity.CENTER
                 text = "$node\n$time"
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 8f)
@@ -259,8 +264,21 @@ class ScheduleActivity : AppCompatActivity() {
                 setLineSpacing(0f, 0.85f)
             }
             nodeCol.addView(tv)
+            // 节次之间的横线
+            if (node < maxNode) {
+                nodeCol.addView(View(this).apply {
+                    layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, gridLineWidth)
+                    setBackgroundColor(gridLineColor)
+                })
+            }
         }
         container.addView(nodeCol)
+
+        // 节次列右边的竖线
+        container.addView(View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(gridLineWidth, LinearLayout.LayoutParams.MATCH_PARENT)
+            setBackgroundColor(gridLineColor)
+        })
 
         // 7天
         for (day in 1..7) {
@@ -271,7 +289,7 @@ class ScheduleActivity : AppCompatActivity() {
             val col = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                if (isToday) setBackgroundColor(Color.parseColor("#0866BB6A"))
+                if (isToday) setBackgroundColor(Color.parseColor("#085B8DEF"))
             }
 
             var currentNode = 1
@@ -286,13 +304,27 @@ class ScheduleActivity : AppCompatActivity() {
                     col.addView(createCourseCard(otherCourse, nameMap, colorMap, cellHeight, true))
                     currentNode += otherCourse.step
                 } else {
+                    // 空格子 + 底部横线
+                    val cell = View(this).apply {
+                        layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, cellHeight - gridLineWidth)
+                    }
+                    col.addView(cell)
                     col.addView(View(this).apply {
-                        layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, cellHeight)
+                        layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, gridLineWidth)
+                        setBackgroundColor(gridLineColor)
                     })
                     currentNode++
                 }
             }
             container.addView(col)
+
+            // 每天之间的竖线
+            if (day < 7) {
+                container.addView(View(this).apply {
+                    layoutParams = LinearLayout.LayoutParams(gridLineWidth, LinearLayout.LayoutParams.MATCH_PARENT)
+                    setBackgroundColor(gridLineColor)
+                })
+            }
         }
     }
 
