@@ -118,18 +118,20 @@ class ScheduleActivity : AppCompatActivity() {
     private fun updateWeekHeader(displayWeek: Int) {
         val isCurrentWeek = displayWeek == currentWeek
         binding.tvWeek.text = "第${displayWeek}周"
-        
+
         val tag = findViewById<TextView>(R.id.tv_week_tag)
         if (isCurrentWeek) {
             tag.visibility = View.VISIBLE
             tag.text = "本周"
+            tag.setTextColor(resources.getColor(R.color.secondary, theme))
+            tag.setBackgroundResource(R.drawable.bg_tag)
         } else {
             tag.visibility = View.VISIBLE
             tag.text = "非本周"
             tag.setTextColor(Color.parseColor("#999999"))
-            tag.setBackgroundResource(0)
+            tag.setBackgroundResource(R.drawable.bg_tag_gray)
         }
-        
+
         binding.tvDateInfo.text = WeekUtils.getTodayString()
         updateDayHeaders(displayWeek)
     }
@@ -173,6 +175,7 @@ class ScheduleActivity : AppCompatActivity() {
 
             val t = table!!
             maxWeek = t.maxWeek
+            // 自动计算当前周（从系统时间）
             currentWeek = WeekUtils.getCurrentWeek(t.startDate).coerceIn(1, maxWeek)
 
             dao.getCourseBaseByTable(t.id)
@@ -302,6 +305,7 @@ class ScheduleActivity : AppCompatActivity() {
     ): View {
         val name = nameMap[course.id] ?: ""
         val room = course.room ?: ""
+        val teacher = course.teacher ?: ""
         val bgColor = colorMap[course.id] ?: courseColors[course.id % courseColors.size]
 
         return TextView(this).apply {
@@ -311,24 +315,34 @@ class ScheduleActivity : AppCompatActivity() {
             ).apply { setMargins(dpToPx(1), dpToPx(1), dpToPx(1), dpToPx(1)) }
 
             gravity = Gravity.CENTER
-            text = if (room.isNotEmpty()) "$name\n$room" else name
+            val displayText = buildString {
+                append(name)
+                if (room.isNotEmpty()) append("\n$room")
+                if (teacher.isNotEmpty() && course.step >= 2) append("\n$teacher")
+            }
+            text = displayText
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
             setTextColor(Color.WHITE)
             setPadding(dpToPx(3))
-            maxLines = course.step * 2 + 1
+            maxLines = course.step * 2 + 2
             includeFontPadding = false
             typeface = Typeface.DEFAULT_BOLD
 
-            val color = try { Color.parseColor(bgColor) } catch (_: Exception) { Color.parseColor("#5C6BC0") }
+            val color = try { Color.parseColor(bgColor) } catch (_: Exception) { Color.parseColor("#7986CB") }
             val drawable = GradientDrawable().apply {
-                setColor(if (isOtherWeek) adjustAlpha(color, 0.25f) else color)
+                if (isOtherWeek) {
+                    setColor(Color.argb(20, Color.red(color), Color.green(color), Color.blue(color)))
+                } else {
+                    setColor(color)
+                }
                 cornerRadius = dpToPx(6).toFloat()
             }
             background = drawable
 
             if (isOtherWeek) {
-                setTextColor(Color.parseColor("#88666666"))
+                setTextColor(Color.parseColor("#BBBBBB"))
                 typeface = Typeface.DEFAULT
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 9f)
             }
 
             setOnClickListener {
@@ -385,12 +399,18 @@ class ScheduleActivity : AppCompatActivity() {
 
         // 周数 SeekBar
         val seekbar = view.findViewById<SeekBar>(R.id.seekbar_week)
+        val tvLabel = view.findViewById<TextView>(R.id.tv_seekbar_label)
         seekbar.max = maxWeek
-        seekbar.progress = binding.viewPager.currentItem + 1
+        val displayedWeek = binding.viewPager.currentItem + 1
+        seekbar.progress = displayedWeek
+        tvLabel.text = "当前：第${displayedWeek}周"
         seekbar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
-                if (fromUser && progress > 0) {
-                    binding.viewPager.setCurrentItem(progress - 1, false)
+                if (progress > 0) {
+                    tvLabel.text = "当前：第${progress}周"
+                    if (fromUser) {
+                        binding.viewPager.setCurrentItem(progress - 1, false)
+                    }
                 }
             }
             override fun onStartTrackingTouch(sb: SeekBar?) {}

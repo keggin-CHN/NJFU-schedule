@@ -125,6 +125,7 @@ class ImportActivity : AppCompatActivity() {
         } else {
             table.studentName = studentName
             table.studentId = studentId
+            table.startDate = "2026-02-24"
             dao.updateTable(table)
         }
         val tableId = table.id
