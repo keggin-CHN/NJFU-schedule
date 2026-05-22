@@ -130,7 +130,8 @@ class NjfuImporter {
         val scheduleHtml = scheduleResp.body?.string() ?: throw Exception("获取课表失败")
 
         // 8. 解析课表
-        return ImportResult(parseSchedule(scheduleHtml), studentName, "2025-02-24")
+        // 2025-2026-2 学期开始日期约为 2026-02-23
+        return ImportResult(parseSchedule(scheduleHtml), studentName, "2026-02-24")
     }
 
     private fun encryptAES(data: String, key: String): String {

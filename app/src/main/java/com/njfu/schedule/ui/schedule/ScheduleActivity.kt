@@ -2,6 +2,7 @@ package com.njfu.schedule.ui.schedule
 
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.util.TypedValue
@@ -15,6 +16,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.setPadding
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
@@ -43,6 +45,13 @@ class ScheduleActivity : AppCompatActivity() {
     private var currentWeek = 1
     private var todayOfWeek = 1
 
+    // 更鲜艳的课程颜色
+    private val courseColors = listOf(
+        "#7E57C2", "#EF5350", "#FF7043", "#5C6BC0", "#66BB6A",
+        "#42A5F5", "#26C6DA", "#EC407A", "#FFA726", "#AB47BC",
+        "#26A69A", "#8D6E63", "#78909C", "#9CCC65", "#FFCA28"
+    )
+
     private val importLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { loadSchedule() }
@@ -68,16 +77,13 @@ class ScheduleActivity : AppCompatActivity() {
         binding.btnEmptyImport.setOnClickListener {
             importLauncher.launch(Intent(this, ImportActivity::class.java))
         }
-
-        // 点击周标题回到当前周
         binding.weekSelector.setOnClickListener {
             binding.viewPager.setCurrentItem(currentWeek - 1, true)
         }
 
         binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
-                val week = position + 1
-                updateWeekHeader(week)
+                updateWeekHeader(position + 1)
             }
         })
 
@@ -86,25 +92,17 @@ class ScheduleActivity : AppCompatActivity() {
 
     private fun updateWeekHeader(displayWeek: Int) {
         val isCurrentWeek = displayWeek == currentWeek
-        binding.tvWeek.text = if (isCurrentWeek) {
-            "第 $displayWeek 周（本周）"
-        } else {
-            getString(R.string.week_format, displayWeek)
-        }
-        binding.tvDateInfo.text = "${WeekUtils.getTodayString()} · ${table?.studentName ?: ""}"
-
-        // 更新星期头部日期
+        binding.tvWeek.text = if (isCurrentWeek) "第 $displayWeek 周" else "第 $displayWeek 周"
+        val suffix = if (isCurrentWeek) "（本周）" else ""
+        binding.tvDateInfo.text = "${WeekUtils.getTodayString()}$suffix ${table?.studentName ?: ""}"
         updateDayHeaders(displayWeek)
     }
 
     private fun updateDayHeaders(targetWeek: Int) {
         val headerRow = binding.headerRow
-        // 移除旧的日期 header（保留第一个节次列）
-        while (headerRow.childCount > 1) {
-            headerRow.removeViewAt(1)
-        }
+        while (headerRow.childCount > 1) headerRow.removeViewAt(1)
 
-        val startDate = table?.startDate ?: "2025-02-24"
+        val startDate = table?.startDate ?: "2026-02-24"
         val dates = WeekUtils.getWeekDates(currentWeek, targetWeek, startDate)
         val days = resources.getStringArray(R.array.days)
 
@@ -114,14 +112,19 @@ class ScheduleActivity : AppCompatActivity() {
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
                 gravity = Gravity.CENTER
                 text = "${days[i]}\n${dates.getOrElse(i) { "" }}"
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
-                setLineSpacing(0f, 0.9f)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+                setLineSpacing(dpToPx(1).toFloat(), 1f)
                 if (isToday) {
                     setTextColor(Color.WHITE)
-                    setBackgroundColor(resources.getColor(R.color.primary, theme))
-                    setTypeface(null, android.graphics.Typeface.BOLD)
+                    val bg = GradientDrawable().apply {
+                        setColor(resources.getColor(R.color.primary, theme))
+                        cornerRadius = dpToPx(16).toFloat()
+                    }
+                    background = bg
+                    setPadding(0, dpToPx(4), 0, dpToPx(4))
+                    typeface = Typeface.DEFAULT_BOLD
                 } else {
-                    setTextColor(Color.parseColor("#666666"))
+                    setTextColor(Color.parseColor("#555555"))
                 }
             }
             headerRow.addView(tv)
@@ -143,13 +146,10 @@ class ScheduleActivity : AppCompatActivity() {
             currentWeek = WeekUtils.getCurrentWeek(t.startDate).coerceIn(1, maxWeek)
 
             dao.getCourseBaseByTable(t.id)
-                .combine(dao.getCourseDetailByTable(t.id)) { bases, details ->
-                    Pair(bases, details)
-                }
+                .combine(dao.getCourseDetailByTable(t.id)) { bases, details -> Pair(bases, details) }
                 .collect { (bases, details) ->
                     allBases = bases
                     allDetails = details
-
                     if (bases.isEmpty()) {
                         showEmpty(true)
                     } else {
@@ -175,16 +175,13 @@ class ScheduleActivity : AppCompatActivity() {
         updateWeekHeader(currentWeek)
     }
 
-    // ==================== ViewPager Adapter ====================
-
     inner class WeekPagerAdapter : RecyclerView.Adapter<WeekPagerAdapter.VH>() {
         inner class VH(view: View) : RecyclerView.ViewHolder(view) {
             val grid: LinearLayout = view.findViewById(R.id.schedule_grid)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
-            val view = LayoutInflater.from(parent.context)
-                .inflate(R.layout.fragment_week, parent, false)
+            val view = LayoutInflater.from(parent.context).inflate(R.layout.fragment_week, parent, false)
             return VH(view)
         }
 
@@ -195,31 +192,28 @@ class ScheduleActivity : AppCompatActivity() {
         override fun getItemCount() = maxWeek
     }
 
-    // ==================== 渲染课表 ====================
-
     private fun renderWeek(container: LinearLayout, week: Int) {
         container.removeAllViews()
 
         val maxNode = table?.nodes ?: 11
-        val cellHeight = dpToPx(52)
+        val cellHeight = dpToPx(56)
         val colorMap = allBases.associate { it.id to it.color }
         val nameMap = allBases.associate { it.id to it.courseName }
 
-        // 过滤当前周的课程
         val weekDetails = allDetails.filter { d ->
             d.startWeek <= week && d.endWeek >= week &&
                     (d.type == 0 || (d.type == 1 && week % 2 == 1) || (d.type == 2 && week % 2 == 0))
         }
 
-        // 非本周课程（半透明显示）
-        val otherWeekDetails = allDetails.filter { d ->
-            !(d.startWeek <= week && d.endWeek >= week)
-        }
+        val otherWeekDetails = if (table?.showSat == true) {
+            allDetails.filter { d -> !(d.startWeek <= week && d.endWeek >= week) }
+        } else emptyList()
 
         // 节次列
         val nodeCol = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = LinearLayout.LayoutParams(dpToPx(30), LinearLayout.LayoutParams.WRAP_CONTENT)
+            setBackgroundColor(Color.parseColor("#FAFAFA"))
         }
         for (node in 1..maxNode) {
             val time = TimeNode.getStartTime(node)
@@ -228,8 +222,8 @@ class ScheduleActivity : AppCompatActivity() {
                 gravity = Gravity.CENTER
                 text = "$node\n$time"
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 8f)
-                setTextColor(Color.GRAY)
-                setLineSpacing(0f, 0.9f)
+                setTextColor(Color.parseColor("#AAAAAA"))
+                setLineSpacing(0f, 0.85f)
             }
             nodeCol.addView(tv)
         }
@@ -244,7 +238,7 @@ class ScheduleActivity : AppCompatActivity() {
             val col = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                if (isToday) setBackgroundColor(Color.parseColor("#08000000"))
+                if (isToday) setBackgroundColor(Color.parseColor("#0866BB6A"))
             }
 
             var currentNode = 1
@@ -253,19 +247,15 @@ class ScheduleActivity : AppCompatActivity() {
                 val otherCourse = otherDayCourses.find { it.startNode == currentNode }
 
                 if (course != null) {
-                    val tv = createCourseView(course, nameMap, colorMap, cellHeight, 1.0f)
-                    col.addView(tv)
+                    col.addView(createCourseCard(course, nameMap, colorMap, cellHeight, false))
                     currentNode += course.step
                 } else if (otherCourse != null) {
-                    // 非本周课程半透明
-                    val tv = createCourseView(otherCourse, nameMap, colorMap, cellHeight, 0.3f)
-                    col.addView(tv)
+                    col.addView(createCourseCard(otherCourse, nameMap, colorMap, cellHeight, true))
                     currentNode += otherCourse.step
                 } else {
-                    val empty = View(this).apply {
+                    col.addView(View(this).apply {
                         layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, cellHeight)
-                    }
-                    col.addView(empty)
+                    })
                     currentNode++
                 }
             }
@@ -273,54 +263,66 @@ class ScheduleActivity : AppCompatActivity() {
         }
     }
 
-    private fun createCourseView(
+    private fun createCourseCard(
         course: CourseDetailBean,
         nameMap: Map<Int, String>,
         colorMap: Map<Int, String>,
         cellHeight: Int,
-        alpha: Float
-    ): TextView {
+        isOtherWeek: Boolean
+    ): View {
         val name = nameMap[course.id] ?: ""
         val room = course.room ?: ""
-        val bgColor = colorMap[course.id] ?: "#ECEDFD"
+        val bgColor = colorMap[course.id] ?: courseColors[course.id % courseColors.size]
 
         return TextView(this).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 cellHeight * course.step
-            ).apply { setMargins(1, 1, 1, 1) }
-            gravity = Gravity.CENTER
-            text = "$name\n@$room"
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 9f)
-            setTextColor(Color.parseColor("#333333"))
-            setPadding(3, 2, 3, 2)
-            maxLines = course.step * 2 + 1
-            this.alpha = alpha
+            ).apply { setMargins(dpToPx(1), dpToPx(1), dpToPx(1), dpToPx(1)) }
 
+            gravity = Gravity.CENTER
+            text = if (room.isNotEmpty()) "$name\n$room" else name
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
+            setTextColor(Color.WHITE)
+            setPadding(dpToPx(3))
+            maxLines = course.step * 2 + 1
+            includeFontPadding = false
+            typeface = Typeface.DEFAULT_BOLD
+
+            val color = try { Color.parseColor(bgColor) } catch (_: Exception) { Color.parseColor("#5C6BC0") }
             val drawable = GradientDrawable().apply {
-                setColor(try { Color.parseColor(bgColor) } catch (_: Exception) { Color.parseColor("#ECEDFD") })
-                cornerRadius = dpToPx(4).toFloat()
+                setColor(if (isOtherWeek) adjustAlpha(color, 0.25f) else color)
+                cornerRadius = dpToPx(6).toFloat()
             }
             background = drawable
 
-            // 点击显示详情
-            setOnClickListener { showCourseDetail(course, name) }
+            if (isOtherWeek) {
+                setTextColor(Color.parseColor("#88666666"))
+                typeface = Typeface.DEFAULT
+            }
+
+            setOnClickListener {
+                if (!isOtherWeek) showCourseDetail(course, name)
+            }
         }
     }
 
-    // ==================== 课程详情弹窗 ====================
+    private fun adjustAlpha(color: Int, factor: Float): Int {
+        val alpha = (Color.alpha(color) * factor).toInt()
+        return Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color))
+    }
 
     private fun showCourseDetail(course: CourseDetailBean, name: String) {
         val view = LayoutInflater.from(this).inflate(R.layout.dialog_course_detail, null)
         view.findViewById<TextView>(R.id.tv_course_name).text = name
-        view.findViewById<TextView>(R.id.tv_teacher).text = "👤 教师：${course.teacher ?: "未知"}"
-        view.findViewById<TextView>(R.id.tv_room).text = "📍 教室：${course.room ?: "未知"}"
+        view.findViewById<TextView>(R.id.tv_teacher).text = "👤 ${course.teacher ?: "未知"}"
+        view.findViewById<TextView>(R.id.tv_room).text = "📍 ${course.room ?: "未知"}"
 
         val startTime = TimeNode.getStartTime(course.startNode)
         val endTime = TimeNode.getEndTime(course.startNode + course.step - 1)
         val days = resources.getStringArray(R.array.days)
         val dayName = days.getOrElse(course.day - 1) { "" }
-        view.findViewById<TextView>(R.id.tv_time).text = "🕐 $dayName 第${course.startNode}-${course.startNode + course.step - 1}节 ($startTime-$endTime)"
+        view.findViewById<TextView>(R.id.tv_time).text = "🕐 $dayName 第${course.startNode}-${course.startNode + course.step - 1}节 ($startTime ~ $endTime)"
         view.findViewById<TextView>(R.id.tv_weeks).text = "📅 第${course.startWeek}-${course.endWeek}周"
 
         AlertDialog.Builder(this)
@@ -335,8 +337,6 @@ class ScheduleActivity : AppCompatActivity() {
             .show()
     }
 
-    // ==================== 设置弹窗 ====================
-
     private fun showSettingsDialog() {
         val view = LayoutInflater.from(this).inflate(R.layout.dialog_settings, null)
         val etStartDate = view.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.et_start_date)
@@ -344,11 +344,10 @@ class ScheduleActivity : AppCompatActivity() {
         val etNodes = view.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.et_nodes)
         val tvInfo = view.findViewById<TextView>(R.id.tv_current_week_info)
 
-        val t = table
-        if (t != null) {
-            etStartDate.setText(t.startDate)
-            etMaxWeek.setText(t.maxWeek.toString())
-            etNodes.setText(t.nodes.toString())
+        table?.let {
+            etStartDate.setText(it.startDate)
+            etMaxWeek.setText(it.maxWeek.toString())
+            etNodes.setText(it.nodes.toString())
             tvInfo.text = "当前自动计算为第 $currentWeek 周"
         }
 
@@ -360,14 +359,14 @@ class ScheduleActivity : AppCompatActivity() {
                 val nodes = etNodes.text?.toString()?.toIntOrNull() ?: 11
 
                 lifecycleScope.launch {
-                    val dao = App.instance.database.courseDao()
-                    val tb = table ?: return@launch
-                    tb.startDate = startDate
-                    tb.maxWeek = maxW
-                    tb.nodes = nodes
-                    withContext(Dispatchers.IO) { dao.updateTable(tb) }
-                    Toast.makeText(this@ScheduleActivity, "设置已保存", Toast.LENGTH_SHORT).show()
-                    loadSchedule()
+                    table?.let {
+                        it.startDate = startDate
+                        it.maxWeek = maxW
+                        it.nodes = nodes
+                        withContext(Dispatchers.IO) { App.instance.database.courseDao().updateTable(it) }
+                        Toast.makeText(this@ScheduleActivity, "已保存", Toast.LENGTH_SHORT).show()
+                        loadSchedule()
+                    }
                 }
             }
             .setNegativeButton("取消", null)
@@ -375,8 +374,6 @@ class ScheduleActivity : AppCompatActivity() {
     }
 
     private fun dpToPx(dp: Int): Int {
-        return TypedValue.applyDimension(
-            TypedValue.COMPLEX_UNIT_DIP, dp.toFloat(), resources.displayMetrics
-        ).toInt()
+        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp.toFloat(), resources.displayMetrics).toInt()
     }
 }

@@ -1,19 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="primary">#4CAF50</color>
+    <color name="primary">#66BB6A</color>
+    <color name="primary_dark">#338A3E</color>
     <color name="primary_variant">#388E3C</color>
     <color name="on_primary">#FFFFFF</color>
     <color name="secondary">#FFC107</color>
+    <color name="background">#FAFAFA</color>
+    <color name="surface">#FFFFFF</color>
 
-    <!-- Course colors -->
-    <color name="course_1">#F5B4FF</color>
-    <color name="course_2">#FFB8B8</color>
-    <color name="course_3">#FFD9B3</color>
-    <color name="course_4">#C8C4FF</color>
-    <color name="course_5">#CCFF99</color>
-    <color name="course_6">#ECEDFD</color>
-    <color name="course_7">#CCFFFF</color>
-    <color name="course_8">#FF87B3</color>
-    <color name="course_9">#FFFACD</color>
-    <color name="course_10">#CCFFCC</color>
+    <color name="header_bg">#F5F7F5</color>
+    <color name="today_header_bg">#66BB6A</color>
+    <color name="today_column_bg">#0A66BB6A</color>
+    <color name="divider">#F0F0F0</color>
+    <color name="node_text">#999999</color>
+    <color name="course_text">#FFFFFF</color>
+
+    <!-- 课程颜色 - 更鲜艳饱和 -->
+    <color name="course_1">#7E57C2</color>
+    <color name="course_2">#EF5350</color>
+    <color name="course_3">#FF7043</color>
+    <color name="course_4">#5C6BC0</color>
+    <color name="course_5">#66BB6A</color>
+    <color name="course_6">#42A5F5</color>
+    <color name="course_7">#26C6DA</color>
+    <color name="course_8">#EC407A</color>
+    <color name="course_9">#FFA726</color>
+    <color name="course_10">#AB47BC</color>
+    <color name="course_11">#26A69A</color>
+    <color name="course_12">#8D6E63</color>
+    <color name="course_13">#78909C</color>
+    <color name="course_14">#9CCC65</color>
+    <color name="course_15">#FFCA28</color>
 </resources>

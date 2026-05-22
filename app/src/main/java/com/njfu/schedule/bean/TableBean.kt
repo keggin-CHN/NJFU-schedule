@@ -9,7 +9,7 @@ data class TableBean(
     var id: Int = 0,
     var tableName: String = "",
     var nodes: Int = 11,
-    var startDate: String = "2025-02-24",  // 学期开始日期
+    var startDate: String = "2026-02-24",  // 学期开始日期
     var maxWeek: Int = 20,
     var currentWeek: Int = 1,
     var showSat: Boolean = true,

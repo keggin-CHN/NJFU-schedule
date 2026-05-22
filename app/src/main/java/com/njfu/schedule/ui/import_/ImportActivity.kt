@@ -22,9 +22,9 @@ class ImportActivity : AppCompatActivity() {
     private lateinit var binding: ActivityImportBinding
 
     private val courseColors = listOf(
-        "#F5B4FF", "#FFB8B8", "#FFD9B3", "#C8C4FF", "#CCFF99",
-        "#ECEDFD", "#CCFFFF", "#FF87B3", "#FFFACD", "#CCFFCC",
-        "#ADD8E6", "#FFC0CB", "#FFFFCC", "#99CCCC", "#FF9999"
+        "#7E57C2", "#EF5350", "#FF7043", "#5C6BC0", "#66BB6A",
+        "#42A5F5", "#26C6DA", "#EC407A", "#FFA726", "#AB47BC",
+        "#26A69A", "#8D6E63", "#78909C", "#9CCC65", "#FFCA28"
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -119,7 +119,7 @@ class ImportActivity : AppCompatActivity() {
                 tableName = "南林课表",
                 studentName = studentName,
                 studentId = studentId,
-                startDate = "2025-02-24"
+                startDate = "2026-02-24"
             ))
             table = dao.getTableById(id.toInt())!!
         } else {

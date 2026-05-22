@@ -23,8 +23,8 @@ class AddCourseActivity : AppCompatActivity() {
     private var editCourseId: Int = -1
     private var tableId: Int = -1
     private val courseColors = listOf(
-        "#F5B4FF", "#FFB8B8", "#FFD9B3", "#C8C4FF", "#CCFF99",
-        "#ECEDFD", "#CCFFFF", "#FF87B3", "#FFFACD", "#CCFFCC"
+        "#7E57C2", "#EF5350", "#FF7043", "#5C6BC0", "#66BB6A",
+        "#42A5F5", "#26C6DA", "#EC407A", "#FFA726", "#AB47BC"
     )
 
     override fun onCreate(savedInstanceState: Bundle?) {
