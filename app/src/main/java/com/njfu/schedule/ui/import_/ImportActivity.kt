@@ -106,7 +106,7 @@ class ImportActivity : AppCompatActivity() {
 
                 // 保存到数据库
                 withContext(Dispatchers.IO) {
-                    saveCourses(result.courses, result.studentName, studentId)
+                    saveCourses(result, studentId)
                 }
 
                 setLoading(false)
@@ -135,11 +135,12 @@ class ImportActivity : AppCompatActivity() {
     }
 
     private suspend fun saveCourses(
-        courses: List<NjfuImporter.CourseInfo>,
-        studentName: String,
+        result: NjfuImporter.ImportResult,
         studentId: String
     ) {
         val dao = App.instance.database.courseDao()
+        val courses = result.courses
+        val studentName = result.studentName
 
         // 创建或更新课表
         var table = dao.getFirstTable()
@@ -148,13 +149,13 @@ class ImportActivity : AppCompatActivity() {
                 tableName = "南林课表",
                 studentName = studentName,
                 studentId = studentId,
-                startDate = "2026-02-24"
+                startDate = result.semesterStartDate
             ))
             table = dao.getTableById(id.toInt())!!
         } else {
             table.studentName = studentName
             table.studentId = studentId
-            table.startDate = "2026-02-24"
+            table.startDate = result.semesterStartDate
             dao.updateTable(table)
         }
         val tableId = table.id

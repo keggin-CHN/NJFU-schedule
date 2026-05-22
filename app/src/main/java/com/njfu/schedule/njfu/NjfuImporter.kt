@@ -130,8 +130,9 @@ class NjfuImporter {
      * 步骤4：获取课表并解析
      */
     fun fetchAndParseSchedule(): ImportResult {
-        // 获取学生姓名
+        // 获取学生姓名和当前教学周
         var studentName = ""
+        var currentTeachingWeek = 12
         try {
             val infoReq = Request.Builder().url("https://jwxt.njfu.edu.cn/jsxsd/framework/xsMainV_new.jsp").get().build()
             val infoResp = client.newCall(infoReq).execute()
@@ -139,7 +140,20 @@ class NjfuImporter {
             val infoDoc = Jsoup.parse(infoHtml)
             studentName = infoDoc.select("span#Top1_divLoginName, #xhxm, .middletopdwxxdiv span").text()
                 .replace("同学", "").trim()
+            // 从"教学第X周"获取当前周数
+            val weekMatch = Regex("教学第(\\d+)周").find(infoHtml)
+            if (weekMatch != null) {
+                currentTeachingWeek = weekMatch.groupValues[1].toIntOrNull() ?: 12
+            }
         } catch (_: Exception) {}
+
+        // 根据当前教学周反推学期第1周周一的日期
+        val cal = java.util.Calendar.getInstance()
+        val dayOfWeek = cal.get(java.util.Calendar.DAY_OF_WEEK)
+        val todayDow = if (dayOfWeek == java.util.Calendar.SUNDAY) 7 else dayOfWeek - 1
+        val daysBack = (currentTeachingWeek - 1) * 7 + (todayDow - 1)
+        cal.add(java.util.Calendar.DAY_OF_YEAR, -daysBack)
+        val startDate = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.CHINA).format(cal.time)
 
         // 获取课表
         val scheduleReq = Request.Builder().url(SCHEDULE_URL).get().build()
@@ -149,7 +163,7 @@ class NjfuImporter {
         // 解析备注（无课表课程）
         val remarks = parseRemarks(scheduleHtml)
 
-        return ImportResult(parseSchedule(scheduleHtml), studentName, "2026-02-24", remarks)
+        return ImportResult(parseSchedule(scheduleHtml), studentName, startDate, remarks)
     }
 
     /**
