@@ -211,6 +211,7 @@ class ScheduleActivity : AppCompatActivity() {
     inner class WeekPagerAdapter : RecyclerView.Adapter<WeekPagerAdapter.VH>() {
         inner class VH(view: View) : RecyclerView.ViewHolder(view) {
             val grid: LinearLayout = view.findViewById(R.id.schedule_grid)
+            val tvRemarks: TextView = view.findViewById(R.id.tv_remarks)
         }
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
@@ -220,6 +221,15 @@ class ScheduleActivity : AppCompatActivity() {
 
         override fun onBindViewHolder(holder: VH, position: Int) {
             renderWeek(holder.grid, position + 1)
+            // 显示备注
+            val prefs = getSharedPreferences("njfu_login", android.content.Context.MODE_PRIVATE)
+            val remarks = prefs.getString("remarks", null)
+            if (!remarks.isNullOrEmpty()) {
+                holder.tvRemarks.visibility = View.VISIBLE
+                holder.tvRemarks.text = "备注：$remarks"
+            } else {
+                holder.tvRemarks.visibility = View.GONE
+            }
         }
 
         override fun getItemCount() = maxWeek
@@ -244,7 +254,18 @@ class ScheduleActivity : AppCompatActivity() {
 
         val gridLineColor = Color.parseColor("#CCCCCC")
         val gridLineWidth = dpToPx(1)
-        val useDrawableDash = true
+
+        // 创建虚线View的辅助函数
+        fun dashedH(): View = View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dpToPx(1))
+            background = resources.getDrawable(R.drawable.dashed_line_horizontal, theme)
+            setLayerType(View.LAYER_TYPE_SOFTWARE, null) // 虚线需要关闭硬件加速
+        }
+        fun dashedV(): View = View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(dpToPx(1), LinearLayout.LayoutParams.MATCH_PARENT)
+            background = resources.getDrawable(R.drawable.dashed_line_vertical, theme)
+            setLayerType(View.LAYER_TYPE_SOFTWARE, null)
+        }
 
         // 节次列
         val nodeCol = LinearLayout(this).apply {
@@ -267,19 +288,13 @@ class ScheduleActivity : AppCompatActivity() {
             nodeCol.addView(tv)
             // 节次之间的横线
             if (node < maxNode) {
-                nodeCol.addView(View(this).apply {
-                    layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, gridLineWidth)
-                    setBackgroundColor(gridLineColor)
-                })
+                nodeCol.addView(dashedH())
             }
         }
         container.addView(nodeCol)
 
-        // 节次列右边的竖线
-        container.addView(View(this).apply {
-            layoutParams = LinearLayout.LayoutParams(gridLineWidth, LinearLayout.LayoutParams.MATCH_PARENT)
-            setBackgroundColor(gridLineColor)
-        })
+        // 节次列右边的竖虚线
+        container.addView(dashedV())
 
         // 7天
         for (day in 1..7) {
@@ -305,26 +320,20 @@ class ScheduleActivity : AppCompatActivity() {
                     col.addView(createCourseCard(otherCourse, nameMap, colorMap, cellHeight, true))
                     currentNode += otherCourse.step
                 } else {
-                    // 空格子 + 底部横线
+                    // 空格子 + 底部虚线
                     val cell = View(this).apply {
-                        layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, cellHeight - gridLineWidth)
+                        layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, cellHeight - dpToPx(1))
                     }
                     col.addView(cell)
-                    col.addView(View(this).apply {
-                        layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, gridLineWidth)
-                        setBackgroundColor(gridLineColor)
-                    })
+                    col.addView(dashedH())
                     currentNode++
                 }
             }
             container.addView(col)
 
-            // 每天之间的竖线
+            // 每天之间的竖虚线
             if (day < 7) {
-                container.addView(View(this).apply {
-                    layoutParams = LinearLayout.LayoutParams(gridLineWidth, LinearLayout.LayoutParams.MATCH_PARENT)
-                    setBackgroundColor(gridLineColor)
-                })
+                container.addView(dashedV())
             }
         }
     }

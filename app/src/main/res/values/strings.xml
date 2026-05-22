@@ -21,6 +21,8 @@
     <string name="hint_room">教室</string>
     <string name="welcome">欢迎，%s</string>
 
+    <string name="widget_description">显示今日课程安排</string>
+
     <string-array name="days">
         <item>周一</item>
         <item>周二</item>

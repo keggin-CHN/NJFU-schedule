@@ -54,3 +54,9 @@ interface CourseDao {
 
     @Query("SELECT MAX(id) FROM CourseBaseBean WHERE tableId = :tableId")
     suspend fun getMaxCourseId(tableId: Int): Int?
+
+    @Query("SELECT * FROM CourseDetailBean WHERE tableId = :tableId")
+    fun getCourseDetailsById_sync(tableId: Int): List<CourseDetailBean>
+
+    @Query("SELECT * FROM CourseBaseBean WHERE tableId = :tableId")
+    fun getCourseBaseById_sync(tableId: Int): List<CourseBaseBean>
