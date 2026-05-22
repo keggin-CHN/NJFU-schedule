@@ -45,6 +45,12 @@ interface CourseDao {
     @Query("DELETE FROM CourseBaseBean WHERE id = :courseId AND tableId = :tableId")
     suspend fun deleteCourseBase(courseId: Int, tableId: Int)
 
+    @Query("SELECT * FROM CourseBaseBean WHERE id = :courseId AND tableId = :tableId")
+    suspend fun getCourseBaseById(courseId: Int, tableId: Int): CourseBaseBean?
+
+    @Query("SELECT * FROM CourseDetailBean WHERE id = :courseId AND tableId = :tableId")
+    suspend fun getCourseDetailsById(courseId: Int, tableId: Int): List<CourseDetailBean>
+}
+
     @Query("SELECT MAX(id) FROM CourseBaseBean WHERE tableId = :tableId")
     suspend fun getMaxCourseId(tableId: Int): Int?
-}

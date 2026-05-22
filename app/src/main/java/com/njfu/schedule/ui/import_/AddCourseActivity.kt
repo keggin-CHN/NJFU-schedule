@@ -64,12 +64,40 @@ class AddCourseActivity : AppCompatActivity() {
     private fun loadCourseData() {
         lifecycleScope.launch {
             val dao = App.instance.database.courseDao()
-            withContext(Dispatchers.IO) {
-                val bases = dao.getCourseBaseByTable(tableId)
-                val details = dao.getCourseDetailByTable(tableId)
-                // 使用 Flow 的第一个值
+            val base = withContext(Dispatchers.IO) { dao.getCourseBaseById(editCourseId, tableId) }
+            val details = withContext(Dispatchers.IO) { dao.getCourseDetailsById(editCourseId, tableId) }
+
+            if (base == null) return@launch
+
+            // 填充课程名
+            binding.etName.setText(base.courseName)
+
+            // 填充教师和教室（从第一条 detail 获取）
+            val firstDetail = details.firstOrNull()
+            if (firstDetail != null) {
+                binding.etTeacher.setText(firstDetail.teacher ?: "")
+                binding.etRoom.setText(firstDetail.room ?: "")
+
+                // 选中星期
+                for (i in 0 until binding.chipGroupDay.childCount) {
+                    val chip = binding.chipGroupDay.getChildAt(i) as? com.google.android.material.chip.Chip
+                    if (chip?.tag == firstDetail.day) {
+                        binding.chipGroupDay.check(chip.id)
+                        break
+                    }
+                }
+
+                // 填充节次
+                binding.etStartNode.setText(firstDetail.startNode.toString())
+                binding.etEndNode.setText((firstDetail.startNode + firstDetail.step - 1).toString())
+
+                // 填充周次（合并所有 detail 的周次范围）
+                val weeksStr = details.joinToString(",") { d ->
+                    if (d.startWeek == d.endWeek) "${d.startWeek}"
+                    else "${d.startWeek}-${d.endWeek}"
+                }
+                binding.etWeeks.setText(weeksStr)
             }
-            // 简化：从 intent 获取的 id 来查询
         }
     }
 

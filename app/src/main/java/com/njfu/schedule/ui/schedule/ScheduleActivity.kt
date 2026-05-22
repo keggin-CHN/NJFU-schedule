@@ -244,6 +244,7 @@ class ScheduleActivity : AppCompatActivity() {
 
         val gridLineColor = Color.parseColor("#CCCCCC")
         val gridLineWidth = dpToPx(1)
+        val useDrawableDash = true
 
         // 节次列
         val nodeCol = LinearLayout(this).apply {
