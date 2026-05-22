@@ -118,7 +118,8 @@ class ImportActivity : AppCompatActivity() {
             val id = dao.insertTable(TableBean(
                 tableName = "南林课表",
                 studentName = studentName,
-                studentId = studentId
+                studentId = studentId,
+                startDate = "2025-02-24"
             ))
             table = dao.getTableById(id.toInt())!!
         } else {

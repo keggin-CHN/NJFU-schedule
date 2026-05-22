@@ -21,7 +21,8 @@ class NjfuImporter {
 
     data class ImportResult(
         val courses: List<CourseInfo>,
-        val studentName: String
+        val studentName: String,
+        val semesterStartDate: String = ""  // 学期开始日期
     )
 
     data class CourseInfo(
@@ -129,7 +130,7 @@ class NjfuImporter {
         val scheduleHtml = scheduleResp.body?.string() ?: throw Exception("获取课表失败")
 
         // 8. 解析课表
-        return ImportResult(parseSchedule(scheduleHtml), studentName)
+        return ImportResult(parseSchedule(scheduleHtml), studentName, "2025-02-24")
     }
 
     private fun encryptAES(data: String, key: String): String {

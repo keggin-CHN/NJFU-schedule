@@ -5,17 +5,18 @@
     android:layout_height="match_parent"
     android:orientation="vertical">
 
-    <!-- 顶部栏：周切换 + 操作按钮 -->
+    <!-- 顶部栏 -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="52dp"
         android:background="?colorPrimary"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="12dp"
+        android:paddingStart="16dp"
         android:paddingEnd="8dp">
 
         <LinearLayout
+            android:id="@+id/week_selector"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_weight="1"
@@ -32,12 +33,11 @@
                 android:textStyle="bold" />
 
             <TextView
-                android:id="@+id/tv_student"
+                android:id="@+id/tv_date_info"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="#CCFFFFFF"
-                android:textSize="11sp"
-                android:visibility="gone" />
+                android:textColor="#BBFFFFFF"
+                android:textSize="11sp" />
         </LinearLayout>
 
         <ImageButton
@@ -57,25 +57,33 @@
             android:contentDescription="导入课表"
             android:src="@android:drawable/stat_sys_download"
             app:tint="@color/on_primary" />
+
+        <ImageButton
+            android:id="@+id/btn_settings"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?selectableItemBackgroundBorderless"
+            android:contentDescription="设置"
+            android:src="@android:drawable/ic_menu_preferences"
+            app:tint="@color/on_primary" />
     </LinearLayout>
 
-    <!-- 星期头部 -->
+    <!-- 星期头部（带日期） -->
     <LinearLayout
         android:id="@+id/header_row"
         android:layout_width="match_parent"
-        android:layout_height="28dp"
-        android:background="#F5F5F5"
+        android:layout_height="36dp"
+        android:background="#F8F8F8"
         android:orientation="horizontal">
 
         <TextView
-            android:layout_width="32dp"
+            android:layout_width="30dp"
             android:layout_height="match_parent"
             android:gravity="center"
-            android:text="节"
-            android:textSize="10sp" />
+            android:textSize="9sp" />
     </LinearLayout>
 
-    <!-- 课表主体：ViewPager 实现左右滑动切换周 -->
+    <!-- 课表主体 ViewPager2 -->
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/view_pager"
         android:layout_width="match_parent"
@@ -83,14 +91,29 @@
         android:layout_weight="1" />
 
     <!-- 空状态 -->
-    <TextView
-        android:id="@+id/tv_empty"
+    <LinearLayout
+        android:id="@+id/empty_view"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:gravity="center"
-        android:text="@string/no_courses"
-        android:textSize="16sp"
-        android:visibility="gone" />
+        android:orientation="vertical"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:lineSpacingExtra="6dp"
+            android:text="@string/no_courses"
+            android:textSize="16sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_empty_import"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="导入课表" />
+    </LinearLayout>
 
 </LinearLayout>
