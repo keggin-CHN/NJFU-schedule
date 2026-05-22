@@ -192,15 +192,9 @@ class NjfuImporter {
                     val cols = row.select("td")
                     if (cols.size >= 4) {
                         val courseName = cols[3].text().trim()
-                        val teacher = cols[4].text().trim()
-                        val nature = if (cols.size > 7) cols[7].text().trim() else ""
-                        val attr = if (cols.size > 8) cols[8].text().trim() else ""
-                        val info = buildString {
-                            append(courseName)
-                            if (teacher.isNotEmpty()) append(" ($teacher)")
-                            if (nature.isNotEmpty()) append(" [$nature]")
+                        if (courseName.isNotEmpty() && !remarks.any { it.contains(courseName) }) {
+                            remarks.add(courseName)
                         }
-                        if (info.isNotEmpty()) remarks.add(info)
                     }
                 }
             }

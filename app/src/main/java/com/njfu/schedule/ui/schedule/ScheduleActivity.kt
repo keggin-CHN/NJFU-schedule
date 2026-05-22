@@ -345,18 +345,18 @@ class ScheduleActivity : AppCompatActivity() {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 cellHeight * course.step
-            ).apply { setMargins(dpToPx(1), dpToPx(1), dpToPx(1), dpToPx(1)) }
+            )
 
             gravity = Gravity.CENTER
             val displayText = buildString {
                 append(name)
-                if (room.isNotEmpty()) append("\n$room")
                 if (teacher.isNotEmpty() && course.step >= 2) append("\n$teacher")
+                if (room.isNotEmpty()) append("\n$room")
             }
             text = displayText
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
             setTextColor(Color.WHITE)
-            setPadding(dpToPx(3))
+            setPadding(dpToPx(2), dpToPx(2), dpToPx(2), dpToPx(2))
             maxLines = course.step * 2 + 2
             includeFontPadding = false
             typeface = Typeface.DEFAULT_BOLD
@@ -364,13 +364,12 @@ class ScheduleActivity : AppCompatActivity() {
             val color = try { Color.parseColor(bgColor) } catch (_: Exception) { Color.parseColor("#7986CB") }
             val drawable = GradientDrawable().apply {
                 if (isOtherWeek) {
-                    // 非本周：白底 + 淡色边框，确保有背景时也能看清
                     setColor(Color.argb(200, 255, 255, 255))
                     setStroke(dpToPx(1), Color.argb(80, Color.red(color), Color.green(color), Color.blue(color)))
                 } else {
                     setColor(color)
                 }
-                cornerRadius = dpToPx(6).toFloat()
+                cornerRadius = dpToPx(4).toFloat()
             }
             background = drawable
 
@@ -486,6 +485,16 @@ class ScheduleActivity : AppCompatActivity() {
         view.findViewById<View>(R.id.menu_about_page).setOnClickListener {
             dialog.dismiss()
             startActivity(Intent(this, com.njfu.schedule.ui.settings.AboutActivity::class.java))
+        }
+
+        // 桌面小组件
+        view.findViewById<View>(R.id.menu_widget).setOnClickListener {
+            dialog.dismiss()
+            AlertDialog.Builder(this)
+                .setTitle("添加桌面小组件")
+                .setMessage("长按手机桌面空白处，选择「小组件」或「Widgets」，找到「南林课程表」即可添加到桌面。\n\n小组件会显示今日课程安排，每30分钟自动刷新。")
+                .setPositiveButton("知道了", null)
+                .show()
         }
 
         // 删除课表
