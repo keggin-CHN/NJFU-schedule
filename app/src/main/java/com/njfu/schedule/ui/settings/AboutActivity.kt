@@ -18,17 +18,25 @@ class AboutActivity : AppCompatActivity() {
 
         // QQ - 跳转到QQ聊天
         binding.btnQq.setOnClickListener {
+            val qqNumber = "239289001"
             try {
-                // 尝试多种QQ跳转方式
-                val qqUrl = "mqqopensdkapi://bizAgent/qm/qr?url=http%3A%2F%2Fqm.qq.com%2Fcgi-bin%2Fqm%2Fqr%3Ffrom%3Dapp%26p%3Dandroid%26jump_from%3Dwebapi%26k%3D239289001"
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(qqUrl))
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                // 标准QQ跳转方式
+                val intent = Intent(Intent.ACTION_VIEW)
+                intent.data = Uri.parse("mqqapi://card/show_pslcard?src_type=internal&version=1&uin=$qqNumber&card_type=person&source=qrcode")
+                intent.setPackage("com.tencent.mobileqq")
                 startActivity(intent)
-            } catch (e: Exception) {
-                // 备用方案：复制QQ号
-                val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("QQ", "239289001"))
-                Toast.makeText(this, "QQ号已复制：239289001", Toast.LENGTH_SHORT).show()
+            } catch (e1: Exception) {
+                try {
+                    // 备用方式
+                    val intent2 = Intent(Intent.ACTION_VIEW)
+                    intent2.data = Uri.parse("mqqwpa://im/chat?chat_type=wpa&uin=$qqNumber&version=1&src_type=web")
+                    startActivity(intent2)
+                } catch (e2: Exception) {
+                    // 最终备用：复制QQ号
+                    val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                    clipboard.setPrimaryClip(android.content.ClipData.newPlainText("QQ", qqNumber))
+                    Toast.makeText(this, "QQ号已复制：$qqNumber", Toast.LENGTH_SHORT).show()
+                }
             }
         }
 
