@@ -20,12 +20,13 @@
             android:id="@+id/tv_remarks"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:background="#E0FFFFFF"
             android:paddingStart="12dp"
-            android:paddingTop="8dp"
+            android:paddingTop="10dp"
             android:paddingEnd="12dp"
             android:paddingBottom="16dp"
-            android:textColor="#888888"
-            android:textSize="11sp"
+            android:textColor="#555555"
+            android:textSize="12sp"
             android:visibility="gone" />
     </LinearLayout>
 </ScrollView>

@@ -19,10 +19,16 @@ class AboutActivity : AppCompatActivity() {
         // QQ - 跳转到QQ聊天
         binding.btnQq.setOnClickListener {
             try {
-                val url = "mqqwpa://im/chat?chat_type=wpa&uin=239289001"
-                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                // 尝试多种QQ跳转方式
+                val qqUrl = "mqqopensdkapi://bizAgent/qm/qr?url=http%3A%2F%2Fqm.qq.com%2Fcgi-bin%2Fqm%2Fqr%3Ffrom%3Dapp%26p%3Dandroid%26jump_from%3Dwebapi%26k%3D239289001"
+                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(qqUrl))
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(intent)
             } catch (e: Exception) {
-                Toast.makeText(this, "未安装QQ", Toast.LENGTH_SHORT).show()
+                // 备用方案：复制QQ号
+                val clipboard = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                clipboard.setPrimaryClip(android.content.ClipData.newPlainText("QQ", "239289001"))
+                Toast.makeText(this, "QQ号已复制：239289001", Toast.LENGTH_SHORT).show()
             }
         }
 
