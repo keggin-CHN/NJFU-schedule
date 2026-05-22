@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">南林课程表</string>
+    <string name="hint_student_id">学号</string>
+    <string name="hint_password">密码</string>
+    <string name="btn_import">登录并导入课表</string>
+    <string name="importing">正在导入…</string>
+    <string name="import_success">导入成功！共 %d 门课程</string>
+    <string name="import_failed">导入失败：%s</string>
+    <string name="title_import">导入课表</string>
+    <string name="no_courses">还没有课程，点击右上角导入</string>
+
+    <string-array name="weeks">
+        <item>周一</item>
+        <item>周二</item>
+        <item>周三</item>
+        <item>周四</item>
+        <item>周五</item>
+        <item>周六</item>
+        <item>周日</item>
+    </string-array>
+</resources>

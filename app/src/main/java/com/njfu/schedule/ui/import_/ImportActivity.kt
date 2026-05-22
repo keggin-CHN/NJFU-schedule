@@ -1,0 +1,163 @@
+package com.njfu.schedule.ui.import_
+
+import android.os.Bundle
+import android.view.View
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
+import com.njfu.schedule.App
+import com.njfu.schedule.R
+import com.njfu.schedule.bean.CourseBaseBean
+import com.njfu.schedule.bean.CourseDetailBean
+import com.njfu.schedule.bean.TableBean
+import com.njfu.schedule.databinding.ActivityImportBinding
+import com.njfu.schedule.njfu.NjfuImporter
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+class ImportActivity : AppCompatActivity() {
+
+    private lateinit var binding: ActivityImportBinding
+
+    private val courseColors = listOf(
+        "#F5B4FF", "#FFB8B8", "#FFD9B3", "#C8C4FF", "#CCFF99",
+        "#ECEDFD", "#CCFFFF", "#FF87B3", "#FFFACD", "#CCFFCC",
+        "#ADD8E6", "#FFC0CB", "#FFFFCC", "#99CCCC", "#FF9999"
+    )
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        binding = ActivityImportBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        binding.btnImport.setOnClickListener { doImport() }
+    }
+
+    private fun doImport() {
+        val studentId = binding.etId.text?.toString()?.trim() ?: ""
+        val password = binding.etPwd.text?.toString()?.trim() ?: ""
+
+        if (studentId.isEmpty()) {
+            binding.inputId.error = "请输入学号"
+            return
+        }
+        if (password.isEmpty()) {
+            binding.inputPwd.error = "请输入密码"
+            return
+        }
+
+        binding.inputId.error = null
+        binding.inputPwd.error = null
+        setLoading(true)
+
+        lifecycleScope.launch {
+            try {
+                val courses = withContext(Dispatchers.IO) {
+                    NjfuImporter().importSchedule(studentId, password)
+                }
+
+                if (courses.isEmpty()) {
+                    setLoading(false)
+                    binding.tvStatus.text = "未获取到课程数据，可能本学期尚未排课"
+                    return@launch
+                }
+
+                // 保存到数据库
+                withContext(Dispatchers.IO) {
+                    saveCourses(courses)
+                }
+
+                setLoading(false)
+                val courseNames = courses.map { it.name }.distinct()
+                binding.tvStatus.text = getString(R.string.import_success, courseNames.size)
+                Toast.makeText(this@ImportActivity, "导入成功！", Toast.LENGTH_SHORT).show()
+
+                // 延迟返回
+                binding.root.postDelayed({
+                    setResult(RESULT_OK)
+                    finish()
+                }, 1500)
+
+            } catch (e: Exception) {
+                setLoading(false)
+                binding.tvStatus.text = getString(R.string.import_failed, e.message)
+            }
+        }
+    }
+
+    private suspend fun saveCourses(courses: List<NjfuImporter.CourseInfo>) {
+        val dao = App.instance.database.courseDao()
+
+        // 创建或获取课表
+        var table = dao.getFirstTable()
+        if (table == null) {
+            val id = dao.insertTable(TableBean(tableName = "南林课表"))
+            table = dao.getTableById(id.toInt())!!
+        }
+        val tableId = table.id
+
+        // 清除旧数据
+        dao.deleteCoursesByTable(tableId)
+        dao.deleteDetailsByTable(tableId)
+
+        // 按课程名分组
+        val courseNames = courses.map { it.name }.distinct()
+        val nameToId = courseNames.mapIndexed { idx, name -> name to idx }.toMap()
+
+        // 插入 CourseBaseBean
+        for ((name, id) in nameToId) {
+            val color = courseColors[id % courseColors.size]
+            dao.insertCourseBase(CourseBaseBean(id, name, color, tableId))
+        }
+
+        // 插入 CourseDetailBean（拆分不连续周次）
+        for (course in courses) {
+            val id = nameToId[course.name]!!
+            val step = course.endNode - course.startNode + 1
+            val weekRanges = toWeekRanges(course.weeks)
+
+            for ((startWeek, endWeek) in weekRanges) {
+                dao.insertCourseDetail(
+                    CourseDetailBean(
+                        id = id,
+                        day = course.day,
+                        room = course.room,
+                        teacher = course.teacher,
+                        startNode = course.startNode,
+                        step = step,
+                        startWeek = startWeek,
+                        endWeek = endWeek,
+                        type = 0,
+                        tableId = tableId
+                    )
+                )
+            }
+        }
+    }
+
+    private fun toWeekRanges(weeks: List<Int>): List<Pair<Int, Int>> {
+        if (weeks.isEmpty()) return emptyList()
+        val ranges = mutableListOf<Pair<Int, Int>>()
+        var start = weeks[0]
+        var end = weeks[0]
+        for (w in weeks.drop(1)) {
+            if (w == end + 1) {
+                end = w
+            } else {
+                ranges.add(Pair(start, end))
+                start = w
+                end = w
+            }
+        }
+        ranges.add(Pair(start, end))
+        return ranges
+    }
+
+    private fun setLoading(loading: Boolean) {
+        binding.progress.visibility = if (loading) View.VISIBLE else View.GONE
+        binding.btnImport.isEnabled = !loading
+        binding.btnImport.text = if (loading) getString(R.string.importing) else getString(R.string.btn_import)
+        if (loading) binding.tvStatus.text = ""
+    }
+}

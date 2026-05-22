@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primary">#4CAF50</color>
+    <color name="primary_variant">#388E3C</color>
+    <color name="on_primary">#FFFFFF</color>
+    <color name="secondary">#FFC107</color>
+
+    <!-- Course colors -->
+    <color name="course_1">#F5B4FF</color>
+    <color name="course_2">#FFB8B8</color>
+    <color name="course_3">#FFD9B3</color>
+    <color name="course_4">#C8C4FF</color>
+    <color name="course_5">#CCFF99</color>
+    <color name="course_6">#ECEDFD</color>
+    <color name="course_7">#CCFFFF</color>
+    <color name="course_8">#FF87B3</color>
+    <color name="course_9">#FFFACD</color>
+    <color name="course_10">#CCFFCC</color>
+</resources>
