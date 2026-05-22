@@ -363,7 +363,9 @@ class ScheduleActivity : AppCompatActivity() {
             val color = try { Color.parseColor(bgColor) } catch (_: Exception) { Color.parseColor("#7986CB") }
             val drawable = GradientDrawable().apply {
                 if (isOtherWeek) {
-                    setColor(Color.argb(20, Color.red(color), Color.green(color), Color.blue(color)))
+                    // 非本周：白底 + 淡色边框，确保有背景时也能看清
+                    setColor(Color.argb(200, 255, 255, 255))
+                    setStroke(dpToPx(1), Color.argb(80, Color.red(color), Color.green(color), Color.blue(color)))
                 } else {
                     setColor(color)
                 }
@@ -372,7 +374,7 @@ class ScheduleActivity : AppCompatActivity() {
             background = drawable
 
             if (isOtherWeek) {
-                setTextColor(Color.parseColor("#BBBBBB"))
+                setTextColor(Color.argb(150, Color.red(color), Color.green(color), Color.blue(color)))
                 typeface = Typeface.DEFAULT
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 9f)
             }
