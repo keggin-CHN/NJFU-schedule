@@ -58,62 +58,78 @@ class NjfuImporter {
             .build()
     }
 
+    data class LoginParams(val lt: String, val salt: String, val dllt: String, val uiaUrl: String)
+
+    private var studentNameResult = ""
+
     /**
-     * 登录并获取课表
+     * 步骤1：准备会话，访问教务系统获取cookie
      */
-    suspend fun importSchedule(studentId: String, password: String): ImportResult {
-        // 1. 访问教务系统获取cookie
+    fun prepareSession() {
         val appReq = Request.Builder().url(APP_URL).get().build()
         client.newCall(appReq).execute().close()
+    }
 
-        // 2. 访问统一认证登录页
+    /**
+     * 步骤2：访问统一认证登录页，获取表单参数
+     */
+    fun fetchLoginPage(): LoginParams {
         val uiaUrl = "$UIA_BASE/authserver/login?service=${URLEncoder.encode(APP_URL, "UTF-8")}"
         val loginPageReq = Request.Builder().url(uiaUrl).get().build()
         val loginPageResp = client.newCall(loginPageReq).execute()
         val loginHtml = loginPageResp.body?.string() ?: throw Exception("无法访问登录页面")
 
-        // 3. 解析登录表单参数
         val doc = Jsoup.parse(loginHtml)
         val lt = doc.select("input[name=lt]").attr("value")
         val salt = doc.select("input[id=pwdDefaultEncryptSalt]").attr("value")
         val dllt = doc.select("input[name=dllt]").attr("value")
 
         if (lt.isEmpty() || salt.isEmpty()) {
-            throw Exception("获取登录参数失败")
+            throw Exception("获取登录参数失败，请检查网络")
         }
+        return LoginParams(lt, salt, dllt, uiaUrl)
+    }
 
-        // 4. 检查是否需要验证码
+    /**
+     * 步骤3：加密密码并登录
+     */
+    fun doLogin(studentId: String, password: String, params: LoginParams) {
+        // 检查验证码
         val captchaUrl = "$UIA_BASE/authserver/needCaptcha.html?username=$studentId&pwdEncrypt2=pwdEncryptSalt&_=${System.currentTimeMillis()}"
         val captchaReq = Request.Builder().url(captchaUrl).get().build()
         val captchaResp = client.newCall(captchaReq).execute()
         val needCaptcha = captchaResp.body?.string() ?: "true"
         if (needCaptcha != "false") {
-            throw Exception("该账号需要验证码，请先在浏览器中登录一次后重试")
+            throw Exception("需要验证码，请先在浏览器登录一次后重试")
         }
 
-        // 5. 加密密码并登录
-        val encryptedPwd = encryptAES(password, salt)
+        val encryptedPwd = encryptAES(password, params.salt)
         val formBody = FormBody.Builder()
             .add("username", studentId)
             .add("password", encryptedPwd)
-            .add("lt", lt)
-            .add("dllt", dllt)
+            .add("lt", params.lt)
+            .add("dllt", params.dllt)
             .add("execution", "e1s1")
             .add("_eventId", "submit")
             .add("rmShown", "1")
             .build()
 
-        val loginReq = Request.Builder().url(uiaUrl).post(formBody).build()
+        val loginReq = Request.Builder().url(params.uiaUrl).post(formBody).build()
         val loginResp = client.newCall(loginReq).execute()
         val loginResultUrl = loginResp.request.url.toString()
 
         if (loginResultUrl.contains("uia.njfu.edu.cn")) {
             val errorDoc = Jsoup.parse(loginResp.body?.string() ?: "")
             val errorMsg = errorDoc.select("span#msg").text()
-            throw Exception(if (errorMsg.isNotEmpty()) errorMsg else "登录失败，请检查账号密码")
+            throw Exception(if (errorMsg.isNotEmpty()) errorMsg else "账号或密码错误")
         }
+    }
 
-        // 6. 获取学生姓名
+    /**
+     * 步骤4：获取课表并解析
+     */
+    fun fetchAndParseSchedule(): ImportResult {
+        // 获取学生姓名
         var studentName = ""
         try {
             val infoReq = Request.Builder().url("https://jwxt.njfu.edu.cn/jsxsd/framework/xsMainV_new.jsp").get().build()
@@ -124,14 +140,22 @@ class NjfuImporter {
                 .replace("同学", "").trim()
         } catch (_: Exception) {}
 
-        // 7. 获取课表页面
+        // 获取课表
         val scheduleReq = Request.Builder().url(SCHEDULE_URL).get().build()
         val scheduleResp = client.newCall(scheduleReq).execute()
-        val scheduleHtml = scheduleResp.body?.string() ?: throw Exception("获取课表失败")
+        val scheduleHtml = scheduleResp.body?.string() ?: throw Exception("获取课表页面失败")
 
-        // 8. 解析课表
-        // 2025-2026-2 学期开始日期约为 2026-02-23
         return ImportResult(parseSchedule(scheduleHtml), studentName, "2026-02-24")
+    }
+
+    /**
+     * 一步完成（保留兼容）
+     */
+    suspend fun importSchedule(studentId: String, password: String): ImportResult {
+        prepareSession()
+        val params = fetchLoginPage()
+        doLogin(studentId, password, params)
+        return fetchAndParseSchedule()
     }
 
     private fun encryptAES(data: String, key: String): String {

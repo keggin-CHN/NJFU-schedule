@@ -62,8 +62,25 @@ class ImportActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val importer = NjfuImporter()
+
+                updateStep("正在连接教务系统...")
+                val session = withContext(Dispatchers.IO) {
+                    importer.prepareSession()
+                }
+
+                updateStep("正在访问统一认证...")
+                val loginParams = withContext(Dispatchers.IO) {
+                    importer.fetchLoginPage()
+                }
+
+                updateStep("正在验证账号密码...")
+                withContext(Dispatchers.IO) {
+                    importer.doLogin(studentId, password, loginParams)
+                }
+
+                updateStep("登录成功，正在获取课表...")
                 val result = withContext(Dispatchers.IO) {
-                    importer.importSchedule(studentId, password)
+                    importer.fetchAndParseSchedule()
                 }
 
                 if (result.courses.isEmpty()) {
@@ -71,6 +88,8 @@ class ImportActivity : AppCompatActivity() {
                     binding.tvStatus.text = "未获取到课程数据，可能本学期尚未排课"
                     return@launch
                 }
+
+                updateStep("正在保存 ${result.courses.map { it.name }.distinct().size} 门课程...")
 
                 // 保存账号密码
                 getSharedPreferences("njfu_login", Context.MODE_PRIVATE).edit()
@@ -86,9 +105,9 @@ class ImportActivity : AppCompatActivity() {
                 setLoading(false)
                 val courseNames = result.courses.map { it.name }.distinct()
                 val msg = if (result.studentName.isNotEmpty()) {
-                    "${result.studentName}，导入成功！共 ${courseNames.size} 门课程"
+                    "✓ ${result.studentName}，导入成功！\n共 ${courseNames.size} 门课程，${result.courses.size} 条时间安排"
                 } else {
-                    getString(R.string.import_success, courseNames.size)
+                    "✓ 导入成功！共 ${courseNames.size} 门课程"
                 }
                 binding.tvStatus.text = msg
                 Toast.makeText(this@ImportActivity, "导入成功！", Toast.LENGTH_SHORT).show()
@@ -96,11 +115,11 @@ class ImportActivity : AppCompatActivity() {
                 binding.root.postDelayed({
                     setResult(RESULT_OK)
                     finish()
-                }, 1500)
+                }, 2000)
 
             } catch (e: Exception) {
                 setLoading(false)
-                binding.tvStatus.text = getString(R.string.import_failed, e.message)
+                binding.tvStatus.text = "✗ ${e.message}"
             }
         }
     }
@@ -177,5 +196,9 @@ class ImportActivity : AppCompatActivity() {
         binding.btnImport.isEnabled = !loading
         binding.btnImport.text = if (loading) getString(R.string.importing) else getString(R.string.btn_import)
         if (loading) binding.tvStatus.text = ""
+    }
+
+    private fun updateStep(text: String) {
+        binding.tvStatus.text = text
     }
 }

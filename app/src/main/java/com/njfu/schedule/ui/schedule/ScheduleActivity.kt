@@ -141,7 +141,7 @@ class ScheduleActivity : AppCompatActivity() {
         while (headerRow.childCount > 1) headerRow.removeViewAt(1)
 
         val startDate = table?.startDate ?: "2026-02-24"
-        val dates = WeekUtils.getWeekDates(currentWeek, targetWeek, startDate)
+        val dates = WeekUtils.getWeekDates(targetWeek, startDate)
         val dayLabels = arrayOf("一", "二", "三", "四", "五", "六", "日")
 
         for (i in 0..6) {
@@ -242,8 +242,8 @@ class ScheduleActivity : AppCompatActivity() {
             allDetails.filter { d -> !(d.startWeek <= week && d.endWeek >= week) }
         } else emptyList()
 
-        val gridLineColor = Color.parseColor("#F0F0F0")
-        val gridLineWidth = 1 // px
+        val gridLineColor = Color.parseColor("#CCCCCC")
+        val gridLineWidth = dpToPx(1)
 
         // 节次列
         val nodeCol = LinearLayout(this).apply {
