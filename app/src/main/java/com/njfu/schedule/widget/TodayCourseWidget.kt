@@ -58,11 +58,11 @@ class TodayCourseWidget : AppWidgetProvider() {
             views.setTextViewText(R.id.tv_widget_date, dateStr)
 
             // 从数据库获取今日课程
-            val todayCourses = runBlocking {
+            val todayCourses: List<WidgetCourse> = runBlocking {
                 try {
                     val db = AppDatabase.getDatabase(context)
                     val dao = db.courseDao()
-                    val table = dao.getFirstTable() ?: return@runBlocking emptyList()
+                    val table = dao.getFirstTable() ?: return@runBlocking emptyList<WidgetCourse>()
                     val currentWeek = WeekUtils.getCurrentWeek(table.startDate)
 
                     val allDetails = dao.getCourseDetailsById_sync(table.id)
@@ -71,11 +71,11 @@ class TodayCourseWidget : AppWidgetProvider() {
                     val nameMap = allBases.associate { it.id to it.courseName }
                     val colorMap = allBases.associate { it.id to it.color }
 
-                    allDetails.filter { d ->
+                    allDetails.filter { d: com.njfu.schedule.bean.CourseDetailBean ->
                         d.day == todayOfWeek &&
                         d.startWeek <= currentWeek && d.endWeek >= currentWeek &&
                         (d.type == 0 || (d.type == 1 && currentWeek % 2 == 1) || (d.type == 2 && currentWeek % 2 == 0))
-                    }.sortedBy { it.startNode }.map { d ->
+                    }.sortedBy { it.startNode }.map { d: com.njfu.schedule.bean.CourseDetailBean ->
                         WidgetCourse(
                             name = nameMap[d.id] ?: "",
                             time = "${TimeNode.getStartTime(d.startNode)}-${TimeNode.getEndTime(d.startNode + d.step - 1)}",
@@ -84,7 +84,7 @@ class TodayCourseWidget : AppWidgetProvider() {
                         )
                     }
                 } catch (_: Exception) {
-                    emptyList()
+                    emptyList<WidgetCourse>()
                 }
             }
 

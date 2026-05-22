@@ -485,11 +485,17 @@ class ScheduleActivity : AppCompatActivity() {
             showCourseList()
         }
 
-        // 关于
+        // 背景设置
         view.findViewById<View>(R.id.menu_about).setOnClickListener {
             dialog.dismiss()
             val intent = Intent(this, BackgroundSettingsActivity::class.java)
             bgLauncher.launch(intent)
+        }
+
+        // 关于
+        view.findViewById<View>(R.id.menu_about_page).setOnClickListener {
+            dialog.dismiss()
+            startActivity(Intent(this, com.njfu.schedule.ui.settings.AboutActivity::class.java))
         }
 
         // 删除课表
