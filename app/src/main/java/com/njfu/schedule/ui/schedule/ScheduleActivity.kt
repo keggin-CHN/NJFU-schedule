@@ -513,22 +513,63 @@ class ScheduleActivity : AppCompatActivity() {
     ) { loadBackground() }
 
     private fun showCourseList() {
-        val names = allBases.map { it.courseName }
-        if (names.isEmpty()) {
+        if (allBases.isEmpty()) {
             Toast.makeText(this, "暂无课程", Toast.LENGTH_SHORT).show()
             return
         }
-        AlertDialog.Builder(this)
-            .setTitle("已添加课程 (${names.size}门)")
-            .setItems(names.toTypedArray()) { _, idx ->
-                val course = allBases[idx]
-                val intent = Intent(this, AddCourseActivity::class.java)
-                intent.putExtra("course_id", course.id)
-                intent.putExtra("table_id", course.tableId)
-                addCourseLauncher.launch(intent)
+
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_course_list, null)
+        val recyclerView = dialogView.findViewById<RecyclerView>(R.id.recycler_view)
+        recyclerView.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
+
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        recyclerView.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+            inner class VH(view: View) : RecyclerView.ViewHolder(view)
+
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
+                val view = LayoutInflater.from(parent.context).inflate(R.layout.item_course_list, parent, false)
+                return VH(view)
             }
-            .setPositiveButton("关闭", null)
-            .show()
+
+            override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+                val base = allBases[position]
+                val details = allDetails.filter { it.id == base.id && it.tableId == base.tableId }
+                val color = try { Color.parseColor(base.color) } catch (_: Exception) { Color.GRAY }
+
+                val dot = holder.itemView.findViewById<View>(R.id.color_dot)
+                val bg = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(color)
+                }
+                dot.background = bg
+
+                holder.itemView.findViewById<TextView>(R.id.tv_name).text = base.courseName
+
+                val info = if (details.isNotEmpty()) {
+                    val d = details.first()
+                    val dayLabels = arrayOf("周一","周二","周三","周四","周五","周六","周日")
+                    val dayName = dayLabels.getOrElse(d.day - 1) { "" }
+                    "${d.teacher ?: ""} · $dayName · 第${d.startWeek}-${d.endWeek}周"
+                } else ""
+                holder.itemView.findViewById<TextView>(R.id.tv_info).text = info
+
+                holder.itemView.setOnClickListener {
+                    dialog.dismiss()
+                    val intent = Intent(this@ScheduleActivity, AddCourseActivity::class.java)
+                    intent.putExtra("course_id", base.id)
+                    intent.putExtra("table_id", base.tableId)
+                    addCourseLauncher.launch(intent)
+                }
+            }
+
+            override fun getItemCount() = allBases.size
+        }
+
+        dialog.show()
     }
 
     private fun showSettingsDialog() {
