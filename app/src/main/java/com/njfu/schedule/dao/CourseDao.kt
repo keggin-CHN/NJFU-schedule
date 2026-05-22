@@ -18,14 +18,14 @@ interface CourseDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertTable(bean: TableBean): Long
 
+    @Update
+    suspend fun updateTable(bean: TableBean)
+
     @Query("SELECT * FROM CourseBaseBean WHERE tableId = :tableId")
     fun getCourseBaseByTable(tableId: Int): Flow<List<CourseBaseBean>>
 
     @Query("SELECT * FROM CourseDetailBean WHERE tableId = :tableId")
     fun getCourseDetailByTable(tableId: Int): Flow<List<CourseDetailBean>>
-
-    @Query("SELECT * FROM CourseDetailBean WHERE tableId = :tableId AND day = :day")
-    fun getCourseDetailByDay(tableId: Int, day: Int): Flow<List<CourseDetailBean>>
 
     @Query("SELECT * FROM TableBean WHERE id = :id")
     suspend fun getTableById(id: Int): TableBean?
@@ -38,4 +38,13 @@ interface CourseDao {
 
     @Query("DELETE FROM CourseDetailBean WHERE tableId = :tableId")
     suspend fun deleteDetailsByTable(tableId: Int)
+
+    @Query("DELETE FROM CourseDetailBean WHERE id = :courseId AND tableId = :tableId")
+    suspend fun deleteDetailsByCourseId(courseId: Int, tableId: Int)
+
+    @Query("DELETE FROM CourseBaseBean WHERE id = :courseId AND tableId = :tableId")
+    suspend fun deleteCourseBase(courseId: Int, tableId: Int)
+
+    @Query("SELECT MAX(id) FROM CourseBaseBean WHERE tableId = :tableId")
+    suspend fun getMaxCourseId(tableId: Int): Int?
 }

@@ -1,5 +1,6 @@
 package com.njfu.schedule.ui.import_
 
+import android.content.Context
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
@@ -31,6 +32,13 @@ class ImportActivity : AppCompatActivity() {
         binding = ActivityImportBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // 恢复保存的账号密码
+        val prefs = getSharedPreferences("njfu_login", Context.MODE_PRIVATE)
+        val savedId = prefs.getString("student_id", "") ?: ""
+        val savedPwd = prefs.getString("password", "") ?: ""
+        if (savedId.isNotEmpty()) binding.etId.setText(savedId)
+        if (savedPwd.isNotEmpty()) binding.etPwd.setText(savedPwd)
+
         binding.btnImport.setOnClickListener { doImport() }
     }
 
@@ -53,27 +61,38 @@ class ImportActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             try {
-                val courses = withContext(Dispatchers.IO) {
-                    NjfuImporter().importSchedule(studentId, password)
+                val importer = NjfuImporter()
+                val result = withContext(Dispatchers.IO) {
+                    importer.importSchedule(studentId, password)
                 }
 
-                if (courses.isEmpty()) {
+                if (result.courses.isEmpty()) {
                     setLoading(false)
                     binding.tvStatus.text = "未获取到课程数据，可能本学期尚未排课"
                     return@launch
                 }
 
+                // 保存账号密码
+                getSharedPreferences("njfu_login", Context.MODE_PRIVATE).edit()
+                    .putString("student_id", studentId)
+                    .putString("password", password)
+                    .apply()
+
                 // 保存到数据库
                 withContext(Dispatchers.IO) {
-                    saveCourses(courses)
+                    saveCourses(result.courses, result.studentName, studentId)
                 }
 
                 setLoading(false)
-                val courseNames = courses.map { it.name }.distinct()
-                binding.tvStatus.text = getString(R.string.import_success, courseNames.size)
+                val courseNames = result.courses.map { it.name }.distinct()
+                val msg = if (result.studentName.isNotEmpty()) {
+                    "${result.studentName}，导入成功！共 ${courseNames.size} 门课程"
+                } else {
+                    getString(R.string.import_success, courseNames.size)
+                }
+                binding.tvStatus.text = msg
                 Toast.makeText(this@ImportActivity, "导入成功！", Toast.LENGTH_SHORT).show()
 
-                // 延迟返回
                 binding.root.postDelayed({
                     setResult(RESULT_OK)
                     finish()
@@ -86,14 +105,26 @@ class ImportActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun saveCourses(courses: List<NjfuImporter.CourseInfo>) {
+    private suspend fun saveCourses(
+        courses: List<NjfuImporter.CourseInfo>,
+        studentName: String,
+        studentId: String
+    ) {
         val dao = App.instance.database.courseDao()
 
-        // 创建或获取课表
+        // 创建或更新课表
         var table = dao.getFirstTable()
         if (table == null) {
-            val id = dao.insertTable(TableBean(tableName = "南林课表"))
+            val id = dao.insertTable(TableBean(
+                tableName = "南林课表",
+                studentName = studentName,
+                studentId = studentId
+            ))
             table = dao.getTableById(id.toInt())!!
+        } else {
+            table.studentName = studentName
+            table.studentId = studentId
+            dao.updateTable(table)
         }
         val tableId = table.id
 
@@ -111,7 +142,7 @@ class ImportActivity : AppCompatActivity() {
             dao.insertCourseBase(CourseBaseBean(id, name, color, tableId))
         }
 
-        // 插入 CourseDetailBean（拆分不连续周次）
+        // 插入 CourseDetailBean
         for (course in courses) {
             val id = nameToId[course.name]!!
             val step = course.endNode - course.startNode + 1
@@ -119,18 +150,8 @@ class ImportActivity : AppCompatActivity() {
 
             for ((startWeek, endWeek) in weekRanges) {
                 dao.insertCourseDetail(
-                    CourseDetailBean(
-                        id = id,
-                        day = course.day,
-                        room = course.room,
-                        teacher = course.teacher,
-                        startNode = course.startNode,
-                        step = step,
-                        startWeek = startWeek,
-                        endWeek = endWeek,
-                        type = 0,
-                        tableId = tableId
-                    )
+                    CourseDetailBean(id, course.day, course.room, course.teacher,
+                        course.startNode, step, startWeek, endWeek, 0, tableId)
                 )
             }
         }
@@ -142,13 +163,8 @@ class ImportActivity : AppCompatActivity() {
         var start = weeks[0]
         var end = weeks[0]
         for (w in weeks.drop(1)) {
-            if (w == end + 1) {
-                end = w
-            } else {
-                ranges.add(Pair(start, end))
-                start = w
-                end = w
-            }
+            if (w == end + 1) end = w
+            else { ranges.add(Pair(start, end)); start = w; end = w }
         }
         ranges.add(Pair(start, end))
         return ranges

@@ -11,7 +11,7 @@ import com.njfu.schedule.dao.CourseDao
 
 @Database(
     entities = [CourseBaseBean::class, CourseDetailBean::class, TableBean::class],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {

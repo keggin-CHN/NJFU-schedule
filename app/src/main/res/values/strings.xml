@@ -2,15 +2,26 @@
 <resources>
     <string name="app_name">南林课程表</string>
     <string name="hint_student_id">学号</string>
-    <string name="hint_password">密码</string>
+    <string name="hint_password">统一认证密码</string>
     <string name="btn_import">登录并导入课表</string>
     <string name="importing">正在导入…</string>
     <string name="import_success">导入成功！共 %d 门课程</string>
     <string name="import_failed">导入失败：%s</string>
     <string name="title_import">导入课表</string>
-    <string name="no_courses">还没有课程，点击右上角导入</string>
+    <string name="title_add_course">添加课程</string>
+    <string name="title_edit_course">编辑课程</string>
+    <string name="no_courses">还没有课程\n点击右上角 ↓ 导入课表</string>
+    <string name="week_format">第 %d 周</string>
+    <string name="all_weeks">全部周</string>
+    <string name="save">保存</string>
+    <string name="delete">删除</string>
+    <string name="cancel">取消</string>
+    <string name="hint_course_name">课程名称</string>
+    <string name="hint_teacher">教师</string>
+    <string name="hint_room">教室</string>
+    <string name="welcome">欢迎，%s</string>
 
-    <string-array name="weeks">
+    <string-array name="days">
         <item>周一</item>
         <item>周二</item>
         <item>周三</item>

@@ -19,6 +19,11 @@ import android.util.Base64
  */
 class NjfuImporter {
 
+    data class ImportResult(
+        val courses: List<CourseInfo>,
+        val studentName: String
+    )
+
     data class CourseInfo(
         val name: String,
         val teacher: String,
@@ -55,7 +60,7 @@ class NjfuImporter {
     /**
      * 登录并获取课表
      */
-    suspend fun importSchedule(studentId: String, password: String): List<CourseInfo> {
+    suspend fun importSchedule(studentId: String, password: String): ImportResult {
         // 1. 访问教务系统获取cookie
         val appReq = Request.Builder().url(APP_URL).get().build()
         client.newCall(appReq).execute().close()
@@ -107,13 +112,24 @@ class NjfuImporter {
             throw Exception(if (errorMsg.isNotEmpty()) errorMsg else "登录失败，请检查账号密码")
         }
 
-        // 6. 获取课表页面
+        // 6. 获取学生姓名
+        var studentName = ""
+        try {
+            val infoReq = Request.Builder().url("https://jwxt.njfu.edu.cn/jsxsd/framework/xsMainV_new.jsp").get().build()
+            val infoResp = client.newCall(infoReq).execute()
+            val infoHtml = infoResp.body?.string() ?: ""
+            val infoDoc = Jsoup.parse(infoHtml)
+            studentName = infoDoc.select("span#Top1_divLoginName, #xhxm, .middletopdwxxdiv span").text()
+                .replace("同学", "").trim()
+        } catch (_: Exception) {}
+
+        // 7. 获取课表页面
         val scheduleReq = Request.Builder().url(SCHEDULE_URL).get().build()
         val scheduleResp = client.newCall(scheduleReq).execute()
         val scheduleHtml = scheduleResp.body?.string() ?: throw Exception("获取课表失败")
 
-        // 7. 解析课表
-        return parseSchedule(scheduleHtml)
+        // 8. 解析课表
+        return ImportResult(parseSchedule(scheduleHtml), studentName)
     }
 
     private fun encryptAES(data: String, key: String): String {
