@@ -31,6 +31,7 @@ import com.njfu.schedule.ui.import_.AddCourseActivity
 import com.njfu.schedule.ui.import_.ImportActivity
 import com.njfu.schedule.ui.settings.ScheduleSettingsActivity
 import com.njfu.schedule.ui.settings.TimeSettingsActivity
+import com.njfu.schedule.ui.settings.BackgroundSettingsActivity
 import com.njfu.schedule.utils.WeekUtils
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import android.widget.SeekBar
@@ -91,7 +92,27 @@ class ScheduleActivity : AppCompatActivity() {
             }
         })
 
+        loadBackground()
         loadSchedule()
+    }
+
+    private fun loadBackground() {
+        val file = java.io.File(filesDir, "schedule_bg.jpg")
+        val prefs = getSharedPreferences("bg_settings", android.content.Context.MODE_PRIVATE)
+        val hasBg = prefs.getBoolean("has_bg", false)
+        val alpha = prefs.getInt("alpha", 50)
+
+        val ivBg = findViewById<android.widget.ImageView>(R.id.iv_background)
+        if (hasBg && file.exists()) {
+            val bitmap = android.graphics.BitmapFactory.decodeFile(file.absolutePath)
+            ivBg.setImageBitmap(bitmap)
+            ivBg.visibility = View.VISIBLE
+            // 设置主内容区域的背景透明度
+            val mainContent = binding.viewPager
+            mainContent.setBackgroundColor(Color.argb(255 * alpha / 100, 255, 255, 255))
+        } else {
+            ivBg.visibility = View.GONE
+        }
     }
 
     private fun updateWeekHeader(displayWeek: Int) {
@@ -317,28 +338,41 @@ class ScheduleActivity : AppCompatActivity() {
     }
 
     private fun showCourseDetail(course: CourseDetailBean, name: String) {
+        val dialog = AlertDialog.Builder(this, com.google.android.material.R.style.ThemeOverlay_Material3_MaterialAlertDialog)
+            .create()
+
         val view = LayoutInflater.from(this).inflate(R.layout.dialog_course_detail, null)
+
+        // 顶部彩色条
+        val bgColor = allBases.find { it.id == course.id }?.color ?: "#5C6BC0"
+        try {
+            view.findViewById<View>(R.id.color_bar).setBackgroundColor(Color.parseColor(bgColor))
+        } catch (_: Exception) {}
+
         view.findViewById<TextView>(R.id.tv_course_name).text = name
-        view.findViewById<TextView>(R.id.tv_teacher).text = "👤 ${course.teacher ?: "未知"}"
-        view.findViewById<TextView>(R.id.tv_room).text = "📍 ${course.room ?: "未知"}"
+        view.findViewById<TextView>(R.id.tv_teacher).text = course.teacher ?: "未设置"
+        view.findViewById<TextView>(R.id.tv_room).text = course.room ?: "未设置"
 
         val startTime = TimeNode.getStartTime(course.startNode)
         val endTime = TimeNode.getEndTime(course.startNode + course.step - 1)
         val days = resources.getStringArray(R.array.days)
         val dayName = days.getOrElse(course.day - 1) { "" }
-        view.findViewById<TextView>(R.id.tv_time).text = "🕐 $dayName 第${course.startNode}-${course.startNode + course.step - 1}节 ($startTime ~ $endTime)"
-        view.findViewById<TextView>(R.id.tv_weeks).text = "📅 第${course.startWeek}-${course.endWeek}周"
+        view.findViewById<TextView>(R.id.tv_time).text = "$dayName ${course.startNode}-${course.startNode + course.step - 1}节\n$startTime ~ $endTime"
+        view.findViewById<TextView>(R.id.tv_weeks).text = "第${course.startWeek}-${course.endWeek}周"
 
-        AlertDialog.Builder(this)
-            .setView(view)
-            .setPositiveButton("编辑") { _, _ ->
-                val intent = Intent(this, AddCourseActivity::class.java)
-                intent.putExtra("course_id", course.id)
-                intent.putExtra("table_id", course.tableId)
-                addCourseLauncher.launch(intent)
-            }
-            .setNegativeButton("关闭", null)
-            .show()
+        view.findViewById<View>(R.id.btn_edit).setOnClickListener {
+            dialog.dismiss()
+            val intent = Intent(this, AddCourseActivity::class.java)
+            intent.putExtra("course_id", course.id)
+            intent.putExtra("table_id", course.tableId)
+            addCourseLauncher.launch(intent)
+        }
+
+        view.findViewById<View>(R.id.btn_close).setOnClickListener { dialog.dismiss() }
+
+        dialog.setView(view)
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.show()
     }
 
     private fun showBottomMenu() {
@@ -385,11 +419,8 @@ class ScheduleActivity : AppCompatActivity() {
         // 关于
         view.findViewById<View>(R.id.menu_about).setOnClickListener {
             dialog.dismiss()
-            AlertDialog.Builder(this)
-                .setTitle("南林课程表")
-                .setMessage("版本 1.0.0\n\n专为南京林业大学学生打造\n一键导入教务系统课表\n\n基于 WakeUp 课程表开源项目")
-                .setPositiveButton("确定", null)
-                .show()
+            val intent = Intent(this, BackgroundSettingsActivity::class.java)
+            bgLauncher.launch(intent)
         }
 
         dialog.show()
@@ -398,6 +429,10 @@ class ScheduleActivity : AppCompatActivity() {
     private val settingsLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { loadSchedule() }
+
+    private val bgLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { loadBackground() }
 
     private fun showCourseList() {
         val names = allBases.map { it.courseName }
