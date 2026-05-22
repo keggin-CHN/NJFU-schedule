@@ -227,7 +227,9 @@ class ScheduleActivity : AppCompatActivity() {
             val remarks = prefs.getString("remarks", null)
             if (!remarks.isNullOrEmpty()) {
                 holder.tvRemarks.visibility = View.VISIBLE
-                holder.tvRemarks.text = "备注：$remarks"
+                // 一门课一行
+                val lines = remarks.split("\n").filter { it.isNotBlank() }
+                holder.tvRemarks.text = lines.joinToString("\n") { "· $it" }
             } else {
                 holder.tvRemarks.visibility = View.GONE
             }
@@ -256,18 +258,6 @@ class ScheduleActivity : AppCompatActivity() {
         val gridLineColor = Color.parseColor("#CCCCCC")
         val gridLineWidth = dpToPx(1)
 
-        // 创建虚线View的辅助函数
-        fun dashedH(): View = View(this).apply {
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dpToPx(1))
-            background = resources.getDrawable(R.drawable.dashed_line_horizontal, theme)
-            setLayerType(View.LAYER_TYPE_SOFTWARE, null) // 虚线需要关闭硬件加速
-        }
-        fun dashedV(): View = View(this).apply {
-            layoutParams = LinearLayout.LayoutParams(dpToPx(1), LinearLayout.LayoutParams.MATCH_PARENT)
-            background = resources.getDrawable(R.drawable.dashed_line_vertical, theme)
-            setLayerType(View.LAYER_TYPE_SOFTWARE, null)
-        }
-
         // 节次列
         val nodeCol = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -277,25 +267,23 @@ class ScheduleActivity : AppCompatActivity() {
         for (node in 1..maxNode) {
             val time = TimeNode.getStartTime(node)
             val tv = TextView(this).apply {
-                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, cellHeight).apply {
-                    // 底部边框用 background drawable 模拟不方便，用 margin+divider 代替
-                }
+                layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, cellHeight)
                 gravity = Gravity.CENTER
                 text = "$node\n$time"
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 8f)
                 setTextColor(Color.parseColor("#AAAAAA"))
                 setLineSpacing(0f, 0.85f)
+                setBackgroundResource(R.drawable.cell_border_bottom)
             }
             nodeCol.addView(tv)
-            // 节次之间的横线
-            if (node < maxNode) {
-                nodeCol.addView(dashedH())
-            }
         }
         container.addView(nodeCol)
 
-        // 节次列右边的竖虚线
-        container.addView(dashedV())
+        // 节次列右边的竖线
+        container.addView(View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(1, LinearLayout.LayoutParams.MATCH_PARENT)
+            setBackgroundColor(Color.parseColor("#30000000"))
+        })
 
         // 7天
         for (day in 1..7) {
@@ -321,20 +309,22 @@ class ScheduleActivity : AppCompatActivity() {
                     col.addView(createCourseCard(otherCourse, nameMap, colorMap, cellHeight, true))
                     currentNode += otherCourse.step
                 } else {
-                    // 空格子 + 底部虚线
-                    val cell = View(this).apply {
-                        layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, cellHeight - dpToPx(1))
-                    }
-                    col.addView(cell)
-                    col.addView(dashedH())
+                    // 空格子，固定高度，底部有细线
+                    col.addView(View(this).apply {
+                        layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, cellHeight)
+                        setBackgroundResource(R.drawable.cell_border_bottom)
+                    })
                     currentNode++
                 }
             }
             container.addView(col)
 
-            // 每天之间的竖虚线
+            // 每天之间的竖线
             if (day < 7) {
-                container.addView(dashedV())
+                container.addView(View(this).apply {
+                    layoutParams = LinearLayout.LayoutParams(1, LinearLayout.LayoutParams.MATCH_PARENT)
+                    setBackgroundColor(Color.parseColor("#30000000"))
+                })
             }
         }
     }
