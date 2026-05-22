@@ -72,7 +72,8 @@ class AddCourseActivity : AppCompatActivity() {
             // 填充课程名
             binding.etName.setText(base.courseName)
 
-            // 填充教师和教室（从第一条 detail 获取）
+            // 一门课可能有多个时间段，取第一个填充基本信息
+            // 其他时间段在下方列出
             val firstDetail = details.firstOrNull()
             if (firstDetail != null) {
                 binding.etTeacher.setText(firstDetail.teacher ?: "")
@@ -91,14 +92,45 @@ class AddCourseActivity : AppCompatActivity() {
                 binding.etStartNode.setText(firstDetail.startNode.toString())
                 binding.etEndNode.setText((firstDetail.startNode + firstDetail.step - 1).toString())
 
-                // 填充周次（合并所有 detail 的周次范围）
-                val weeksStr = details.joinToString(",") { d ->
+                // 只显示当前时间段的周次
+                val sameSlotDetails = details.filter { it.day == firstDetail.day && it.startNode == firstDetail.startNode }
+                val weeksStr = sameSlotDetails.joinToString(",") { d ->
                     if (d.startWeek == d.endWeek) "${d.startWeek}"
                     else "${d.startWeek}-${d.endWeek}"
                 }
                 binding.etWeeks.setText(weeksStr)
             }
+
+            // 如果有多个不同时间段，在底部提示
+            val uniqueSlots = details.map { Pair(it.day, it.startNode) }.distinct()
+            if (uniqueSlots.size > 1) {
+                val dayNames = arrayOf("周一","周二","周三","周四","周五","周六","周日")
+                val slotsInfo = uniqueSlots.joinToString("\n") { (day, node) ->
+                    val slotDetails = details.filter { it.day == day && it.startNode == node }
+                    val weeks = slotDetails.joinToString(",") { d ->
+                        if (d.startWeek == d.endWeek) "${d.startWeek}" else "${d.startWeek}-${d.endWeek}"
+                    }
+                    val endNode = node + (slotDetails.firstOrNull()?.step ?: 2) - 1
+                    "  ${dayNames[day-1]} 第${node}-${endNode}节  第${weeks}周"
+                }
+                // 显示提示
+                binding.btnDelete.visibility = View.VISIBLE
+                val tipView = android.widget.TextView(this@AddCourseActivity).apply {
+                    text = "该课程有 ${uniqueSlots.size} 个时间段：\n$slotsInfo\n\n当前编辑的是第一个时间段"
+                    setTextColor(android.graphics.Color.parseColor("#888888"))
+                    textSize = 12f
+                    setPadding(0, dpToPx(16), 0, 0)
+                }
+                (binding.btnSave.parent as? android.view.ViewGroup)?.addView(tipView,
+                    (binding.btnSave.parent as android.view.ViewGroup).indexOfChild(binding.btnSave))
+            }
         }
+    }
+
+    private fun dpToPx(dp: Int): Int {
+        return android.util.TypedValue.applyDimension(
+            android.util.TypedValue.COMPLEX_UNIT_DIP, dp.toFloat(), resources.displayMetrics
+        ).toInt()
     }
 
     private fun saveCourse() {

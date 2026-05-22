@@ -613,39 +613,68 @@ class ScheduleActivity : AppCompatActivity() {
             return
         }
 
-        Toast.makeText(this, "正在同步...", Toast.LENGTH_SHORT).show()
+        // 创建进度对话框
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_sync_progress, null)
+        val tvLog = dialogView.findViewById<TextView>(R.id.tv_log)
+        val progress = dialogView.findViewById<com.google.android.material.progressindicator.LinearProgressIndicator>(R.id.progress)
+
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(false)
+            .create()
+        dialog.show()
+
+        fun log(msg: String) {
+            runOnUiThread { tvLog.append("$msg\n") }
+        }
 
         lifecycleScope.launch {
             try {
                 val importer = com.njfu.schedule.njfu.NjfuImporter()
-                val result = withContext(Dispatchers.IO) {
-                    importer.prepareSession()
-                    val params = importer.fetchLoginPage()
-                    importer.doLogin(studentId, password, params)
-                    importer.fetchAndParseSchedule()
-                }
+
+                log("正在连接教务系统...")
+                withContext(Dispatchers.IO) { importer.prepareSession() }
+
+                log("正在访问统一认证...")
+                val params = withContext(Dispatchers.IO) { importer.fetchLoginPage() }
+
+                log("正在验证账号密码...")
+                withContext(Dispatchers.IO) { importer.doLogin(studentId, password, params) }
+
+                log("登录成功，正在获取课表...")
+                val result = withContext(Dispatchers.IO) { importer.fetchAndParseSchedule() }
 
                 if (result.courses.isEmpty()) {
-                    Toast.makeText(this@ScheduleActivity, "未获取到课程", Toast.LENGTH_SHORT).show()
+                    log("✗ 未获取到课程数据")
+                    progress.visibility = View.GONE
+                    dialog.setButton(AlertDialog.BUTTON_POSITIVE, "关闭") { d, _ -> d.dismiss() }
+                    dialog.show()
                     return@launch
                 }
 
-                // 对比新旧课表，找出冲突
+                log("获取到 ${result.courses.map { it.name }.distinct().size} 门课程")
+
+                // 对比
                 val conflicts = findConflicts(result.courses)
 
+                progress.visibility = View.GONE
+
                 if (conflicts.isEmpty()) {
-                    // 无冲突，直接更新
-                    withContext(Dispatchers.IO) {
-                        overwriteCourses(result)
-                    }
-                    Toast.makeText(this@ScheduleActivity, "同步完成，课表无变化", Toast.LENGTH_SHORT).show()
+                    log("✓ 课表无变化，已是最新")
+                    withContext(Dispatchers.IO) { overwriteCourses(result) }
+                    dialog.dismiss()
+                    Toast.makeText(this@ScheduleActivity, "同步完成", Toast.LENGTH_SHORT).show()
                     loadSchedule()
                 } else {
-                    // 有冲突，弹窗让用户选择
+                    log("发现 ${conflicts.size} 处变动")
+                    dialog.dismiss()
                     showConflictDialog(conflicts, result)
                 }
             } catch (e: Exception) {
-                Toast.makeText(this@ScheduleActivity, "同步失败：${e.message}", Toast.LENGTH_SHORT).show()
+                progress.visibility = View.GONE
+                log("✗ 同步失败：${e.message}")
+                dialog.setButton(AlertDialog.BUTTON_POSITIVE, "关闭") { d, _ -> d.dismiss() }
+                dialog.show()
             }
         }
     }
