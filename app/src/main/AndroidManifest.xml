@@ -34,5 +34,13 @@
             android:screenOrientation="portrait"
             android:windowSoftInputMode="adjustResize" />
 
+        <activity
+            android:name=".ui.settings.ScheduleSettingsActivity"
+            android:screenOrientation="portrait" />
+
+        <activity
+            android:name=".ui.settings.TimeSettingsActivity"
+            android:screenOrientation="portrait" />
+
     </application>
 </manifest>

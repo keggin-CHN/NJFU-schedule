@@ -29,7 +29,11 @@ import com.njfu.schedule.bean.TimeNode
 import com.njfu.schedule.databinding.ActivityScheduleBinding
 import com.njfu.schedule.ui.import_.AddCourseActivity
 import com.njfu.schedule.ui.import_.ImportActivity
+import com.njfu.schedule.ui.settings.ScheduleSettingsActivity
+import com.njfu.schedule.ui.settings.TimeSettingsActivity
 import com.njfu.schedule.utils.WeekUtils
+import com.google.android.material.bottomsheet.BottomSheetDialog
+import android.widget.SeekBar
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
@@ -73,7 +77,7 @@ class ScheduleActivity : AppCompatActivity() {
         binding.btnAdd.setOnClickListener {
             addCourseLauncher.launch(Intent(this, AddCourseActivity::class.java))
         }
-        binding.btnSettings.setOnClickListener { showSettingsDialog() }
+        binding.btnSettings.setOnClickListener { showBottomMenu() }
         binding.btnEmptyImport.setOnClickListener {
             importLauncher.launch(Intent(this, ImportActivity::class.java))
         }
@@ -337,40 +341,86 @@ class ScheduleActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun showSettingsDialog() {
-        val view = LayoutInflater.from(this).inflate(R.layout.dialog_settings, null)
-        val etStartDate = view.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.et_start_date)
-        val etMaxWeek = view.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.et_max_week)
-        val etNodes = view.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.et_nodes)
-        val tvInfo = view.findViewById<TextView>(R.id.tv_current_week_info)
+    private fun showBottomMenu() {
+        val dialog = BottomSheetDialog(this)
+        val view = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_menu, null)
+        dialog.setContentView(view)
 
-        table?.let {
-            etStartDate.setText(it.startDate)
-            etMaxWeek.setText(it.maxWeek.toString())
-            etNodes.setText(it.nodes.toString())
-            tvInfo.text = "当前自动计算为第 $currentWeek 周"
-        }
-
-        AlertDialog.Builder(this)
-            .setView(view)
-            .setPositiveButton("保存") { _, _ ->
-                val startDate = etStartDate.text?.toString()?.trim() ?: return@setPositiveButton
-                val maxW = etMaxWeek.text?.toString()?.toIntOrNull() ?: 20
-                val nodes = etNodes.text?.toString()?.toIntOrNull() ?: 11
-
-                lifecycleScope.launch {
-                    table?.let {
-                        it.startDate = startDate
-                        it.maxWeek = maxW
-                        it.nodes = nodes
-                        withContext(Dispatchers.IO) { App.instance.database.courseDao().updateTable(it) }
-                        Toast.makeText(this@ScheduleActivity, "已保存", Toast.LENGTH_SHORT).show()
-                        loadSchedule()
-                    }
+        // 周数 SeekBar
+        val seekbar = view.findViewById<SeekBar>(R.id.seekbar_week)
+        seekbar.max = maxWeek
+        seekbar.progress = binding.viewPager.currentItem + 1
+        seekbar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser && progress > 0) {
+                    binding.viewPager.setCurrentItem(progress - 1, false)
                 }
             }
-            .setNegativeButton("取消", null)
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) {}
+        })
+
+        // 课表名
+        view.findViewById<TextView>(R.id.tv_table_name).text = "${table?.tableName ?: "南林课表"} ✓"
+
+        // 上课时间
+        view.findViewById<View>(R.id.menu_time).setOnClickListener {
+            dialog.dismiss()
+            startActivity(Intent(this, TimeSettingsActivity::class.java))
+        }
+
+        // 课表设置
+        view.findViewById<View>(R.id.menu_schedule_settings).setOnClickListener {
+            dialog.dismiss()
+            val intent = Intent(this, ScheduleSettingsActivity::class.java)
+            settingsLauncher.launch(intent)
+        }
+
+        // 已添课程
+        view.findViewById<View>(R.id.menu_courses).setOnClickListener {
+            dialog.dismiss()
+            showCourseList()
+        }
+
+        // 关于
+        view.findViewById<View>(R.id.menu_about).setOnClickListener {
+            dialog.dismiss()
+            AlertDialog.Builder(this)
+                .setTitle("南林课程表")
+                .setMessage("版本 1.0.0\n\n专为南京林业大学学生打造\n一键导入教务系统课表\n\n基于 WakeUp 课程表开源项目")
+                .setPositiveButton("确定", null)
+                .show()
+        }
+
+        dialog.show()
+    }
+
+    private val settingsLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { loadSchedule() }
+
+    private fun showCourseList() {
+        val names = allBases.map { it.courseName }
+        if (names.isEmpty()) {
+            Toast.makeText(this, "暂无课程", Toast.LENGTH_SHORT).show()
+            return
+        }
+        AlertDialog.Builder(this)
+            .setTitle("已添加课程 (${names.size}门)")
+            .setItems(names.toTypedArray()) { _, idx ->
+                val course = allBases[idx]
+                val intent = Intent(this, AddCourseActivity::class.java)
+                intent.putExtra("course_id", course.id)
+                intent.putExtra("table_id", course.tableId)
+                addCourseLauncher.launch(intent)
+            }
+            .setPositiveButton("关闭", null)
             .show()
+    }
+
+    private fun showSettingsDialog() {
+        // 保留旧方法作为备用
+        startActivity(Intent(this, ScheduleSettingsActivity::class.java))
     }
 
     private fun dpToPx(dp: Int): Int {
