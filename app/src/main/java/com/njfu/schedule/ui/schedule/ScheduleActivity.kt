@@ -75,6 +75,7 @@ class ScheduleActivity : AppCompatActivity() {
         binding.btnImport.setOnClickListener {
             importLauncher.launch(Intent(this, ImportActivity::class.java))
         }
+        binding.btnSync.setOnClickListener { syncSchedule() }
         binding.btnAdd.setOnClickListener {
             addCourseLauncher.launch(Intent(this, AddCourseActivity::class.java))
         }
@@ -132,7 +133,7 @@ class ScheduleActivity : AppCompatActivity() {
             tag.setBackgroundResource(R.drawable.bg_tag_gray)
         }
 
-        binding.tvDateInfo.text = WeekUtils.getTodayString()
+        binding.tvDateInfo.text = "${WeekUtils.getTodayString()} ${table?.studentName ?: ""}"
         updateDayHeaders(displayWeek)
     }
 
@@ -592,5 +593,176 @@ class ScheduleActivity : AppCompatActivity() {
 
     private fun dpToPx(dp: Int): Int {
         return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp.toFloat(), resources.displayMetrics).toInt()
+    }
+
+    // ==================== 同步课表 ====================
+
+    private fun syncSchedule() {
+        val prefs = getSharedPreferences("njfu_login", android.content.Context.MODE_PRIVATE)
+        val studentId = prefs.getString("student_id", "") ?: ""
+        val password = prefs.getString("password", "") ?: ""
+
+        if (studentId.isEmpty() || password.isEmpty()) {
+            Toast.makeText(this, "请先导入课表（需要保存账号密码）", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        Toast.makeText(this, "正在同步...", Toast.LENGTH_SHORT).show()
+
+        lifecycleScope.launch {
+            try {
+                val importer = com.njfu.schedule.njfu.NjfuImporter()
+                val result = withContext(Dispatchers.IO) {
+                    importer.prepareSession()
+                    val params = importer.fetchLoginPage()
+                    importer.doLogin(studentId, password, params)
+                    importer.fetchAndParseSchedule()
+                }
+
+                if (result.courses.isEmpty()) {
+                    Toast.makeText(this@ScheduleActivity, "未获取到课程", Toast.LENGTH_SHORT).show()
+                    return@launch
+                }
+
+                // 对比新旧课表，找出冲突
+                val conflicts = findConflicts(result.courses)
+
+                if (conflicts.isEmpty()) {
+                    // 无冲突，直接更新
+                    withContext(Dispatchers.IO) {
+                        overwriteCourses(result)
+                    }
+                    Toast.makeText(this@ScheduleActivity, "同步完成，课表无变化", Toast.LENGTH_SHORT).show()
+                    loadSchedule()
+                } else {
+                    // 有冲突，弹窗让用户选择
+                    showConflictDialog(conflicts, result)
+                }
+            } catch (e: Exception) {
+                Toast.makeText(this@ScheduleActivity, "同步失败：${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    data class Conflict(
+        val day: Int,
+        val startNode: Int,
+        val weeks: String,
+        val oldName: String,
+        val newName: String
+    )
+
+    private fun findConflicts(newCourses: List<com.njfu.schedule.njfu.NjfuImporter.CourseInfo>): List<Conflict> {
+        val conflicts = mutableListOf<Conflict>()
+        val dayNames = arrayOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")
+
+        // 构建旧课表的时间槽映射: (day, startNode, week) -> courseName
+        val oldSlots = mutableMapOf<Triple<Int, Int, Int>, String>()
+        for (base in allBases) {
+            val details = allDetails.filter { it.id == base.id && it.tableId == base.tableId }
+            for (d in details) {
+                for (w in d.startWeek..d.endWeek) {
+                    oldSlots[Triple(d.day, d.startNode, w)] = base.courseName
+                }
+            }
+        }
+
+        // 构建新课表的时间槽映射
+        val newSlots = mutableMapOf<Triple<Int, Int, Int>, String>()
+        for (c in newCourses) {
+            for (w in c.weeks) {
+                newSlots[Triple(c.day, c.startNode, w)] = c.name
+            }
+        }
+
+        // 找出同一时间槽课程名不同的情况
+        val checkedSlots = mutableSetOf<Pair<Int, Int>>() // (day, startNode) 去重
+        for ((slot, oldName) in oldSlots) {
+            val newName = newSlots[slot]
+            if (newName != null && newName != oldName) {
+                val key = Pair(slot.first, slot.second)
+                if (key !in checkedSlots) {
+                    checkedSlots.add(key)
+                    val dayName = dayNames.getOrElse(slot.first - 1) { "" }
+                    conflicts.add(Conflict(slot.first, slot.second, "${dayName} 第${slot.second}节 第${slot.third}周", oldName, newName))
+                }
+            }
+        }
+
+        return conflicts
+    }
+
+    private fun showConflictDialog(conflicts: List<Conflict>, result: com.njfu.schedule.njfu.NjfuImporter.ImportResult) {
+        val view = LayoutInflater.from(this).inflate(R.layout.dialog_sync_conflict, null)
+        val rv = view.findViewById<RecyclerView>(R.id.rv_conflicts)
+        rv.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
+        rv.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
+            inner class VH(v: View) : RecyclerView.ViewHolder(v)
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
+                VH(LayoutInflater.from(parent.context).inflate(R.layout.item_sync_conflict, parent, false))
+            override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+                val c = conflicts[position]
+                holder.itemView.findViewById<TextView>(R.id.tv_conflict_time).text = c.weeks
+                holder.itemView.findViewById<TextView>(R.id.tv_old_course).text = c.oldName
+                holder.itemView.findViewById<TextView>(R.id.tv_new_course).text = c.newName
+            }
+            override fun getItemCount() = conflicts.size
+        }
+
+        AlertDialog.Builder(this)
+            .setView(view)
+            .setPositiveButton("使用新课表") { _, _ ->
+                lifecycleScope.launch {
+                    withContext(Dispatchers.IO) { overwriteCourses(result) }
+                    Toast.makeText(this@ScheduleActivity, "已更新为新课表", Toast.LENGTH_SHORT).show()
+                    loadSchedule()
+                }
+            }
+            .setNegativeButton("保留原课表", null)
+            .show()
+    }
+
+    private suspend fun overwriteCourses(result: com.njfu.schedule.njfu.NjfuImporter.ImportResult) {
+        val dao = App.instance.database.courseDao()
+        val t = table ?: return
+        dao.deleteCoursesByTable(t.id)
+        dao.deleteDetailsByTable(t.id)
+
+        val courses = result.courses
+        val courseNames = courses.map { it.name }.distinct()
+        val nameToId = courseNames.mapIndexed { idx, name -> name to idx }.toMap()
+
+        for ((name, id) in nameToId) {
+            val color = courseColors[id % courseColors.size]
+            dao.insertCourseBase(com.njfu.schedule.bean.CourseBaseBean(id, name, color, t.id))
+        }
+
+        for (course in courses) {
+            val id = nameToId[course.name]!!
+            val step = course.endNode - course.startNode + 1
+            val weekRanges = toWeekRanges(course.weeks)
+            for ((startWeek, endWeek) in weekRanges) {
+                dao.insertCourseDetail(com.njfu.schedule.bean.CourseDetailBean(
+                    id, course.day, course.room, course.teacher,
+                    course.startNode, step, startWeek, endWeek, 0, t.id
+                ))
+            }
+        }
+
+        // 更新 startDate
+        t.startDate = result.semesterStartDate
+        dao.updateTable(t)
+    }
+
+    private fun toWeekRanges(weeks: List<Int>): List<Pair<Int, Int>> {
+        if (weeks.isEmpty()) return emptyList()
+        val ranges = mutableListOf<Pair<Int, Int>>()
+        var start = weeks[0]; var end = weeks[0]
+        for (w in weeks.drop(1)) {
+            if (w == end + 1) end = w
+            else { ranges.add(Pair(start, end)); start = w; end = w }
+        }
+        ranges.add(Pair(start, end))
+        return ranges
     }
 }

@@ -66,11 +66,19 @@
                 android:id="@+id/tv_date_info"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginEnd="12dp"
+                android:layout_marginEnd="8dp"
                 android:textColor="@color/text_secondary"
-                android:textSize="12sp" />
+                android:textSize="13sp" />
 
-            <!-- 右侧按钮：只保留必要的 -->
+            <!-- 右侧按钮 -->
+            <ImageButton
+                android:id="@+id/btn_sync"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:background="?selectableItemBackgroundBorderless"
+                android:contentDescription="同步课表"
+                android:src="@drawable/ic_sync" />
+
             <ImageButton
                 android:id="@+id/btn_add"
                 android:layout_width="36dp"
