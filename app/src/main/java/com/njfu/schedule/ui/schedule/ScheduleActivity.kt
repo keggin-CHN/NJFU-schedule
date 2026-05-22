@@ -50,11 +50,11 @@ class ScheduleActivity : AppCompatActivity() {
     private var currentWeek = 1
     private var todayOfWeek = 1
 
-    // 更鲜艳的课程颜色
+    // 柔和但有辨识度的课程颜色
     private val courseColors = listOf(
-        "#7E57C2", "#EF5350", "#FF7043", "#5C6BC0", "#66BB6A",
-        "#42A5F5", "#26C6DA", "#EC407A", "#FFA726", "#AB47BC",
-        "#26A69A", "#8D6E63", "#78909C", "#9CCC65", "#FFCA28"
+        "#7986CB", "#4DB6AC", "#FF8A65", "#A1887F", "#90A4AE",
+        "#4DD0E1", "#81C784", "#FFD54F", "#F06292", "#BA68C8",
+        "#64B5F6", "#E57373", "#AED581", "#FFB74D", "#9575CD"
     )
 
     private val importLauncher = registerForActivityResult(
@@ -117,9 +117,20 @@ class ScheduleActivity : AppCompatActivity() {
 
     private fun updateWeekHeader(displayWeek: Int) {
         val isCurrentWeek = displayWeek == currentWeek
-        binding.tvWeek.text = if (isCurrentWeek) "第 $displayWeek 周" else "第 $displayWeek 周"
-        val suffix = if (isCurrentWeek) "（本周）" else ""
-        binding.tvDateInfo.text = "${WeekUtils.getTodayString()}$suffix ${table?.studentName ?: ""}"
+        binding.tvWeek.text = "第${displayWeek}周"
+        
+        val tag = findViewById<TextView>(R.id.tv_week_tag)
+        if (isCurrentWeek) {
+            tag.visibility = View.VISIBLE
+            tag.text = "本周"
+        } else {
+            tag.visibility = View.VISIBLE
+            tag.text = "非本周"
+            tag.setTextColor(Color.parseColor("#999999"))
+            tag.setBackgroundResource(0)
+        }
+        
+        binding.tvDateInfo.text = WeekUtils.getTodayString()
         updateDayHeaders(displayWeek)
     }
 
@@ -129,27 +140,21 @@ class ScheduleActivity : AppCompatActivity() {
 
         val startDate = table?.startDate ?: "2026-02-24"
         val dates = WeekUtils.getWeekDates(currentWeek, targetWeek, startDate)
-        val days = resources.getStringArray(R.array.days)
+        val dayLabels = arrayOf("一", "二", "三", "四", "五", "六", "日")
 
         for (i in 0..6) {
             val isToday = (targetWeek == currentWeek && i + 1 == todayOfWeek)
             val tv = TextView(this).apply {
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
                 gravity = Gravity.CENTER
-                text = "${days[i]}\n${dates.getOrElse(i) { "" }}"
+                text = "${dayLabels[i]}\n${dates.getOrElse(i) { "" }}"
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
                 setLineSpacing(dpToPx(1).toFloat(), 1f)
                 if (isToday) {
-                    setTextColor(Color.WHITE)
-                    val bg = GradientDrawable().apply {
-                        setColor(resources.getColor(R.color.primary, theme))
-                        cornerRadius = dpToPx(16).toFloat()
-                    }
-                    background = bg
-                    setPadding(0, dpToPx(4), 0, dpToPx(4))
+                    setTextColor(resources.getColor(R.color.secondary, theme))
                     typeface = Typeface.DEFAULT_BOLD
                 } else {
-                    setTextColor(Color.parseColor("#555555"))
+                    setTextColor(Color.parseColor("#666666"))
                 }
             }
             headerRow.addView(tv)
@@ -343,7 +348,6 @@ class ScheduleActivity : AppCompatActivity() {
 
         val view = LayoutInflater.from(this).inflate(R.layout.dialog_course_detail, null)
 
-        // 顶部彩色条
         val bgColor = allBases.find { it.id == course.id }?.color ?: "#5C6BC0"
         try {
             view.findViewById<View>(R.id.color_bar).setBackgroundColor(Color.parseColor(bgColor))
@@ -355,9 +359,9 @@ class ScheduleActivity : AppCompatActivity() {
 
         val startTime = TimeNode.getStartTime(course.startNode)
         val endTime = TimeNode.getEndTime(course.startNode + course.step - 1)
-        val days = resources.getStringArray(R.array.days)
-        val dayName = days.getOrElse(course.day - 1) { "" }
-        view.findViewById<TextView>(R.id.tv_time).text = "$dayName ${course.startNode}-${course.startNode + course.step - 1}节\n$startTime ~ $endTime"
+        val dayLabels = arrayOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")
+        val dayName = dayLabels.getOrElse(course.day - 1) { "" }
+        view.findViewById<TextView>(R.id.tv_time).text = "$dayName 第${course.startNode}-${course.startNode + course.step - 1}节  $startTime-$endTime"
         view.findViewById<TextView>(R.id.tv_weeks).text = "第${course.startWeek}-${course.endWeek}周"
 
         view.findViewById<View>(R.id.btn_edit).setOnClickListener {
@@ -367,7 +371,6 @@ class ScheduleActivity : AppCompatActivity() {
             intent.putExtra("table_id", course.tableId)
             addCourseLauncher.launch(intent)
         }
-
         view.findViewById<View>(R.id.btn_close).setOnClickListener { dialog.dismiss() }
 
         dialog.setView(view)

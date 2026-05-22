@@ -2,9 +2,9 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:fitsSystemWindows="true">
 
-    <!-- 背景图片 -->
     <ImageView
         android:id="@+id/iv_background"
         android:layout_width="match_parent"
@@ -12,144 +12,142 @@
         android:scaleType="centerCrop"
         android:visibility="gone" />
 
-<LinearLayout
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:background="@color/background"
-    android:orientation="vertical">
-
-    <!-- 顶部栏 -->
-    <RelativeLayout
+    <LinearLayout
+        android:id="@+id/main_content"
         android:layout_width="match_parent"
-        android:layout_height="56dp"
-        android:background="@color/primary"
-        android:elevation="4dp"
-        android:paddingStart="16dp"
-        android:paddingEnd="4dp">
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
+        <!-- 顶部：简洁白底 -->
         <LinearLayout
-            android:id="@+id/week_selector"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_alignParentStart="true"
-            android:layout_centerVertical="true"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:background="@color/surface"
             android:gravity="center_vertical"
-            android:orientation="vertical">
+            android:orientation="horizontal"
+            android:paddingStart="20dp"
+            android:paddingEnd="12dp">
 
-            <TextView
-                android:id="@+id/tv_week"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="第 13 周"
-                android:textColor="@color/on_primary"
-                android:textSize="20sp"
-                android:textStyle="bold" />
+            <!-- 左侧：周信息 -->
+            <LinearLayout
+                android:id="@+id/week_selector"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tv_week"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="第13周"
+                    android:textColor="@color/text_primary"
+                    android:textSize="19sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_week_tag"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_tag"
+                    android:paddingStart="6dp"
+                    android:paddingTop="2dp"
+                    android:paddingEnd="6dp"
+                    android:paddingBottom="2dp"
+                    android:text="本周"
+                    android:textColor="@color/secondary"
+                    android:textSize="10sp"
+                    android:visibility="gone" />
+            </LinearLayout>
 
             <TextView
                 android:id="@+id/tv_date_info"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="#CCFFFFFF"
+                android:layout_marginEnd="12dp"
+                android:textColor="@color/text_secondary"
                 android:textSize="12sp" />
-        </LinearLayout>
 
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_alignParentEnd="true"
-            android:layout_centerVertical="true"
-            android:gravity="center_vertical"
-            android:orientation="horizontal">
-
+            <!-- 右侧按钮：只保留必要的 -->
             <ImageButton
                 android:id="@+id/btn_add"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:background="?selectableItemBackgroundBorderless"
-                android:contentDescription="添加课程"
-                android:src="@android:drawable/ic_input_add"
-                app:tint="@color/on_primary" />
+                android:src="@drawable/ic_add" />
 
             <ImageButton
                 android:id="@+id/btn_import"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginStart="4dp"
                 android:background="?selectableItemBackgroundBorderless"
-                android:contentDescription="导入课表"
-                android:src="@android:drawable/stat_sys_download"
-                app:tint="@color/on_primary" />
+                android:src="@drawable/ic_download" />
 
             <ImageButton
                 android:id="@+id/btn_settings"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginStart="4dp"
                 android:background="?selectableItemBackgroundBorderless"
-                android:contentDescription="设置"
-                android:src="@android:drawable/ic_menu_preferences"
-                app:tint="@color/on_primary" />
+                android:src="@drawable/ic_more" />
         </LinearLayout>
-    </RelativeLayout>
 
-    <!-- 星期头部 -->
-    <LinearLayout
-        android:id="@+id/header_row"
-        android:layout_width="match_parent"
-        android:layout_height="44dp"
-        android:background="@color/surface"
-        android:elevation="2dp"
-        android:gravity="center_vertical"
-        android:orientation="horizontal">
+        <!-- 星期头部 -->
+        <LinearLayout
+            android:id="@+id/header_row"
+            android:layout_width="match_parent"
+            android:layout_height="40dp"
+            android:background="@color/surface"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingBottom="4dp">
 
-        <TextView
-            android:layout_width="30dp"
-            android:layout_height="match_parent"
+            <View
+                android:layout_width="30dp"
+                android:layout_height="match_parent" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0.5dp"
+            android:background="@color/divider" />
+
+        <!-- 课表 -->
+        <androidx.viewpager2.widget.ViewPager2
+            android:id="@+id/view_pager"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <!-- 空状态 -->
+        <LinearLayout
+            android:id="@+id/empty_view"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
             android:gravity="center"
-            android:textSize="9sp" />
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="无课表，通过教务导课"
+                android:textColor="@color/text_secondary"
+                android:textSize="15sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_empty_import"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginTop="16dp"
+                android:text="一键导入"
+                android:textSize="14sp"
+                app:cornerRadius="20dp" />
+        </LinearLayout>
+
     </LinearLayout>
-
-    <!-- 课表主体 -->
-    <androidx.viewpager2.widget.ViewPager2
-        android:id="@+id/view_pager"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:background="@color/surface" />
-
-    <!-- 空状态 -->
-    <LinearLayout
-        android:id="@+id/empty_view"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:gravity="center"
-        android:orientation="vertical"
-        android:visibility="gone">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:gravity="center"
-            android:lineSpacingExtra="8dp"
-            android:text="📚"
-            android:textSize="48sp" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:gravity="center"
-            android:text="还没有课程"
-            android:textColor="#666666"
-            android:textSize="16sp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_empty_import"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="导入课表"
-            android:textSize="15sp" />
-    </LinearLayout>
-
-</LinearLayout>
 </FrameLayout>
