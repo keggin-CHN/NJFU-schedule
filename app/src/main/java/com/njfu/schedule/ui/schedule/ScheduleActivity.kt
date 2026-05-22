@@ -346,7 +346,7 @@ class ScheduleActivity : AppCompatActivity() {
             }
 
             setOnClickListener {
-                if (!isOtherWeek) showCourseDetail(course, name)
+                showCourseDetail(course, name)
             }
         }
     }
@@ -444,6 +444,29 @@ class ScheduleActivity : AppCompatActivity() {
             dialog.dismiss()
             val intent = Intent(this, BackgroundSettingsActivity::class.java)
             bgLauncher.launch(intent)
+        }
+
+        // 删除课表
+        view.findViewById<View>(R.id.menu_delete).setOnClickListener {
+            dialog.dismiss()
+            AlertDialog.Builder(this)
+                .setTitle("删除课表")
+                .setMessage("确定要删除当前课表的所有课程吗？此操作不可恢复。")
+                .setPositiveButton("删除") { _, _ ->
+                    lifecycleScope.launch {
+                        table?.let { t ->
+                            withContext(Dispatchers.IO) {
+                                val dao = App.instance.database.courseDao()
+                                dao.deleteCoursesByTable(t.id)
+                                dao.deleteDetailsByTable(t.id)
+                            }
+                            Toast.makeText(this@ScheduleActivity, "课表已清空", Toast.LENGTH_SHORT).show()
+                            loadSchedule()
+                        }
+                    }
+                }
+                .setNegativeButton("取消", null)
+                .show()
         }
 
         dialog.show()

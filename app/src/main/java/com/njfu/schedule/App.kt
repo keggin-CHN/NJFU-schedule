@@ -1,6 +1,7 @@
 package com.njfu.schedule
 
 import android.app.Application
+import com.njfu.schedule.bean.TimeNode
 
 class App : Application() {
 
@@ -14,5 +15,6 @@ class App : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        TimeNode.load(this)
     }
 }
