@@ -4,17 +4,17 @@
     android:layout_height="wrap_content"
     android:background="@drawable/bg_bottom_sheet"
     android:orientation="vertical"
-    android:paddingTop="12dp"
-    android:paddingBottom="32dp">
+    android:paddingBottom="24dp">
 
     <!-- 拖拽指示条 -->
     <View
         android:layout_width="36dp"
         android:layout_height="4dp"
         android:layout_gravity="center_horizontal"
+        android:layout_marginTop="10dp"
         android:background="@drawable/bg_handle" />
 
-    <!-- 周数调节 -->
+    <!-- 周数调节区域 -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -29,16 +29,17 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="周数"
-            android:textColor="@color/text_primary"
-            android:textSize="15sp" />
+            android:textColor="#1A1A1A"
+            android:textSize="15sp"
+            android:textStyle="bold" />
 
         <TextView
-            android:id="@+id/tv_modify_week"
+            android:id="@+id/tv_seekbar_label"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="修改当前周"
-            android:textColor="@color/secondary"
-            android:textSize="13sp" />
+            android:text="当前：第1周"
+            android:textColor="#888888"
+            android:textSize="12sp" />
     </LinearLayout>
 
     <SeekBar
@@ -48,92 +49,115 @@
         android:layout_marginStart="20dp"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="20dp"
+        android:layout_marginBottom="4dp"
         android:max="20"
         android:progress="1" />
-
-    <TextView
-        android:id="@+id/tv_seekbar_label"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center"
-        android:paddingTop="4dp"
-        android:text="当前：第1周"
-        android:textColor="@color/text_secondary"
-        android:textSize="12sp" />
 
     <!-- 分割线 -->
     <View
         android:layout_width="match_parent"
-        android:layout_height="0.5dp"
-        android:layout_marginStart="24dp"
-        android:layout_marginTop="16dp"
-        android:layout_marginEnd="24dp"
-        android:background="@color/divider" />
+        android:layout_height="8dp"
+        android:layout_marginTop="12dp"
+        android:background="#F5F5F5" />
 
-    <!-- 功能列表 -->
-    <TextView
-        android:id="@+id/menu_time"
-        android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:gravity="center_vertical"
-        android:paddingStart="24dp"
-        android:text="上课时间"
-        android:textColor="@color/text_primary"
-        android:textSize="15sp"
-        android:background="?selectableItemBackground" />
-
+    <!-- 功能菜单 -->
     <TextView
         android:id="@+id/menu_schedule_settings"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="52dp"
+        android:background="?selectableItemBackground"
         android:gravity="center_vertical"
         android:paddingStart="24dp"
+        android:paddingEnd="24dp"
         android:text="课表设置"
-        android:textColor="@color/text_primary"
+        android:textColor="#1A1A1A"
         android:textSize="15sp"
-        android:background="?selectableItemBackground" />
+        android:drawableEnd="@drawable/ic_arrow_right" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:layout_marginStart="24dp"
+        android:background="#EEEEEE" />
+
+    <TextView
+        android:id="@+id/menu_time"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:background="?selectableItemBackground"
+        android:gravity="center_vertical"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:text="上课时间"
+        android:textColor="#1A1A1A"
+        android:textSize="15sp"
+        android:drawableEnd="@drawable/ic_arrow_right" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:layout_marginStart="24dp"
+        android:background="#EEEEEE" />
 
     <TextView
         android:id="@+id/menu_courses"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="52dp"
+        android:background="?selectableItemBackground"
         android:gravity="center_vertical"
         android:paddingStart="24dp"
+        android:paddingEnd="24dp"
         android:text="已添课程"
-        android:textColor="@color/text_primary"
+        android:textColor="#1A1A1A"
         android:textSize="15sp"
-        android:background="?selectableItemBackground" />
+        android:drawableEnd="@drawable/ic_arrow_right" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0.5dp"
+        android:layout_marginStart="24dp"
+        android:background="#EEEEEE" />
 
     <TextView
         android:id="@+id/menu_about"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="52dp"
+        android:background="?selectableItemBackground"
         android:gravity="center_vertical"
         android:paddingStart="24dp"
+        android:paddingEnd="24dp"
         android:text="背景设置"
-        android:textColor="@color/text_primary"
+        android:textColor="#1A1A1A"
         android:textSize="15sp"
-        android:background="?selectableItemBackground" />
+        android:drawableEnd="@drawable/ic_arrow_right" />
+
+    <!-- 分割线 -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="8dp"
+        android:layout_marginTop="4dp"
+        android:background="#F5F5F5" />
 
     <TextView
         android:id="@+id/menu_delete"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="52dp"
+        android:background="?selectableItemBackground"
         android:gravity="center_vertical"
         android:paddingStart="24dp"
-        android:text="删除课表"
+        android:paddingEnd="24dp"
+        android:text="清空课表"
         android:textColor="#E53935"
-        android:textSize="15sp"
-        android:background="?selectableItemBackground" />
+        android:textSize="15sp" />
 
-    <!-- 课表名 -->
+    <!-- 底部课表信息 -->
     <TextView
         android:id="@+id/tv_table_name"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginStart="24dp"
-        android:layout_marginTop="12dp"
-        android:textColor="@color/text_hint"
-        android:textSize="12sp" />
+        android:gravity="center"
+        android:layout_marginTop="8dp"
+        android:textColor="#BBBBBB"
+        android:textSize="11sp" />
 
 </LinearLayout>

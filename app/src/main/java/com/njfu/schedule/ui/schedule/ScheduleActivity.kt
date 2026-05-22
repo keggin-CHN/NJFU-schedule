@@ -452,7 +452,8 @@ class ScheduleActivity : AppCompatActivity() {
         })
 
         // 课表名
-        view.findViewById<TextView>(R.id.tv_table_name).text = "${table?.tableName ?: "南林课表"} ✓"
+        val studentInfo = table?.studentName?.let { if (it.isNotEmpty()) " · $it" else "" } ?: ""
+        view.findViewById<TextView>(R.id.tv_table_name).text = "${table?.tableName ?: "南林课表"}$studentInfo"
 
         // 上课时间
         view.findViewById<View>(R.id.menu_time).setOnClickListener {
