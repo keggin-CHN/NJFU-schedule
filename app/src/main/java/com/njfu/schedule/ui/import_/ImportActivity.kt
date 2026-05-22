@@ -97,6 +97,13 @@ class ImportActivity : AppCompatActivity() {
                     .putString("password", password)
                     .apply()
 
+                // 保存备注
+                if (result.remarks.isNotEmpty()) {
+                    getSharedPreferences("njfu_login", Context.MODE_PRIVATE).edit()
+                        .putString("remarks", result.remarks.joinToString("\n"))
+                        .apply()
+                }
+
                 // 保存到数据库
                 withContext(Dispatchers.IO) {
                     saveCourses(result.courses, result.studentName, studentId)
@@ -104,10 +111,13 @@ class ImportActivity : AppCompatActivity() {
 
                 setLoading(false)
                 val courseNames = result.courses.map { it.name }.distinct()
+                val remarksText = if (result.remarks.isNotEmpty()) {
+                    "\n\n备注：\n${result.remarks.joinToString("\n")}"
+                } else ""
                 val msg = if (result.studentName.isNotEmpty()) {
-                    "✓ ${result.studentName}，导入成功！\n共 ${courseNames.size} 门课程，${result.courses.size} 条时间安排"
+                    "✓ ${result.studentName}，导入成功！\n共 ${courseNames.size} 门课程，${result.courses.size} 条时间安排$remarksText"
                 } else {
-                    "✓ 导入成功！共 ${courseNames.size} 门课程"
+                    "✓ 导入成功！共 ${courseNames.size} 门课程$remarksText"
                 }
                 binding.tvStatus.text = msg
                 Toast.makeText(this@ImportActivity, "导入成功！", Toast.LENGTH_SHORT).show()

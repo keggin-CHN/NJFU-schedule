@@ -22,7 +22,8 @@ class NjfuImporter {
     data class ImportResult(
         val courses: List<CourseInfo>,
         val studentName: String,
-        val semesterStartDate: String = ""  // 学期开始日期
+        val semesterStartDate: String = "",
+        val remarks: List<String> = emptyList()  // 备注（无课表课程等）
     )
 
     data class CourseInfo(
@@ -145,7 +146,53 @@ class NjfuImporter {
         val scheduleResp = client.newCall(scheduleReq).execute()
         val scheduleHtml = scheduleResp.body?.string() ?: throw Exception("获取课表页面失败")
 
-        return ImportResult(parseSchedule(scheduleHtml), studentName, "2026-02-24")
+        // 解析备注（无课表课程）
+        val remarks = parseRemarks(scheduleHtml)
+
+        return ImportResult(parseSchedule(scheduleHtml), studentName, "2026-02-24", remarks)
+    }
+
+    /**
+     * 解析备注区域（colspan=7 的备注 + 无课表课程表格）
+     */
+    private fun parseRemarks(html: String): List<String> {
+        val doc = Jsoup.parse(html)
+        val remarks = mutableListOf<String>()
+
+        // 1. 解析 colspan=7 的备注行
+        val remarkTds = doc.select("td[colspan=7]")
+        for (td in remarkTds) {
+            val text = td.text().trim()
+            if (text.isNotEmpty()) {
+                remarks.add(text)
+            }
+        }
+
+        // 2. 解析"无课表课程"表格
+        val tables = doc.select("table")
+        for (table in tables) {
+            val firstRow = table.selectFirst("tr") ?: continue
+            if (firstRow.text().contains("无课表课程") && table.select("tr").size > 2) {
+                val rows = table.select("tr").drop(2) // 跳过标题行
+                for (row in rows) {
+                    val cols = row.select("td")
+                    if (cols.size >= 4) {
+                        val courseName = cols[3].text().trim()
+                        val teacher = cols[4].text().trim()
+                        val nature = if (cols.size > 7) cols[7].text().trim() else ""
+                        val attr = if (cols.size > 8) cols[8].text().trim() else ""
+                        val info = buildString {
+                            append(courseName)
+                            if (teacher.isNotEmpty()) append(" ($teacher)")
+                            if (nature.isNotEmpty()) append(" [$nature]")
+                        }
+                        if (info.isNotEmpty()) remarks.add(info)
+                    }
+                }
+            }
+        }
+
+        return remarks
     }
 
     /**
