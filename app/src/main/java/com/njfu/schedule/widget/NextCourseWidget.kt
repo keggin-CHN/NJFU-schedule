@@ -56,7 +56,7 @@ class NextCourseWidget : AppWidgetProvider() {
             val currentMin = now.get(Calendar.MINUTE)
             val currentMinutes = currentHour * 60 + currentMin
 
-            val nextCourse = runBlocking {
+            val nextCourse = runBlocking(Dispatchers.IO) {
                 try {
                     val db = AppDatabase.getDatabase(context)
                     val dao = db.courseDao()

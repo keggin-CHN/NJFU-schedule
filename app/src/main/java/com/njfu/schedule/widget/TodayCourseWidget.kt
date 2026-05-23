@@ -61,7 +61,7 @@ class TodayCourseWidget : AppWidgetProvider() {
             views.setTextViewText(R.id.tv_widget_date, dateStr)
 
             // 从数据库获取今日课程
-            val todayCourses: List<WidgetCourse> = runBlocking {
+            val todayCourses: List<WidgetCourse> = runBlocking(Dispatchers.IO) {
                 try {
                     val db = AppDatabase.getDatabase(context)
                     val dao = db.courseDao()

@@ -12,6 +12,7 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.lifecycle.lifecycleScope
 import com.njfu.schedule.databinding.ActivityBackgroundSettingsBinding
 import kotlinx.coroutines.Dispatchers
@@ -42,6 +43,22 @@ class BackgroundSettingsActivity : AppCompatActivity() {
         binding.seekbarAlpha.progress = alpha
         binding.tvAlphaValue.text = "${alpha}%"
         updateOverlayPreview(alpha)
+        when (prefs.getInt("theme_mode", AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM)) {
+            AppCompatDelegate.MODE_NIGHT_NO -> binding.chipLight.isChecked = true
+            AppCompatDelegate.MODE_NIGHT_YES -> binding.chipDark.isChecked = true
+            else -> binding.chipSystem.isChecked = true
+        }
+
+        binding.chipGroupTheme.setOnCheckedStateChangeListener { _, checkedIds ->
+            val mode = when (checkedIds.firstOrNull()) {
+                binding.chipLight.id -> AppCompatDelegate.MODE_NIGHT_NO
+                binding.chipDark.id -> AppCompatDelegate.MODE_NIGHT_YES
+                else -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+            }
+            prefs.edit().putInt("theme_mode", mode).apply()
+            AppCompatDelegate.setDefaultNightMode(mode)
+            setResult(RESULT_OK)
+        }
 
         // 加载已有背景
         loadCurrentBackground()

@@ -631,6 +631,12 @@ class ScheduleActivity : AppCompatActivity() {
             showCourseList()
         }
 
+        // 背景设置
+        view.findViewById<View>(R.id.menu_background).setOnClickListener {
+            dialog.dismiss()
+            bgLauncher.launch(Intent(this, BackgroundSettingsActivity::class.java))
+        }
+
         // 关于
         view.findViewById<View>(R.id.menu_about_page).setOnClickListener {
             dialog.dismiss()

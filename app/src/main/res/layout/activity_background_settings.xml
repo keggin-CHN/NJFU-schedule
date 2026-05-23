@@ -3,6 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/background"
     android:orientation="vertical">
 
     <com.google.android.material.appbar.MaterialToolbar
@@ -10,7 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:background="@color/surface"
-        android:elevation="2dp"
+        android:elevation="0dp"
         app:navigationIcon="@drawable/ic_back"
         app:title="背景设置" />
 
@@ -38,7 +39,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:text="预览效果"
-            android:textColor="#666666"
+            android:textColor="@color/text_secondary"
             android:textSize="16sp" />
     </FrameLayout>
 
@@ -46,8 +47,11 @@
     <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        app:cardBackgroundColor="@color/surface_container"
         app:cardCornerRadius="16dp"
-        app:cardElevation="8dp">
+        app:cardElevation="0dp"
+        app:strokeColor="@color/divider"
+        app:strokeWidth="1dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -55,11 +59,50 @@
             android:orientation="vertical"
             android:padding="20dp">
 
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="主题"
+                android:textColor="@color/text_primary"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chip_group_theme"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                app:singleSelection="true">
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_system"
+                    style="@style/Widget.NJFU.ChoiceChip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="跟随系统" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_light"
+                    style="@style/Widget.NJFU.ChoiceChip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="浅色" />
+
+                <com.google.android.material.chip.Chip
+                    android:id="@+id/chip_dark"
+                    style="@style/Widget.NJFU.ChoiceChip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="暗色" />
+            </com.google.android.material.chip.ChipGroup>
+
             <!-- 透明度调节 -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
                 android:text="课表透明度"
+                android:textColor="@color/text_primary"
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
@@ -74,7 +117,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="不透明"
-                    android:textColor="#999999"
+                    android:textColor="@color/text_secondary"
                     android:textSize="12sp" />
 
                 <SeekBar
@@ -89,7 +132,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="全透明"
-                    android:textColor="#999999"
+                    android:textColor="@color/text_secondary"
                     android:textSize="12sp" />
             </LinearLayout>
 
@@ -108,6 +151,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
                 android:text="选择背景图片"
+                android:textColor="@color/text_primary"
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
@@ -123,7 +167,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginEnd="8dp"
                     android:layout_weight="1"
-                    android:text="📷 相册"
+                    android:text="相册"
                     style="@style/Widget.Material3.Button.TonalButton" />
 
                 <com.google.android.material.button.MaterialButton
@@ -132,7 +176,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:layout_weight="1"
-                    android:text="🔗 网络图片"
+                    android:text="网络图片"
                     style="@style/Widget.Material3.Button.TonalButton" />
             </LinearLayout>
 
@@ -142,7 +186,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:text="清除背景"
-                android:textColor="#F44336"
+                android:textColor="@color/text_error"
                 style="@style/Widget.Material3.Button.TextButton" />
 
         </LinearLayout>
