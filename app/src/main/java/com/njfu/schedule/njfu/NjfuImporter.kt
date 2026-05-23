@@ -176,170 +176,133 @@ class NjfuImporter {
     /**
      * 全校查询接口：获取对应实体（如教师、教室、班级、课程）的课表
      * [type] 可以是 "jg0101" (教师), "jx0601" (教室), "bj0101" (班级), "kc0101" (课程)
-     * [keywordId] 是对应的内部ID（例如搜索教师得到的 jg0101id）
-     * [term] 学期代码（如 2023-2024-2，为空默认查当前学期）
+     * [keyword] 用户输入的搜索关键字
+     * [term] 学期代码（如 2025-2026-2，为空默认查当前学期）
      */
-    fun fetchGlobalSchedule(type: String, keywordId: String, term: String = ""): List<com.njfu.schedule.bean.GlobalCourseInfo> {
+    fun fetchGlobalSchedule(type: String, keyword: String, term: String = ""): List<com.njfu.schedule.bean.GlobalCourseInfo> {
+        // 映射请求路径和参数名
+        val (path, paramName) = when (type) {
+            "jg0101" -> Pair("kbxx_teacher_ifr", "skjs")
+            "jx0601" -> Pair("kbxx_classroom_ifr", "jxcdmc") // 教室可能使用 jxcdmc，也可能是 skjs，若不确定可用通配符
+            "bj0101" -> Pair("kbxx_xzb_ifr", "skbj")
+            "kc0101" -> Pair("kbxx_kc_ifr", "kcmc")
+            else -> Pair("kbxx_xzb_ifr", "skbj")
+        }
+
         // 先尝试获取该类型查询主页，以获取隐藏参数 kbjcmsid 和当前学期
-        val homeUrl = "https://jwxt.njfu.edu.cn/jsxsd/xskb/xskb_list_${type}foroutside.do"
+        val homeUrl = "https://jwxt.njfu.edu.cn/jsxsd/kbcx/${path.replace("_ifr", "")}"
         val homeReq = Request.Builder().url(homeUrl).get().build()
         val homeResp = client.newCall(homeReq).execute()
         val homeHtml = homeResp.body?.string() ?: ""
 
         val kbjcmsidMatch = Regex("""id="kbjcmsid"\s+value="([^"]+)"""").find(homeHtml)
-        val kbjcmsid = kbjcmsidMatch?.groupValues?.get(1) ?: ""
+        val kbjcmsid = kbjcmsidMatch?.groupValues?.get(1) ?: "933E103D1CA84D64A71CE6FC60BFE57B"
         
         var targetTerm = term
         if (targetTerm.isEmpty()) {
-            val termMatch = Regex("""name="xnxq01id"[^>]*>\s*<option value="([^"]+)"""").find(homeHtml)
-            targetTerm = termMatch?.groupValues?.get(1) ?: ""
+            val termMatch = Regex("""name="xnxqh"[^>]*>\s*<option value="([^"]+)"\s*selected""").find(homeHtml)
+            targetTerm = termMatch?.groupValues?.get(1) ?: "2025-2026-2"
         }
 
-        // 构造查询参数
+        // 构造查询参数，直接提交给底层 ifr 接口
         val formBuilder = FormBody.Builder()
-            .add("xnxq01id", targetTerm)
+            .add("xnxqh", targetTerm)
             .add("kbjcmsid", kbjcmsid)
-            .add("RANDOMCODE", "")
-            
-        // 根据类型添加字段
-        when (type) {
-            "jg0101" -> { formBuilder.add("jg0101_text", ""); formBuilder.add("jg0101", keywordId) }
-            "jx0601" -> { formBuilder.add("jx0601_text", ""); formBuilder.add("jx0601", keywordId) }
-            "bj0101" -> { formBuilder.add("bj0101_text", ""); formBuilder.add("bj0101", keywordId) }
-            "kc0101" -> { formBuilder.add("kc0101_text", ""); formBuilder.add("kc0101", keywordId) }
-        }
+            .add(paramName, keyword)
 
-        val datatableUrl = "https://jwxt.njfu.edu.cn/jsxsd/xskb/xskb_list_foroutsideDatatable.do"
-        val dataReq = Request.Builder().url(datatableUrl).post(formBuilder.build()).build()
+        val dataUrl = "https://jwxt.njfu.edu.cn/jsxsd/kbcx/$path"
+        val dataReq = Request.Builder().url(dataUrl).post(formBuilder.build()).build()
         val dataResp = client.newCall(dataReq).execute()
         val dataHtml = dataResp.body?.string() ?: ""
 
-        return parseGlobalSchedule(dataHtml)
+        return parseNewGlobalSchedule(dataHtml)
     }
 
-    /**
-     * 搜索实体（自动完成接口）
-     * [type] 可以是 "jg0101" (教师), "jx0601" (教室), "bj0101" (班级), "kc0101" (课程)
-     * [keyword] 搜索关键字，为空时获取全量列表
-     */
-    fun searchEntity(type: String, keyword: String): List<Pair<String, String>> {
-        val searchType = type.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault()) else it.toString() }
-        val maxRow = if (keyword.isEmpty()) "500" else "50"
-        val formBuilder = FormBody.Builder().add("maxRow", maxRow)
-        when (type) {
-            "jg0101" -> { formBuilder.add("jgxx", keyword); formBuilder.add("xx0301", "") }
-            "jx0601" -> { formBuilder.add("jxxx", keyword); formBuilder.add("xx0301", "") }
-            "bj0101" -> { formBuilder.add("bjxx", keyword); formBuilder.add("xx0301", "") }
-            "kc0101" -> { formBuilder.add("kcxx", keyword); formBuilder.add("xx0301", "") }
-        }
-        val url = "https://jwxt.njfu.edu.cn/jsxsd/xskb/get$searchType.do"
-        val req = Request.Builder().url(url).post(formBuilder.build()).build()
-        val resp = client.newCall(req).execute()
-        val json = resp.body?.string() ?: return emptyList()
-
-        // 若响应是 HTML（未登录被重定向到登录页，或系统未开放），抛出异常
-        if (json.trimStart().startsWith("<")) {
-            if (json.contains("系统未开放")) {
-                throw Exception("该查询类型系统暂未开放")
-            }
-            throw Exception("会话已过期，请重新登录")
-        }
-
-        val results = mutableListOf<Pair<String, String>>()
-        try {
-            // JSON 解析：找到 xxContent 数组
-            val contentMatch = Regex(""""[^"]+Content"\s*:\s*\[([^\]]*)\]""", RegexOption.DOT_MATCHES_ALL).find(json)
-            if (contentMatch != null) {
-                val arrayStr = contentMatch.groupValues[1]
-                val itemRegex = Regex("""\{[^{}]+\}""")
-                for (itemMatch in itemRegex.findAll(arrayStr)) {
-                    val itemStr = itemMatch.value
-                    val idMatch = Regex(""""${type}id"\s*:\s*"([^"]+)"""").find(itemStr)
-                    val nameMatch = when (type) {
-                        "jg0101" -> Regex(""""xm"\s*:\s*"([^"]+)"""").find(itemStr)
-                        "jx0601" -> Regex(""""jx0601mc"\s*:\s*"([^"]+)"""").find(itemStr)
-                        "bj0101" -> Regex(""""bj0101mc"\s*:\s*"([^"]+)"""").find(itemStr)
-                        "kc0101" -> Regex(""""kc0101mc"\s*:\s*"([^"]+)"""").find(itemStr)
-                        else -> null
-                    }
-                    if (idMatch != null && nameMatch != null) {
-                        results.add(Pair(nameMatch.groupValues[1], idMatch.groupValues[1]))
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        return results
-    }
-
-    private fun parseGlobalSchedule(html: String): List<com.njfu.schedule.bean.GlobalCourseInfo> {
+    private fun parseNewGlobalSchedule(html: String): List<com.njfu.schedule.bean.GlobalCourseInfo> {
         val doc = Jsoup.parse(html)
         val table = doc.selectFirst("table#timetable") ?: return emptyList()
 
         val courses = mutableListOf<com.njfu.schedule.bean.GlobalCourseInfo>()
         val rows = table.select("tr")
         
-        val sectionDefaults = mapOf(0 to Pair(1, 2), 1 to Pair(3, 4), 2 to Pair(5, 6), 3 to Pair(7, 8), 4 to Pair(9, 11))
-
-        rows.drop(1).forEachIndexed { rowIdx, row ->
+        // Rows 0 and 1 are headers, skip them
+        if (rows.size <= 2) return emptyList()
+        
+        for (i in 2 until rows.size) {
+            val row = rows[i]
             val tds = row.select("td")
-            tds.forEachIndexed { colIdx, td ->
-                val day = colIdx + 1
-                val detailDivs = td.select("div.kbcontent")
-
-                for (div in detailDivs) {
-                    val text = div.text().trim()
-                    if (text.isEmpty() || text == "\u00a0") continue
-
-                    val innerHtml = div.html()
-                    val blocks = innerHtml.split(Regex("-{5,}"))
-
-                    for (block in blocks) {
-                        val blockDoc = Jsoup.parseBodyFragment(block)
-                        val fonts = blockDoc.select("font")
-                        if (fonts.isEmpty()) continue
-
-                        var courseName = ""
-                        var teacher = ""
-                        var room = ""
-                        var weeksStr = ""
-                        var sectionsStr = ""
-                        var className = ""
-
-                        for (font in fonts) {
-                            val fontText = font.text().trim()
-                            if (fontText.isEmpty()) continue
-
-                            val title = font.attr("title")
-                            val nameAttr = font.attr("name")
-                            val style = font.attr("style")
-
-                            if (nameAttr in listOf("tzdbh", "wkxx", "bzstr", "xsks")) continue
-                            if ("display:none" in style || "display: none" in style) continue
-
-                            when {
-                                title == "教师" -> teacher = fontText
-                                title == "周次(节次)" || (fontText.contains("周") && fontText.contains("节") && fontText.contains("[")) -> {
-                                    sectionsStr = fontText
-                                    val weekMatch = Regex("(.+?\\(周\\))").find(fontText)
-                                    if (weekMatch != null) weeksStr = weekMatch.groupValues[1]
-                                }
-                                title == "教室" -> room = fontText
-                                title == "教学班" -> className = fontText
-                                courseName.isEmpty() && title.isEmpty() && nameAttr.isEmpty() -> courseName = fontText
-                            }
-                        }
-
-                        if (courseName.isNotEmpty()) {
-                            courses.add(com.njfu.schedule.bean.GlobalCourseInfo(
-                                courseName, teacher, room, weeksStr, day, sectionsStr, className
-                            ))
-                        }
+            if (tds.isEmpty()) continue
+            
+            // First td is usually the entity name (Class Name, Teacher Name, etc.)
+            // e.g. <nobr>23101011</nobr>
+            val entityName = tds[0].text().trim()
+            if (entityName.isEmpty()) continue
+            
+            // The remaining 35 tds are the schedule blocks
+            for (colIdx in 1 until tds.size) {
+                val td = tds[colIdx]
+                val day = ((colIdx - 1) / 5) + 1
+                val sectionIdx = (colIdx - 1) % 5
+                
+                val sectionsStr = when (sectionIdx) {
+                    0 -> "1,2"
+                    1 -> "3,4"
+                    2 -> "5,6"
+                    3 -> "7,8"
+                    4 -> "9,10,11"
+                    else -> ""
+                }
+                
+                // Content can be in kbcontent1 or kbcontent
+                val divs = td.select("div.kbcontent1, div.kbcontent")
+                for (div in divs) {
+                    // Remove configuration fonts to prevent text pollution
+                    div.select("font.kchConfig").remove()
+                    
+                    // Fields are usually separated by <br> tags
+                    val rawHtml = div.html()
+                    val lines = rawHtml.split(Regex("<br\\s*/?>", RegexOption.IGNORE_CASE))
+                        .map { Jsoup.parse(it).text().trim() }
+                        .filter { it.isNotEmpty() }
+                        
+                    if (lines.isEmpty()) continue
+                    
+                    val courseName = lines.getOrNull(0) ?: ""
+                    val className = lines.getOrNull(1) ?: ""
+                    
+                    var teacher = ""
+                    var weeksStr = ""
+                    val line2 = lines.getOrNull(2) ?: ""
+                    
+                    // Match "Teacher Name (Weeks周)" or just "(Weeks周)"
+                    val weekMatch = Regex("(.+?)\\s*\\((.+?周)\\)").find(line2)
+                    if (weekMatch != null) {
+                        teacher = weekMatch.groupValues[1].trim()
+                        weeksStr = weekMatch.groupValues[2].trim()
+                    } else if (line2.contains("周")) {
+                        weeksStr = line2
+                    } else {
+                        teacher = line2
                     }
+                    
+                    val room = lines.getOrNull(3) ?: ""
+                    
+                    // Append entityName to Teacher or Class Name if it's missing or helpful context
+                    val finalClassName = if (className.isEmpty()) entityName else className
+                    
+                    courses.add(com.njfu.schedule.bean.GlobalCourseInfo(
+                        courseName = courseName,
+                        teacher = teacher,
+                        room = room,
+                        weeksStr = weeksStr,
+                        day = day,
+                        sectionsStr = "第${sectionsStr}节",
+                        className = finalClassName
+                    ))
                 }
             }
         }
+        
         return courses.distinct()
     }
 

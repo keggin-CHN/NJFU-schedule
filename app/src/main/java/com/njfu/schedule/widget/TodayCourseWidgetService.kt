@@ -7,7 +7,7 @@ import android.widget.RemoteViews
 import android.widget.RemoteViewsService
 import com.njfu.schedule.R
 import com.njfu.schedule.bean.TimeNode
-import com.njfu.schedule.database.AppDatabase
+import com.njfu.schedule.AppDatabase
 import com.njfu.schedule.utils.WeekUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking

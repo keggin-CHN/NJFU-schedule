@@ -110,16 +110,9 @@ class AddCourseActivity : AppCompatActivity() {
         binding.etDates.isFocusable = false
         binding.etDates.isClickable = true
         binding.etDates.setOnClickListener {
-            val picker = MaterialDatePicker.Builder.dateRangePicker()
-                .setTitleText("选择日期范围 (长按滑动可批量选择)")
-                .build()
-            picker.addOnPositiveButtonClickListener { selection ->
-                val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.CHINA)
-                val start = sdf.format(Date(selection.first))
-                val end = sdf.format(Date(selection.second))
+            SlideDatePickerDialog(this) { start, end ->
                 binding.etDates.setText("$start~$end")
-            }
-            picker.show(supportFragmentManager, "DATE_PICKER")
+            }.show()
         }
     }
 
@@ -145,22 +138,14 @@ class AddCourseActivity : AppCompatActivity() {
                 id = View.generateViewId()
                 tag = colorHex
                 isCheckable = true
-                text = " "
+                checkedIconVisible = true
+                checkedIconTint = android.content.res.ColorStateList.valueOf(Color.WHITE)
+                text = "" // Remove text to let the checkmark center properly
                 minWidth = dpToPx(34)
                 chipMinHeight = dpToPx(30).toFloat()
                 chipBackgroundColor = android.content.res.ColorStateList.valueOf(parseColorSafe(colorHex))
                 setTextColor(Color.WHITE)
-                chipStrokeWidth = dpToPx(2).toFloat()
-                chipStrokeColor = android.content.res.ColorStateList(
-                    arrayOf(
-                        intArrayOf(android.R.attr.state_checked),
-                        intArrayOf()
-                    ),
-                    intArrayOf(
-                        Color.WHITE,
-                        Color.argb(170, 210, 218, 232)
-                    )
-                )
+                chipStrokeWidth = 0f // Remove stroke to make it look cleaner with the checkmark
             }
             binding.chipGroupColor.addView(chip)
             if (idx == 0) {

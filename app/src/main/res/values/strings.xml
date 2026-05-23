@@ -22,7 +22,7 @@
     <string name="welcome">欢迎，%s</string>
 
     <string name="widget_description">显示今日课程安排</string>
-    <string name="widget_next_description">显示下一节课信息</string>
+    <string name="widget_next_description">显示今日课程紧凑课表</string>
 
     <string-array name="days">
         <item>周一</item>

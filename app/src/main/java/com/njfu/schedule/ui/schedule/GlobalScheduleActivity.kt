@@ -20,17 +20,13 @@ class GlobalScheduleActivity : AppCompatActivity() {
     private lateinit var binding: ActivityGlobalScheduleBinding
     private val importer = NjfuImporter()
 
-    // Current query type
     private var currentType = "jg0101"
 
     // Adapters
-    private val entityAdapter = EntityAdapter { name, id -> onEntitySelected(name, id) }
     private val courseAdapter = GlobalCourseAdapter()
 
     // State
-    private var isShowingResults = false
     private var sessionReady = false
-    private var searchJob: kotlinx.coroutines.Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,11 +37,7 @@ class GlobalScheduleActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         binding.toolbar.setNavigationOnClickListener { onBackPressed() }
 
-        // Setup RecyclerViews
-        binding.rvEntities.layoutManager = LinearLayoutManager(this)
-        binding.rvEntities.adapter = entityAdapter
-        binding.rvEntities.addItemDecoration(DividerItemDecoration(this, DividerItemDecoration.VERTICAL))
-
+        // Setup RecyclerView
         binding.rvResults.layoutManager = LinearLayoutManager(this)
         binding.rvResults.adapter = courseAdapter
 
@@ -62,8 +54,20 @@ class GlobalScheduleActivity : AppCompatActivity() {
             if (newType != currentType) {
                 currentType = newType
                 binding.etFilter.setText("")
-                showEntityList()
-                loadEntityList()
+                showInitialState()
+            }
+        }
+
+        // Filter input (direct search on submit)
+        binding.etFilter.setOnEditorActionListener { _, actionId, _ ->
+            if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH) {
+                val q = binding.etFilter.text?.toString()?.trim() ?: ""
+                if (q.isNotEmpty()) {
+                    performSearch(q)
+                }
+                true
+            } else {
+                false
             }
         }
 
@@ -73,38 +77,25 @@ class GlobalScheduleActivity : AppCompatActivity() {
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 val q = s?.toString()?.trim() ?: ""
                 binding.btnClear.visibility = if (q.isNotEmpty()) View.VISIBLE else View.GONE
-                if (!isShowingResults && sessionReady) {
-                    searchJob?.cancel()
-                    if (q.isEmpty()) {
-                        entityAdapter.setFullList(emptyList())
-                    } else {
-                        searchJob = lifecycleScope.launch {
-                            kotlinx.coroutines.delay(500) // debounce
-                            loadEntityList(q)
-                        }
-                    }
-                }
             }
             override fun afterTextChanged(s: Editable?) {}
         })
 
         binding.btnClear.setOnClickListener {
             binding.etFilter.setText("")
+            showInitialState()
         }
 
         // Retry button
         binding.btnRetry.setOnClickListener {
-            if (isShowingResults) {
-                // Will be set before calling, not used here
-            } else {
-                val q = binding.etFilter.text?.toString()?.trim() ?: ""
-                if (q.isNotEmpty()) loadEntityList(q)
-            }
+            val q = binding.etFilter.text?.toString()?.trim() ?: ""
+            if (q.isNotEmpty()) performSearch(q)
         }
 
-        // FAB back to entity list
+        // FAB to clear search
         binding.fabBack.setOnClickListener {
-            showEntityList()
+            binding.etFilter.setText("")
+            showInitialState()
         }
 
         // Start: login + load entity list
@@ -112,8 +103,8 @@ class GlobalScheduleActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
-        if (isShowingResults) {
-            showEntityList()
+        if (binding.rvResults.visibility == View.VISIBLE) {
+            showInitialState()
         } else {
             super.onBackPressed()
         }
@@ -125,28 +116,28 @@ class GlobalScheduleActivity : AppCompatActivity() {
             val errMsg = withContext(Dispatchers.IO) { doLoginGetError() }
             if (errMsg == null) {
                 sessionReady = true
-                showEntityList()
-                entityAdapter.setFullList(emptyList()) // 提示输入
-                binding.tvMessage.text = "请输入关键字搜索\n（注：部分查询类型可能未开放）"
-                binding.tvMessage.visibility = View.VISIBLE
+                showInitialState()
             } else {
                 showError("登录失败：$errMsg\n\n（请先在\"导入课表\"页面登录一次）")
             }
         }
     }
 
-    private fun loadEntityList(keyword: String, isRetry: Boolean = false) {
-        showLoading("正在检索${currentTypeName()}...")
+    private fun performSearch(keyword: String, isRetry: Boolean = false) {
+        showLoading("正在获取课表...")
         lifecycleScope.launch {
             try {
-                val list = withContext(Dispatchers.IO) {
-                    importer.searchEntity(currentType, keyword)
+                val courses = withContext(Dispatchers.IO) {
+                    importer.fetchGlobalSchedule(currentType, keyword)
                 }
-                if (list.isEmpty()) {
-                    showError("检索结果为空\n\n可能原因：\n· 关键字无匹配结果\n· 该查询类型（如课程）暂未开放")
+                val sorted = courses.sortedWith(compareBy({ it.day }, {
+                    it.sectionsStr.replace(Regex("\\D"), "").take(2).toIntOrNull() ?: 0
+                }))
+                courseAdapter.submitList(sorted)
+                if (sorted.isEmpty()) {
+                    showError("暂无排课数据或未找到对应${currentTypeName()}")
                 } else {
-                    entityAdapter.setFullList(list)
-                    showEntityList()
+                    showResults()
                 }
             } catch (e: Exception) {
                 val msg = e.message ?: "未知错误"
@@ -154,36 +145,13 @@ class GlobalScheduleActivity : AppCompatActivity() {
                     showLoading("会话已过期，正在重新登录...")
                     val errMsg = withContext(Dispatchers.IO) { doLoginGetError() }
                     if (errMsg == null) {
-                        loadEntityList(keyword, true)
+                        performSearch(keyword, true)
                     } else {
                         showError("重新登录失败：$errMsg")
                     }
                 } else {
-                    showError("检索失败：$msg")
+                    showError("获取失败: $msg")
                 }
-            }
-        }
-    }
-
-    private fun onEntitySelected(name: String, id: String) {
-        supportActionBar?.title = name
-        showLoading("正在获取 $name 的课表...")
-        lifecycleScope.launch {
-            try {
-                val courses = withContext(Dispatchers.IO) {
-                    importer.fetchGlobalSchedule(currentType, id)
-                }
-                val sorted = courses.sortedWith(compareBy({ it.day }, {
-                    it.sectionsStr.replace(Regex("\\D"), "").take(2).toIntOrNull() ?: 0
-                }))
-                courseAdapter.submitList(sorted)
-                if (sorted.isEmpty()) {
-                    showError("暂无排课数据")
-                } else {
-                    showResults()
-                }
-            } catch (e: Exception) {
-                showError("获取失败: ${e.message}")
             }
         }
     }
@@ -199,19 +167,19 @@ class GlobalScheduleActivity : AppCompatActivity() {
         binding.fabBack.visibility = View.GONE
     }
 
-    private fun showEntityList() {
-        isShowingResults = false
+    private fun showInitialState() {
         supportActionBar?.title = "全校课表查询"
         binding.layoutLoading.visibility = View.GONE
-        binding.layoutEmpty.visibility = View.GONE
-        binding.rvEntities.visibility = View.VISIBLE
+        binding.layoutEmpty.visibility = View.VISIBLE
+        binding.tvEmpty.text = "请输入关键字并点击键盘上的【搜索】按钮查询\n（可输入班级、教师姓名等进行精确检索）"
+        binding.btnRetry.visibility = View.GONE
+        binding.rvEntities.visibility = View.GONE
         binding.rvResults.visibility = View.GONE
         binding.fabBack.visibility = View.GONE
-        binding.etFilter.hint = "筛选${currentTypeName()}..."
+        binding.etFilter.hint = "输入并按回车搜索${currentTypeName()}..."
     }
 
     private fun showResults() {
-        isShowingResults = true
         binding.layoutLoading.visibility = View.GONE
         binding.layoutEmpty.visibility = View.GONE
         binding.rvEntities.visibility = View.GONE
@@ -225,7 +193,8 @@ class GlobalScheduleActivity : AppCompatActivity() {
         binding.rvResults.visibility = View.GONE
         binding.layoutEmpty.visibility = View.VISIBLE
         binding.tvEmpty.text = msg
-        binding.fabBack.visibility = if (isShowingResults) View.VISIBLE else View.GONE
+        binding.btnRetry.visibility = View.VISIBLE
+        binding.fabBack.visibility = View.GONE
     }
 
     private fun currentTypeName() = when (currentType) {

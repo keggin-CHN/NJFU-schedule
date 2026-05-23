@@ -16,7 +16,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 /**
- * 下节课 2x2 小组件
+ * 今日课程 2x2 紧凑小组件
  */
 class NextCourseWidget : AppWidgetProvider() {
 
@@ -52,58 +52,64 @@ class NextCourseWidget : AppWidgetProvider() {
             TimeNode.load(context)
 
             val todayOfWeek = WeekUtils.getTodayOfWeek()
-            val now = Calendar.getInstance()
-            val currentHour = now.get(Calendar.HOUR_OF_DAY)
-            val currentMin = now.get(Calendar.MINUTE)
-            val currentMinutes = currentHour * 60 + currentMin
+            val dateText = SimpleDateFormat("M月d日 E", Locale.CHINA).format(Date())
 
-            val nextCourse = runBlocking(Dispatchers.IO) {
+            val todayCourses = runBlocking(Dispatchers.IO) {
                 try {
                     val db = AppDatabase.getDatabase(context)
                     val dao = db.courseDao()
-                    val table = dao.getFirstTable() ?: return@runBlocking null
+                    val table = dao.getFirstTable() ?: return@runBlocking emptyList<WidgetCourseLine>()
                     val currentWeek = WeekUtils.getCurrentWeek(table.startDate)
 
                     val allDetails = dao.getCourseDetailsById_sync(table.id)
                     val allBases = dao.getCourseBaseById_sync(table.id)
                     val nameMap = allBases.associate { it.id to it.courseName }
 
-                    // 今天的课，按开始时间排序
-                    val todayCourses = allDetails.filter { d ->
+                    allDetails.filter { d ->
                         d.day == todayOfWeek &&
                         d.startWeek <= currentWeek && d.endWeek >= currentWeek &&
                         (d.type == 0 || (d.type == 1 && currentWeek % 2 == 1) || (d.type == 2 && currentWeek % 2 == 0))
                     }.sortedWith(compareBy { d ->
                         parseMinutes(d.customStartTime ?: TimeNode.getStartTime(d.startNode)) ?: 0
-                    })
-
-                    // 找下一节课（优先使用自定义时间，否则使用节次时间）
-                    for (course in todayCourses) {
+                    }).map { course ->
                         val startTime = course.customStartTime ?: TimeNode.getStartTime(course.startNode)
-                        val courseMinutes = parseMinutes(startTime)
-                        if (courseMinutes != null && courseMinutes > currentMinutes) {
-                            val endTime = course.customEndTime ?: TimeNode.getEndTime(course.startNode + course.step - 1)
-                            return@runBlocking Triple(
-                                nameMap[course.id] ?: "",
-                                "${course.room ?: ""} · ${course.teacher ?: ""}",
-                                "$startTime - $endTime"
-                            )
-                        }
+                        val endTime = course.customEndTime ?: TimeNode.getEndTime(course.startNode + course.step - 1)
+                        WidgetCourseLine(
+                            time = "$startTime-$endTime",
+                            name = nameMap[course.id].orEmpty(),
+                            room = course.room.orEmpty()
+                        )
                     }
-                    null
-                } catch (_: Exception) { null }
+                } catch (_: Exception) {
+                    emptyList()
+                }
             }
 
-            if (nextCourse != null) {
-                views.setTextViewText(R.id.tv_widget2_title, "下节课")
-                views.setTextViewText(R.id.tv_widget2_name, nextCourse.first)
-                views.setTextViewText(R.id.tv_widget2_info, nextCourse.second)
-                views.setTextViewText(R.id.tv_widget2_time, nextCourse.third)
+            views.setTextViewText(R.id.tv_widget2_title, dateText)
+            if (todayCourses.isEmpty()) {
+                views.setTextViewText(R.id.tv_widget2_name, "今天没有课")
+                views.setTextViewText(R.id.tv_widget2_info, "可以休息一下")
+                views.setTextViewText(R.id.tv_widget2_time, "")
             } else {
-                views.setTextViewText(R.id.tv_widget2_title, "今日")
-                views.setTextViewText(R.id.tv_widget2_name, "没有更多课了")
-                views.setTextViewText(R.id.tv_widget2_info, "")
-                views.setTextViewText(R.id.tv_widget2_time, SimpleDateFormat("M月d日 E", Locale.CHINA).format(Date()))
+                val first = todayCourses.first()
+                val second = todayCourses.getOrNull(1)
+                val third = todayCourses.getOrNull(2)
+                val moreCount = todayCourses.size - 3
+
+                views.setTextViewText(R.id.tv_widget2_name, "${first.time}\n${first.name}")
+                views.setTextViewText(
+                    R.id.tv_widget2_info,
+                    first.room.ifEmpty { second?.let { "${it.time}  ${it.name}" }.orEmpty() }
+                )
+                views.setTextViewText(
+                    R.id.tv_widget2_time,
+                    when {
+                        second != null && first.room.isNotEmpty() -> "${second.time}  ${second.name}"
+                        third != null -> "${third.time}  ${third.name}"
+                        moreCount > 0 -> "还有 ${moreCount} 节课"
+                        else -> ""
+                    }
+                )
             }
 
             // 点击打开APP
@@ -111,11 +117,22 @@ class NextCourseWidget : AppWidgetProvider() {
             if (launchIntent != null) {
                 val pi = android.app.PendingIntent.getActivity(context, 1, launchIntent,
                     android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE)
+                views.setOnClickPendingIntent(R.id.widget2_root, pi)
+                views.setOnClickPendingIntent(R.id.tv_widget2_badge, pi)
+                views.setOnClickPendingIntent(R.id.tv_widget2_title, pi)
                 views.setOnClickPendingIntent(R.id.tv_widget2_name, pi)
+                views.setOnClickPendingIntent(R.id.tv_widget2_info, pi)
+                views.setOnClickPendingIntent(R.id.tv_widget2_time, pi)
             }
 
             manager.updateAppWidget(widgetId, views)
         }
+
+        private data class WidgetCourseLine(
+            val time: String,
+            val name: String,
+            val room: String
+        )
 
         private fun parseMinutes(time: String): Int? {
             val parts = time.split(":")

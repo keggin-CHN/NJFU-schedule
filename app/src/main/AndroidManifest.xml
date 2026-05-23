@@ -81,11 +81,11 @@
             android:name=".widget.TodayCourseWidgetService"
             android:permission="android.permission.BIND_REMOTEVIEWS" />
 
-        <!-- 下节课小组件 (2x2) -->
+        <!-- 今日课程小组件 (2x2) -->
         <receiver
             android:name=".widget.NextCourseWidget"
             android:exported="true"
-            android:label="下节课">
+            android:label="今日课程 2x2">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="android.intent.action.TIME_SET" />

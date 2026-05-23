@@ -377,12 +377,9 @@ class ScheduleActivity : AppCompatActivity() {
                 if (coursesAtNode.size > 1) {
                     // 多门课重叠！显示第一门 + 重叠标记
                     val course = coursesAtNode.first()
-                    val card = createCourseCard(course, nameMap, colorMap, cellHeight, false)
-                    (card as? TextView)?.let { tv ->
-                        tv.text = "${tv.text}\n⚠${coursesAtNode.size}门重叠"
-                        tv.setOnClickListener {
-                            showOverlapDialog(coursesAtNode, nameMap)
-                        }
+                    val card = createCourseCard(course, nameMap, colorMap, cellHeight, false, coursesAtNode.size)
+                    card.setOnClickListener {
+                        showOverlapDialog(coursesAtNode, nameMap)
                     }
                     col.addView(card)
                     currentNode += course.step
@@ -394,12 +391,9 @@ class ScheduleActivity : AppCompatActivity() {
                     }
                     if (coveredCourses.isNotEmpty()) {
                         val allOverlapping = listOf(course) + coveredCourses
-                        val card = createCourseCard(course, nameMap, colorMap, cellHeight, false)
-                        (card as? TextView)?.let { tv ->
-                            tv.text = "${tv.text}\n⚠${allOverlapping.size}门重叠"
-                            tv.setOnClickListener {
-                                showOverlapDialog(allOverlapping, nameMap)
-                            }
+                        val card = createCourseCard(course, nameMap, colorMap, cellHeight, false, allOverlapping.size)
+                        card.setOnClickListener {
+                            showOverlapDialog(allOverlapping, nameMap)
                         }
                         col.addView(card)
                     } else {
@@ -447,22 +441,27 @@ class ScheduleActivity : AppCompatActivity() {
         nameMap: Map<Int, String>,
         colorMap: Map<Int, String>,
         cellHeight: Int,
-        isOtherWeek: Boolean
+        isOtherWeek: Boolean,
+        overlapCount: Int = 1
     ): View {
         val name = nameMap[course.id] ?: ""
         val room = course.room ?: ""
         val teacher = course.teacher ?: ""
         val bgColor = colorMap[course.id] ?: courseColors[course.id % courseColors.size]
 
-        return TextView(this).apply {
+        val container = FrameLayout(this).apply {
             val margin = dpToPx(3)
+            val verticalMargin = dpToPx(2)
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                cellHeight * course.step
+                (cellHeight * course.step - verticalMargin * 2).coerceAtLeast(cellHeight / 2)
             ).apply {
-                setMargins(margin, dpToPx(2), margin, dpToPx(2))
+                setMargins(margin, verticalMargin, margin, verticalMargin)
             }
+        }
 
+        val tv = TextView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
             gravity = Gravity.CENTER
             val timeText = formatCustomTime(course).ifEmpty {
                 "${TimeNode.getStartTime(course.startNode)}~${TimeNode.getEndTime(course.startNode + course.step - 1)}"
@@ -485,25 +484,63 @@ class ScheduleActivity : AppCompatActivity() {
             val color = try { Color.parseColor(bgColor) } catch (_: Exception) { Color.parseColor("#7986CB") }
             val drawable = GradientDrawable().apply {
                 if (isOtherWeek) {
-                    setColor(Color.argb(42, Color.red(color), Color.green(color), Color.blue(color)))
-                    setStroke(dpToPx(1), Color.argb(150, 210, 218, 232))
+                    setColor(Color.argb(24, Color.red(color), Color.green(color), Color.blue(color)))
+                    setStroke(dpToPx(1), Color.argb(190, 120, 130, 148), dpToPx(4).toFloat(), dpToPx(3).toFloat())
                 } else {
-                    setColor(Color.argb(246, Color.red(color), Color.green(color), Color.blue(color)))
-                    setStroke(dpToPx(1), Color.argb(210, 255, 255, 255))
+                    setColor(Color.argb(252, Color.red(color), Color.green(color), Color.blue(color)))
+                    setStroke(dpToPx(1), Color.argb(235, 255, 255, 255))
                 }
                 cornerRadius = dpToPx(9).toFloat()
             }
             background = drawable
 
             if (isOtherWeek) {
-                setTextColor(Color.argb(210, 245, 247, 252))
+                setTextColor(Color.argb(150, 226, 231, 239))
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 8.8f)
             }
-
-            setOnClickListener {
-                showCourseDetail(course, name)
-            }
         }
+        
+        container.addView(tv)
+
+        if (overlapCount > 1) {
+            val layerBg = View(this).apply {
+                layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT).apply {
+                    setMargins(dpToPx(3), dpToPx(3), 0, 0)
+                }
+                background = GradientDrawable().apply {
+                    val color = try { Color.parseColor(bgColor) } catch (_: Exception) { Color.parseColor("#7986CB") }
+                    setColor(Color.argb(120, Color.red(color), Color.green(color), Color.blue(color)))
+                    cornerRadius = dpToPx(9).toFloat()
+                }
+            }
+            container.addView(layerBg, 0)
+            
+            (tv.layoutParams as FrameLayout.LayoutParams).setMargins(0, 0, dpToPx(3), dpToPx(3))
+            
+            val badge = TextView(this).apply {
+                layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT).apply {
+                    gravity = Gravity.TOP or Gravity.END
+                    setMargins(0, dpToPx(2), dpToPx(2), 0)
+                }
+                text = "$overlapCount"
+                setTextColor(Color.WHITE)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
+                typeface = Typeface.DEFAULT_BOLD
+                setPadding(dpToPx(4), dpToPx(1), dpToPx(4), dpToPx(1))
+                background = GradientDrawable().apply {
+                    setColor(Color.parseColor("#FF5252"))
+                    cornerRadius = dpToPx(8).toFloat()
+                    setStroke(dpToPx(1), Color.WHITE)
+                }
+            }
+            container.addView(badge)
+        }
+
+        container.setOnClickListener {
+            showCourseDetail(course, name)
+        }
+
+        return container
     }
 
     private fun formatCustomTime(course: CourseDetailBean): String {
@@ -529,22 +566,40 @@ class ScheduleActivity : AppCompatActivity() {
     }
 
     private fun showOverlapDialog(courses: List<CourseDetailBean>, nameMap: Map<Int, String>) {
-        val dayNames = arrayOf("周一","周二","周三","周四","周五","周六","周日")
-        val items = courses.map { c ->
-            val name = nameMap[c.id] ?: "未知课程"
-            val time = (c.customStartTime ?: TimeNode.getStartTime(c.startNode)) + "-" +
-                    (c.customEndTime ?: TimeNode.getEndTime(c.startNode + c.step - 1))
-            "$name  $time  ${c.room ?: ""}"
-        }.toTypedArray()
+        val dialog = BottomSheetDialog(this)
+        val view = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_overlap, null)
+        dialog.setContentView(view)
 
-        AlertDialog.Builder(this)
-            .setTitle("该时间段有 ${courses.size} 门课程重叠")
-            .setItems(items) { _, idx ->
-                val course = courses[idx]
-                showCourseDetail(course, nameMap[course.id] ?: "")
+        val tvTitle = view.findViewById<TextView>(R.id.tv_title)
+        tvTitle.text = "该时间段有 ${courses.size} 门课程重叠"
+
+        val container = view.findViewById<LinearLayout>(R.id.ll_courses_container)
+        
+        courses.forEach { course ->
+            val name = nameMap[course.id] ?: "未知课程"
+            val time = (course.customStartTime ?: TimeNode.getStartTime(course.startNode)) + "-" +
+                    (course.customEndTime ?: TimeNode.getEndTime(course.startNode + course.step - 1))
+            val room = course.room ?: "未指定地点"
+            val teacher = course.teacher ?: "未知教师"
+            
+            val cardView = LayoutInflater.from(this).inflate(R.layout.item_overlap_course, container, false)
+            cardView.findViewById<TextView>(R.id.tv_course_name).text = name
+            cardView.findViewById<TextView>(R.id.tv_course_time).text = time
+            cardView.findViewById<TextView>(R.id.tv_course_room).text = room
+            cardView.findViewById<TextView>(R.id.tv_course_teacher).text = teacher
+            
+            cardView.setOnClickListener {
+                dialog.dismiss()
+                showCourseDetail(course, name)
             }
-            .setNegativeButton("关闭", null)
-            .show()
+            container.addView(cardView)
+        }
+
+        view.findViewById<View>(R.id.btn_close).setOnClickListener {
+            dialog.dismiss()
+        }
+
+        dialog.show()
     }
 
     private fun showCourseDetail(course: CourseDetailBean, name: String) {
