@@ -61,6 +61,7 @@
                         android:inputType="text"
                         android:paddingHorizontal="8dp"
                         android:textColor="#333333"
+                        android:textColorHint="#999999"
                         android:textSize="15sp"
                         android:dropDownWidth="match_parent"
                         android:dropDownAnchor="@id/toolbar"
@@ -94,6 +95,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="按教师"
+                        android:textColor="#333333"
                         android:checked="true"
                         app:chipBackgroundColor="@color/bg_chip_state_list"
                         app:chipStrokeColor="@color/stroke_chip_state_list"
@@ -105,6 +107,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="按教室"
+                        android:textColor="#333333"
                         app:chipBackgroundColor="@color/bg_chip_state_list"
                         app:chipStrokeColor="@color/stroke_chip_state_list"
                         app:chipStrokeWidth="1dp"/>
@@ -115,6 +118,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="按课程"
+                        android:textColor="#333333"
                         app:chipBackgroundColor="@color/bg_chip_state_list"
                         app:chipStrokeColor="@color/stroke_chip_state_list"
                         app:chipStrokeWidth="1dp"/>
@@ -125,6 +129,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="按班级"
+                        android:textColor="#333333"
                         app:chipBackgroundColor="@color/bg_chip_state_list"
                         app:chipStrokeColor="@color/stroke_chip_state_list"
                         app:chipStrokeWidth="1dp"/>
@@ -173,9 +178,9 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:text="暂无数据"
+            android:text="请在上方搜索栏输入关键字查询"
             android:textColor="#999999"
             android:textSize="16sp"
-            android:visibility="gone" />
+            android:visibility="visible" />
     </FrameLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

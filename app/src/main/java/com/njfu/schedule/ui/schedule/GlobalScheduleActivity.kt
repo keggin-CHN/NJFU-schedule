@@ -65,6 +65,7 @@ class GlobalScheduleActivity : AppCompatActivity() {
             binding.etSearch.setText("")
             adapter.submitList(emptyList())
             binding.tvEmpty.visibility = View.VISIBLE
+            binding.tvEmpty.text = "请在上方搜索栏输入关键字查询"
         }
 
         binding.etSearch.setOnEditorActionListener { v, actionId, _ ->
