@@ -37,8 +37,8 @@ class NjfuImporter {
     )
 
     companion object {
-        // 统一使用 HTTPS 避免 HTTP/HTTPS 跨 scheme cookie 丢失
-        private const val APP_URL = "https://jwxt.njfu.edu.cn/sso.jsp"
+        // CAS要求必须使用 http 协议的 service，不能改为 https
+        private const val APP_URL = "http://jwxt.njfu.edu.cn/sso.jsp"
         private const val UIA_BASE = "https://uia.njfu.edu.cn"
         private const val SCHEDULE_URL = "https://jwxt.njfu.edu.cn/jsxsd/xskb/xskb_list.do"
     }
@@ -57,6 +57,12 @@ class NjfuImporter {
             .hostnameVerifier { _, _ -> true }
             .followRedirects(true)
             .cookieJar(SimpleCookieJar())
+            .addInterceptor { chain ->
+                val req = chain.request().newBuilder()
+                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
+                    .build()
+                chain.proceed(req)
+            }
             .build()
     }
 
