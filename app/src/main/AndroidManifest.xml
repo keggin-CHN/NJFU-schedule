@@ -52,7 +52,7 @@
             android:name=".ui.settings.AboutActivity"
             android:screenOrientation="portrait" />
 
-        <!-- 今日课程桌面小组件 -->
+        <!-- 今日课程桌面小组件 (4x1) -->
         <receiver
             android:name=".widget.TodayCourseWidget"
             android:exported="true"
@@ -66,6 +66,20 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_today_info" />
+        </receiver>
+
+        <!-- 下节课小组件 (2x2) -->
+        <receiver
+            android:name=".widget.NextCourseWidget"
+            android:exported="true"
+            android:label="下节课">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.intent.action.TIME_SET" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_next_course_info" />
         </receiver>
 
     </application>

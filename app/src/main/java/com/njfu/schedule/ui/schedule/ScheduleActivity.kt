@@ -364,12 +364,18 @@ class ScheduleActivity : AppCompatActivity() {
             val drawable = GradientDrawable().apply {
                 if (isOtherWeek) {
                     setColor(Color.argb(200, 255, 255, 255))
-                    setStroke(dpToPx(1), Color.argb(80, Color.red(color), Color.green(color), Color.blue(color)))
+                    setStroke(dpToPx(1), Color.argb(60, Color.red(color), Color.green(color), Color.blue(color)))
                 } else {
-                    setColor(color)
-                    setStroke(1, Color.argb(40, 0, 0, 0)) // 轻微深色边框
+                    // 微渐变效果：顶部稍亮，底部原色
+                    val lighterColor = Color.argb(255,
+                        Math.min(255, Color.red(color) + 20),
+                        Math.min(255, Color.green(color) + 20),
+                        Math.min(255, Color.blue(color) + 20))
+                    colors = intArrayOf(lighterColor, color)
+                    orientation = GradientDrawable.Orientation.TOP_BOTTOM
+                    setStroke(1, Color.argb(30, 0, 0, 0))
                 }
-                cornerRadius = dpToPx(4).toFloat()
+                cornerRadius = dpToPx(5).toFloat()
             }
             background = drawable
 
