@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">南林课程表</string>
+    <string name="app_name">NJFU Schedule</string>
     <string name="hint_student_id">学号</string>
     <string name="hint_password">统一认证密码</string>
     <string name="btn_import">登录并导入课表</string>

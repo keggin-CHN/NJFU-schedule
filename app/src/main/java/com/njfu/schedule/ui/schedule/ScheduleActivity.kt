@@ -198,7 +198,7 @@ class ScheduleActivity : AppCompatActivity() {
         binding.emptyView.visibility = if (empty) View.VISIBLE else View.GONE
         binding.viewPager.visibility = if (empty) View.GONE else View.VISIBLE
         if (empty) {
-            binding.tvWeek.text = "南林课程表"
+            binding.tvWeek.text = "NJFU Schedule"
             binding.tvDateInfo.text = WeekUtils.getTodayString()
         }
     }
@@ -653,21 +653,29 @@ class ScheduleActivity : AppCompatActivity() {
 
                 log("获取到 ${result.courses.map { it.name }.distinct().size} 门课程")
 
-                // 对比
-                val conflicts = findConflicts(result.courses)
+                // 找出自定义课程（本地有但教务系统没有的）
+                val serverCourseNames = result.courses.map { it.name }.toSet()
+                val localCourseNames = allBases.map { it.courseName }.toSet()
+                val customCourseNames = localCourseNames - serverCourseNames
+
+                // 对比变化
+                val changes = findSyncChanges(result.courses)
+                val conflicts = findTimeConflicts(result.courses, customCourseNames)
 
                 progress.visibility = View.GONE
 
-                if (conflicts.isEmpty()) {
-                    log("✓ 课表无变化，已是最新")
+                if (changes.isEmpty() && conflicts.isEmpty()) {
+                    log("✓ 课表无变化")
                     withContext(Dispatchers.IO) { overwriteCourses(result) }
                     dialog.dismiss()
-                    Toast.makeText(this@ScheduleActivity, "同步完成", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@ScheduleActivity, "同步完成，无变化", Toast.LENGTH_SHORT).show()
                     loadSchedule()
                 } else {
-                    log("发现 ${conflicts.size} 处变动")
+                    log("发现 ${changes.size} 处变动")
+                    if (customCourseNames.isNotEmpty()) log("保留 ${customCourseNames.size} 门自定义课程")
+                    if (conflicts.isNotEmpty()) log("⚠ 存在时间冲突")
                     dialog.dismiss()
-                    showConflictDialog(conflicts, result)
+                    showSyncResultDialog(changes, conflicts, result, customCourseNames)
                 }
             } catch (e: Exception) {
                 progress.visibility = View.GONE
@@ -678,19 +686,18 @@ class ScheduleActivity : AppCompatActivity() {
         }
     }
 
-    data class Conflict(
-        val day: Int,
-        val startNode: Int,
-        val weeks: String,
+    data class SyncChange(
+        val type: String,  // "changed", "added", "conflict"
+        val timeDesc: String,
         val oldName: String,
         val newName: String
     )
 
-    private fun findConflicts(newCourses: List<com.njfu.schedule.njfu.NjfuImporter.CourseInfo>): List<Conflict> {
-        val conflicts = mutableListOf<Conflict>()
+    private fun findSyncChanges(newCourses: List<com.njfu.schedule.njfu.NjfuImporter.CourseInfo>): List<SyncChange> {
+        val changes = mutableListOf<SyncChange>()
         val dayNames = arrayOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")
 
-        // 构建旧课表的时间槽映射: (day, startNode, week) -> courseName
+        // 构建旧课表映射: (day, startNode, week) -> courseName
         val oldSlots = mutableMapOf<Triple<Int, Int, Int>, String>()
         for (base in allBases) {
             val details = allDetails.filter { it.id == base.id && it.tableId == base.tableId }
@@ -701,7 +708,7 @@ class ScheduleActivity : AppCompatActivity() {
             }
         }
 
-        // 构建新课表的时间槽映射
+        // 构建新课表映射
         val newSlots = mutableMapOf<Triple<Int, Int, Int>, String>()
         for (c in newCourses) {
             for (w in c.weeks) {
@@ -709,51 +716,178 @@ class ScheduleActivity : AppCompatActivity() {
             }
         }
 
-        // 找出同一时间槽课程名不同的情况
-        val checkedSlots = mutableSetOf<Pair<Int, Int>>() // (day, startNode) 去重
+        // 1. 找出变化的（同一时间槽课程名不同）
+        val checkedChanged = mutableSetOf<String>()
         for ((slot, oldName) in oldSlots) {
             val newName = newSlots[slot]
             if (newName != null && newName != oldName) {
-                val key = Pair(slot.first, slot.second)
-                if (key !in checkedSlots) {
-                    checkedSlots.add(key)
+                val key = "${slot.first}-${slot.second}-$oldName->$newName"
+                if (key !in checkedChanged) {
+                    checkedChanged.add(key)
                     val dayName = dayNames.getOrElse(slot.first - 1) { "" }
-                    conflicts.add(Conflict(slot.first, slot.second, "${dayName} 第${slot.second}节 第${slot.third}周", oldName, newName))
+                    changes.add(SyncChange("changed", "$dayName 第${slot.second}节", oldName, newName))
                 }
             }
         }
 
+        // 2. 找出新增的（新课表有但旧课表没有的时间槽）
+        val newCourseNames = mutableSetOf<String>()
+        for ((slot, newName) in newSlots) {
+            if (slot !in oldSlots) {
+                newCourseNames.add(newName)
+            }
+        }
+        for (name in newCourseNames) {
+            changes.add(SyncChange("added", "", "", name))
+        }
+
+        return changes
+    }
+
+    private fun findTimeConflicts(
+        newCourses: List<com.njfu.schedule.njfu.NjfuImporter.CourseInfo>,
+        customCourseNames: Set<String>
+    ): List<SyncChange> {
+        val conflicts = mutableListOf<SyncChange>()
+        val dayNames = arrayOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")
+
+        // 自定义课程的时间槽
+        val customSlots = mutableMapOf<Triple<Int, Int, Int>, String>()
+        for (base in allBases) {
+            if (base.courseName in customCourseNames) {
+                val details = allDetails.filter { it.id == base.id && it.tableId == base.tableId }
+                for (d in details) {
+                    for (w in d.startWeek..d.endWeek) {
+                        for (n in d.startNode until d.startNode + d.step) {
+                            customSlots[Triple(d.day, n, w)] = base.courseName
+                        }
+                    }
+                }
+            }
+        }
+
+        // 检查新课表是否和自定义课程冲突
+        for (c in newCourses) {
+            for (w in c.weeks) {
+                for (n in c.startNode..c.endNode) {
+                    val slot = Triple(c.day, n, w)
+                    val customName = customSlots[slot]
+                    if (customName != null) {
+                        val dayName = dayNames.getOrElse(c.day - 1) { "" }
+                        conflicts.add(SyncChange("conflict", "$dayName 第${n}节 第${w}周", customName, c.name))
+                        return conflicts // 只报第一个冲突
+                    }
+                }
+            }
+        }
         return conflicts
     }
 
-    private fun showConflictDialog(conflicts: List<Conflict>, result: com.njfu.schedule.njfu.NjfuImporter.ImportResult) {
-        val view = LayoutInflater.from(this).inflate(R.layout.dialog_sync_conflict, null)
-        val rv = view.findViewById<RecyclerView>(R.id.rv_conflicts)
-        rv.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
-        rv.adapter = object : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
-            inner class VH(v: View) : RecyclerView.ViewHolder(v)
-            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
-                VH(LayoutInflater.from(parent.context).inflate(R.layout.item_sync_conflict, parent, false))
-            override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
-                val c = conflicts[position]
-                holder.itemView.findViewById<TextView>(R.id.tv_conflict_time).text = c.weeks
-                holder.itemView.findViewById<TextView>(R.id.tv_old_course).text = c.oldName
-                holder.itemView.findViewById<TextView>(R.id.tv_new_course).text = c.newName
+    private fun showSyncResultDialog(
+        changes: List<SyncChange>,
+        conflicts: List<SyncChange>,
+        result: com.njfu.schedule.njfu.NjfuImporter.ImportResult,
+        customCourseNames: Set<String>
+    ) {
+        val msg = buildString {
+            if (changes.any { it.type == "changed" }) {
+                append("课程变动：\n")
+                changes.filter { it.type == "changed" }.forEach {
+                    append("  ${it.timeDesc}: ${it.oldName} → ${it.newName}\n")
+                }
+                append("\n")
             }
-            override fun getItemCount() = conflicts.size
-        }
-
-        AlertDialog.Builder(this)
-            .setView(view)
-            .setPositiveButton("使用新课表") { _, _ ->
-                lifecycleScope.launch {
-                    withContext(Dispatchers.IO) { overwriteCourses(result) }
-                    Toast.makeText(this@ScheduleActivity, "已更新为新课表", Toast.LENGTH_SHORT).show()
-                    loadSchedule()
+            if (changes.any { it.type == "added" }) {
+                append("新增课程：\n")
+                changes.filter { it.type == "added" }.forEach {
+                    append("  ${it.newName}\n")
+                }
+                append("\n")
+            }
+            if (customCourseNames.isNotEmpty()) {
+                append("保留自定义课程：\n")
+                customCourseNames.forEach { append("  $it\n") }
+                append("\n")
+            }
+            if (conflicts.isNotEmpty()) {
+                append("⚠ 时间冲突：\n")
+                conflicts.forEach {
+                    append("  ${it.timeDesc}: ${it.oldName}(自定义) 与 ${it.newName}(教务) 冲突\n")
                 }
             }
-            .setNegativeButton("保留原课表", null)
-            .show()
+        }
+
+        val builder = AlertDialog.Builder(this)
+            .setTitle("同步结果")
+            .setMessage(msg.ifEmpty { "课表已更新" })
+
+        if (conflicts.isNotEmpty()) {
+            builder.setPositiveButton("更新并覆盖冲突") { _, _ ->
+                doSyncUpdate(result, emptySet())
+            }
+            builder.setNeutralButton("更新但保留自定义") { _, _ ->
+                doSyncUpdate(result, customCourseNames)
+            }
+            builder.setNegativeButton("取消", null)
+        } else {
+            builder.setPositiveButton("确认更新") { _, _ ->
+                doSyncUpdate(result, customCourseNames)
+            }
+            builder.setNegativeButton("取消", null)
+        }
+
+        builder.show()
+    }
+
+    private fun doSyncUpdate(result: com.njfu.schedule.njfu.NjfuImporter.ImportResult, keepNames: Set<String>) {
+        lifecycleScope.launch {
+            withContext(Dispatchers.IO) {
+                val dao = App.instance.database.courseDao()
+                val t = table ?: return@withContext
+
+                if (keepNames.isEmpty()) {
+                    // 全部覆盖
+                    overwriteCourses(result)
+                } else {
+                    // 保留自定义课程，只更新教务系统的
+                    val keepBases = allBases.filter { it.courseName in keepNames }
+                    val keepDetails = allDetails.filter { d -> keepBases.any { it.id == d.id } }
+
+                    dao.deleteCoursesByTable(t.id)
+                    dao.deleteDetailsByTable(t.id)
+
+                    // 写入新课表
+                    val courses = result.courses
+                    val courseNames = courses.map { it.name }.distinct()
+                    val nameToId = courseNames.mapIndexed { idx, name -> name to idx }.toMap()
+                    for ((name, id) in nameToId) {
+                        dao.insertCourseBase(com.njfu.schedule.bean.CourseBaseBean(id, name, courseColors[id % courseColors.size], t.id))
+                    }
+                    for (course in courses) {
+                        val id = nameToId[course.name]!!
+                        val step = course.endNode - course.startNode + 1
+                        for ((sw, ew) in toWeekRanges(course.weeks)) {
+                            dao.insertCourseDetail(com.njfu.schedule.bean.CourseDetailBean(id, course.day, course.room, course.teacher, course.startNode, step, sw, ew, 0, t.id))
+                        }
+                    }
+
+                    // 写回保留的自定义课程
+                    val maxId = (nameToId.values.maxOrNull() ?: -1) + 1
+                    keepBases.forEachIndexed { idx, base ->
+                        val newId = maxId + idx
+                        dao.insertCourseBase(com.njfu.schedule.bean.CourseBaseBean(newId, base.courseName, base.color, t.id))
+                        keepDetails.filter { it.id == base.id }.forEach { d ->
+                            dao.insertCourseDetail(com.njfu.schedule.bean.CourseDetailBean(newId, d.day, d.room, d.teacher, d.startNode, d.step, d.startWeek, d.endWeek, d.type, t.id))
+                        }
+                    }
+
+                    t.startDate = result.semesterStartDate
+                    dao.updateTable(t)
+                }
+            }
+            Toast.makeText(this@ScheduleActivity, "同步完成", Toast.LENGTH_SHORT).show()
+            loadSchedule()
+        }
     }
 
     private suspend fun overwriteCourses(result: com.njfu.schedule.njfu.NjfuImporter.ImportResult) {
