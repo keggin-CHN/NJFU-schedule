@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_page_gradient">
+    android:background="@color/background">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -12,39 +12,19 @@
         android:padding="20dp">
 
         <TextView
-            android:layout_width="56dp"
-            android:layout_height="56dp"
-            android:layout_marginBottom="14dp"
-            android:background="@drawable/bg_circle_accent"
-            android:gravity="center"
-            android:text="＋"
-            android:textColor="@android:color/white"
-            android:textSize="30sp"
-            android:textStyle="bold" />
-
-        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="课程信息"
+            android:text="编辑课程"
             android:textColor="@color/text_primary"
             android:textSize="22sp"
             android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:layout_marginBottom="18dp"
-            android:text="自定义课程、时间与颜色"
-            android:textColor="@color/text_secondary"
-            android:textSize="13sp" />
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/input_name"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/hint_course_name"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+            style="@style/Widget.NJFU.TextInputLayout">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_name"
                 android:layout_width="match_parent"
@@ -56,7 +36,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:hint="@string/hint_teacher"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+            style="@style/Widget.NJFU.TextInputLayout">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_teacher"
                 android:layout_width="match_parent"
@@ -68,7 +48,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:hint="@string/hint_room"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+            style="@style/Widget.NJFU.TextInputLayout">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_room"
                 android:layout_width="match_parent"
@@ -80,6 +60,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:text="卡片颜色"
+            android:textColor="@color/text_secondary"
             android:textSize="14sp"
             android:textStyle="bold" />
 
@@ -95,8 +76,9 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="14dp"
             android:text="星期"
+            android:textColor="@color/text_secondary"
             android:textSize="14sp"
             android:textStyle="bold" />
 
@@ -113,7 +95,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="时间方式"
+            android:text="时间"
+            android:textColor="@color/text_secondary"
             android:textSize="14sp"
             android:textStyle="bold" />
 
@@ -127,18 +110,18 @@
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_time_node"
-                style="@style/Widget.MaterialComponents.Chip.Choice"
+                style="@style/Widget.NJFU.ChoiceChip"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:checked="true"
-                android:text="按节次" />
+                android:text="节次" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_time_custom"
-                style="@style/Widget.MaterialComponents.Chip.Choice"
+                style="@style/Widget.NJFU.ChoiceChip"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="按具体时间" />
+                android:text="具体时间" />
         </com.google.android.material.chip.ChipGroup>
 
         <LinearLayout
@@ -153,7 +136,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:hint="开始节"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+                style="@style/Widget.NJFU.TextInputLayout">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_start_node"
                     android:layout_width="match_parent"
@@ -167,14 +150,15 @@
                 android:layout_gravity="center"
                 android:paddingStart="8dp"
                 android:paddingEnd="8dp"
-                android:text="—" />
+                android:text="—"
+                android:textColor="@color/text_secondary" />
 
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:hint="结束节"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+                style="@style/Widget.NJFU.TextInputLayout">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_end_node"
                     android:layout_width="match_parent"
@@ -196,7 +180,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:hint="开始 如 08:30"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+                style="@style/Widget.NJFU.TextInputLayout">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_custom_start_time"
                     android:layout_width="match_parent"
@@ -210,14 +194,15 @@
                 android:layout_gravity="center"
                 android:paddingStart="8dp"
                 android:paddingEnd="8dp"
-                android:text="—" />
+                android:text="—"
+                android:textColor="@color/text_secondary" />
 
             <com.google.android.material.textfield.TextInputLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:hint="结束 如 10:00"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+                style="@style/Widget.NJFU.TextInputLayout">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_custom_end_time"
                     android:layout_width="match_parent"
@@ -231,7 +216,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="生效范围"
+            android:text="范围"
+            android:textColor="@color/text_secondary"
             android:textSize="14sp"
             android:textStyle="bold" />
 
@@ -245,18 +231,18 @@
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_range_week"
-                style="@style/Widget.MaterialComponents.Chip.Choice"
+                style="@style/Widget.NJFU.ChoiceChip"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:checked="true"
-                android:text="按周次" />
+                android:text="周次" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_range_date"
-                style="@style/Widget.MaterialComponents.Chip.Choice"
+                style="@style/Widget.NJFU.ChoiceChip"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="按日期" />
+                android:text="日期" />
         </com.google.android.material.chip.ChipGroup>
 
         <com.google.android.material.textfield.TextInputLayout
@@ -265,7 +251,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:hint="周次范围，例如 1-16 或 1-5,7-12"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+            style="@style/Widget.NJFU.TextInputLayout">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_weeks"
                 android:layout_width="match_parent"
@@ -279,7 +265,7 @@
             android:layout_marginTop="8dp"
             android:hint="日期范围，例如 2026-03-02~2026-04-10"
             android:visibility="gone"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+            style="@style/Widget.NJFU.TextInputLayout">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/et_dates"
                 android:layout_width="match_parent"
@@ -311,7 +297,7 @@
             android:layout_height="48dp"
             android:layout_marginTop="8dp"
             android:text="@string/delete"
-            android:textColor="#F44336"
+            android:textColor="@color/text_error"
             android:visibility="gone"
             style="@style/Widget.Material3.Button.TextButton" />
 

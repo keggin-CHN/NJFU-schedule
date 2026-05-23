@@ -41,8 +41,11 @@ class TodayCourseWidget : AppWidgetProvider() {
 
     companion object {
         fun refreshAll(context: Context) {
-            val intent = Intent("com.njfu.schedule.REFRESH_WIDGET")
-            intent.setPackage(context.packageName)
+            val manager = AppWidgetManager.getInstance(context)
+            val ids = manager.getAppWidgetIds(ComponentName(context, TodayCourseWidget::class.java))
+            val intent = Intent(context, TodayCourseWidget::class.java)
+            intent.action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
+            intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
             context.sendBroadcast(intent)
         }
 

@@ -189,7 +189,7 @@ class ScheduleActivity : AppCompatActivity() {
         } else {
             tag.visibility = View.VISIBLE
             tag.text = "非本周"
-            tag.setTextColor(Color.parseColor("#999999"))
+            tag.setTextColor(resources.getColor(R.color.text_secondary, theme))
             tag.setBackgroundResource(R.drawable.bg_tag_gray)
         }
 
@@ -221,7 +221,7 @@ class ScheduleActivity : AppCompatActivity() {
                     setTextColor(resources.getColor(R.color.secondary, theme))
                     typeface = Typeface.DEFAULT_BOLD
                 } else {
-                    setTextColor(Color.parseColor("#666666"))
+                    setTextColor(resources.getColor(R.color.text_secondary, theme))
                 }
             }
             headerRow.addView(tv)
@@ -349,7 +349,7 @@ class ScheduleActivity : AppCompatActivity() {
         // 节次列右边的竖线
         container.addView(View(this).apply {
             layoutParams = LinearLayout.LayoutParams(1, LinearLayout.LayoutParams.MATCH_PARENT)
-            setBackgroundColor(Color.parseColor("#30000000"))
+            setBackgroundColor(resources.getColor(R.color.divider, theme))
         })
 
         val showSat = table?.showSat ?: true
@@ -436,7 +436,7 @@ class ScheduleActivity : AppCompatActivity() {
             if (day < maxDay) {
                 container.addView(View(this).apply {
                     layoutParams = LinearLayout.LayoutParams(1, LinearLayout.LayoutParams.MATCH_PARENT)
-                    setBackgroundColor(Color.parseColor("#30000000"))
+                    setBackgroundColor(resources.getColor(R.color.divider, theme))
                 })
             }
         }
@@ -468,53 +468,36 @@ class ScheduleActivity : AppCompatActivity() {
                 "${TimeNode.getStartTime(course.startNode)}~${TimeNode.getEndTime(course.startNode + course.step - 1)}"
             }
             val displayText = buildString {
-                append("✦ ").append(name)
+                append(name)
                 if (course.step >= 2) append("\n").append(timeText)
-                if (teacher.isNotEmpty() && course.step >= 2) append("\n👤 ").append(teacher)
-                if (room.isNotEmpty()) append("\n📍 ").append(room)
+                if (teacher.isNotEmpty() && course.step >= 2) append("\n").append(teacher)
+                if (room.isNotEmpty()) append("\n").append(room)
             }
             text = displayText
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, if (course.step <= 1) 9.2f else 10f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, if (course.step <= 1) 9f else 9.6f)
             setTextColor(Color.WHITE)
             setPadding(dpToPx(4), dpToPx(5), dpToPx(4), dpToPx(5))
-            maxLines = course.step * 2 + 3
+            maxLines = course.step * 2 + 2
             includeFontPadding = false
             typeface = Typeface.DEFAULT_BOLD
-            elevation = dpToPx(2).toFloat()
+            elevation = 0f
 
             val color = try { Color.parseColor(bgColor) } catch (_: Exception) { Color.parseColor("#7986CB") }
             val drawable = GradientDrawable().apply {
                 if (isOtherWeek) {
-                    val faint = Color.argb(178, 255, 255, 255)
-                    val tint = Color.argb(52, Color.red(color), Color.green(color), Color.blue(color))
-                    colors = intArrayOf(faint, Color.argb(216, 248, 250, 255), tint)
-                    orientation = GradientDrawable.Orientation.TL_BR
-                    setStroke(dpToPx(1), Color.argb(82, Color.red(color), Color.green(color), Color.blue(color)))
+                    setColor(Color.argb(72, Color.red(color), Color.green(color), Color.blue(color)))
+                    setStroke(dpToPx(1), Color.argb(70, Color.red(color), Color.green(color), Color.blue(color)))
                 } else {
-                    val glassTop = Color.argb(238,
-                        Math.min(255, Color.red(color) + 72),
-                        Math.min(255, Color.green(color) + 72),
-                        Math.min(255, Color.blue(color) + 72))
-                    val glassMid = Color.argb(224,
-                        Math.min(255, Color.red(color) + 28),
-                        Math.min(255, Color.green(color) + 28),
-                        Math.min(255, Color.blue(color) + 28))
-                    val glassBottom = Color.argb(238,
-                        Math.max(0, Color.red(color) - 10),
-                        Math.max(0, Color.green(color) - 10),
-                        Math.max(0, Color.blue(color) - 10))
-                    colors = intArrayOf(glassTop, glassMid, glassBottom)
-                    orientation = GradientDrawable.Orientation.TL_BR
-                    setStroke(dpToPx(1), Color.argb(90, 255, 255, 255))
+                    setColor(Color.argb(232, Color.red(color), Color.green(color), Color.blue(color)))
+                    setStroke(dpToPx(1), Color.argb(46, 255, 255, 255))
                 }
-                cornerRadius = dpToPx(10).toFloat()
+                cornerRadius = dpToPx(9).toFloat()
             }
             background = drawable
 
             if (isOtherWeek) {
-                setTextColor(Color.argb(176, Color.red(color), Color.green(color), Color.blue(color)))
-                typeface = Typeface.DEFAULT_BOLD
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 9f)
+                setTextColor(Color.argb(150, 255, 255, 255))
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 8.8f)
             }
 
             setOnClickListener {

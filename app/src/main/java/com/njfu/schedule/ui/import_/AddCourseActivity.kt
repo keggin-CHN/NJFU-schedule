@@ -22,7 +22,11 @@ import com.njfu.schedule.widget.TodayCourseWidget
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.google.android.material.timepicker.MaterialTimePicker
+import com.google.android.material.timepicker.TimeFormat
+import com.google.android.material.datepicker.MaterialDatePicker
 import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 class AddCourseActivity : AppCompatActivity() {
@@ -53,11 +57,14 @@ class AddCourseActivity : AppCompatActivity() {
         // 星期 Chips
         val days = resources.getStringArray(R.array.days)
         days.forEachIndexed { idx, day ->
-            val chip = Chip(this).apply {
+            val chip = Chip(this, null, com.google.android.material.R.attr.chipStyle).apply {
                 text = day
                 isCheckable = true
                 id = View.generateViewId()
                 tag = idx + 1
+                setTextColor(resources.getColor(R.color.text_primary, theme))
+                chipStrokeColor = android.content.res.ColorStateList.valueOf(resources.getColor(R.color.field_stroke, theme))
+                chipStrokeWidth = dpToPx(1).toFloat()
             }
             binding.chipGroupDay.addView(chip)
             if (idx == 0) binding.chipGroupDay.check(chip.id)
@@ -81,8 +88,54 @@ class AddCourseActivity : AppCompatActivity() {
             }
         }
 
+        setupPickers()
+
         binding.btnSave.setOnClickListener { saveCourse() }
         binding.btnDelete.setOnClickListener { deleteCourse() }
+    }
+
+    private fun setupPickers() {
+        binding.etCustomStartTime.isFocusable = false
+        binding.etCustomStartTime.isClickable = true
+        binding.etCustomStartTime.setOnClickListener {
+            showTimePicker("开始时间") { time -> binding.etCustomStartTime.setText(time) }
+        }
+
+        binding.etCustomEndTime.isFocusable = false
+        binding.etCustomEndTime.isClickable = true
+        binding.etCustomEndTime.setOnClickListener {
+            showTimePicker("结束时间") { time -> binding.etCustomEndTime.setText(time) }
+        }
+
+        binding.etDates.isFocusable = false
+        binding.etDates.isClickable = true
+        binding.etDates.setOnClickListener {
+            val picker = MaterialDatePicker.Builder.dateRangePicker()
+                .setTitleText("选择日期范围 (长按滑动可批量选择)")
+                .build()
+            picker.addOnPositiveButtonClickListener { selection ->
+                val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.CHINA)
+                val start = sdf.format(Date(selection.first))
+                val end = sdf.format(Date(selection.second))
+                binding.etDates.setText("$start~$end")
+            }
+            picker.show(supportFragmentManager, "DATE_PICKER")
+        }
+    }
+
+    private fun showTimePicker(title: String, onTimeSelected: (String) -> Unit) {
+        val picker = MaterialTimePicker.Builder()
+            .setTimeFormat(TimeFormat.CLOCK_24H)
+            .setHour(8)
+            .setMinute(0)
+            .setTitleText(title)
+            .build()
+        picker.addOnPositiveButtonClickListener {
+            val h = picker.hour.toString().padStart(2, '0')
+            val m = picker.minute.toString().padStart(2, '0')
+            onTimeSelected("$h:$m")
+        }
+        picker.show(supportFragmentManager, "TIME_PICKER")
     }
 
     private fun setupColorChips() {
@@ -92,9 +145,9 @@ class AddCourseActivity : AppCompatActivity() {
                 id = View.generateViewId()
                 tag = colorHex
                 isCheckable = true
-                text = if (idx == 0) "默认" else " "
-                minWidth = dpToPx(44)
-                chipMinHeight = dpToPx(36).toFloat()
+                text = " "
+                minWidth = dpToPx(34)
+                chipMinHeight = dpToPx(30).toFloat()
                 chipBackgroundColor = android.content.res.ColorStateList.valueOf(parseColorSafe(colorHex))
                 setTextColor(Color.WHITE)
                 chipStrokeWidth = dpToPx(2).toFloat()
@@ -216,7 +269,7 @@ class AddCourseActivity : AppCompatActivity() {
         val title = TextView(this).apply {
             text = "时间段（${timeSlots.size}个，点击切换）"
             textSize = 13f
-            setTextColor(android.graphics.Color.parseColor("#888888"))
+            setTextColor(resources.getColor(R.color.text_secondary, theme))
             setPadding(0, dpToPx(8), 0, dpToPx(4))
         }
         container.addView(title)
@@ -287,11 +340,17 @@ class AddCourseActivity : AppCompatActivity() {
         slot.teacher = binding.etTeacher.text?.toString()?.trim() ?: ""
         slot.room = binding.etRoom.text?.toString()?.trim() ?: ""
         val useCustomTime = binding.chipGroupTimeMode.checkedChipId == R.id.chip_time_custom
-        slot.startNode = binding.etStartNode.text?.toString()?.toIntOrNull() ?: slot.startNode
-        slot.endNode = binding.etEndNode.text?.toString()?.toIntOrNull() ?: slot.endNode
+        val customStart = if (useCustomTime) binding.etCustomStartTime.text?.toString()?.trim() ?: "" else ""
+        val customEnd = if (useCustomTime) binding.etCustomEndTime.text?.toString()?.trim() ?: "" else ""
+        
+        val inferredStart = if (useCustomTime && customStart.isNotEmpty()) inferNodeByTime(customStart) else binding.etStartNode.text?.toString()?.toIntOrNull() ?: slot.startNode
+        val inferredEnd = if (useCustomTime && customEnd.isNotEmpty()) inferNodeByTime(customEnd).coerceAtLeast(inferredStart) else binding.etEndNode.text?.toString()?.toIntOrNull() ?: slot.endNode
+
+        slot.startNode = inferredStart
+        slot.endNode = inferredEnd
         slot.weeks = binding.etWeeks.text?.toString()?.trim() ?: slot.weeks
-        slot.customStartTime = if (useCustomTime) binding.etCustomStartTime.text?.toString()?.trim() ?: "" else ""
-        slot.customEndTime = if (useCustomTime) binding.etCustomEndTime.text?.toString()?.trim() ?: "" else ""
+        slot.customStartTime = customStart
+        slot.customEndTime = customEnd
 
         val checkedId = binding.chipGroupDay.checkedChipId
         val chip = binding.chipGroupDay.findViewById<Chip>(checkedId)
@@ -380,9 +439,10 @@ class AddCourseActivity : AppCompatActivity() {
             return
         }
 
-        val inferredNode = inferNodeByTime(customStart)
-        val finalStartNode = if (useCustomTime) inferredNode else startNode
-        val finalEndNode = if (useCustomTime) inferredNode else endNode
+        val inferredStartNode = if (customStart.isNotEmpty()) inferNodeByTime(customStart) else startNode
+        val inferredEndNode = if (customEnd.isNotEmpty()) inferNodeByTime(customEnd).coerceAtLeast(inferredStartNode) else endNode
+        val finalStartNode = if (useCustomTime) inferredStartNode else startNode
+        val finalEndNode = if (useCustomTime) inferredEndNode else endNode
 
         lifecycleScope.launch {
             withContext(Dispatchers.IO) {

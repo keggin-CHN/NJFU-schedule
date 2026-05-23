@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@drawable/bg_page_gradient"
+    android:background="@color/background"
     tools:context=".ui.schedule.GlobalScheduleActivity">
 
     <!-- Toolbar -->
@@ -39,7 +39,7 @@
             android:layout_weight="1"
             app:cardCornerRadius="21dp"
             app:cardElevation="4dp"
-            app:cardBackgroundColor="#F7FFFFFF">
+            app:cardBackgroundColor="@color/surface_container">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -95,7 +95,7 @@
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_teacher"
-                style="@style/Widget.MaterialComponents.Chip.Choice"
+                style="@style/Widget.NJFU.ChoiceChip"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="教师"
@@ -103,21 +103,21 @@
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_room"
-                style="@style/Widget.MaterialComponents.Chip.Choice"
+                style="@style/Widget.NJFU.ChoiceChip"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="教室" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_class"
-                style="@style/Widget.MaterialComponents.Chip.Choice"
+                style="@style/Widget.NJFU.ChoiceChip"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="班级" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chip_course"
-                style="@style/Widget.MaterialComponents.Chip.Choice"
+                style="@style/Widget.NJFU.ChoiceChip"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="课程" />

@@ -1,4 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 保留空文件 -->
+    <style name="Widget.NJFU.ChoiceChip" parent="Widget.Material3.Chip.Filter">
+        <item name="checkedIconVisible">false</item>
+        <item name="chipMinHeight">36dp</item>
+    </style>
+
+    <style name="Widget.NJFU.TextInputLayout" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+        <item name="boxStrokeColor">@color/text_input_stroke</item>
+        <item name="hintTextColor">@color/text_hint</item>
+        <item name="android:textColorHint">@color/text_hint</item>
+    </style>
 </resources>
