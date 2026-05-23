@@ -1,7 +1,6 @@
 package com.njfu.schedule.ui.import_
 
 import android.graphics.Color
-import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.View
 import android.widget.LinearLayout
@@ -25,7 +24,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Locale
-import kotlin.math.ceil
 
 class AddCourseActivity : AppCompatActivity() {
 
@@ -140,10 +138,10 @@ class AddCourseActivity : AppCompatActivity() {
                 break
             }
         }
-        // 预选开始节次
-        if (startNode >= 1 && startNode <= binding.spStartNode.count) {
-            binding.spStartNode.setSelection(startNode - 1)
-            binding.spEndNode.setSelection(startNode - 1)
+        // 预填开始节次
+        if (startNode >= 1) {
+            binding.etStartNode.setText(startNode.toString())
+            binding.etEndNode.setText(startNode.toString())
         }
         // 初始化默认时间段列表
         if (timeSlots.isEmpty()) {
@@ -160,7 +158,9 @@ class AddCourseActivity : AppCompatActivity() {
             if (base == null) return@launch
 
             originalColor = base.color
+            selectedColor = base.color.ifEmpty { courseColors.first() }
             binding.etName.setText(base.courseName)
+            checkColorChip(selectedColor)
 
             // 按 (day, startNode) 分组为不同时间段
             val grouped = details.groupBy { Pair(it.day, it.startNode) }
@@ -191,6 +191,16 @@ class AddCourseActivity : AppCompatActivity() {
 
             // 加载第一个时间段
             loadSlot(0)
+        }
+    }
+
+    private fun checkColorChip(colorHex: String) {
+        for (i in 0 until binding.chipGroupColor.childCount) {
+            val chip = binding.chipGroupColor.getChildAt(i) as? Chip ?: continue
+            if ((chip.tag as? String).equals(colorHex, ignoreCase = true)) {
+                binding.chipGroupColor.check(chip.id)
+                return
+            }
         }
     }
 
@@ -258,6 +268,8 @@ class AddCourseActivity : AppCompatActivity() {
         binding.etWeeks.setText(slot.weeks)
         binding.etCustomStartTime.setText(slot.customStartTime)
         binding.etCustomEndTime.setText(slot.customEndTime)
+        val useCustomTime = slot.customStartTime.isNotEmpty() && slot.customEndTime.isNotEmpty()
+        binding.chipGroupTimeMode.check(if (useCustomTime) R.id.chip_time_custom else R.id.chip_time_node)
 
         // 选中星期
         for (i in 0 until binding.chipGroupDay.childCount) {
@@ -274,11 +286,12 @@ class AddCourseActivity : AppCompatActivity() {
         val slot = timeSlots[currentSlotIndex]
         slot.teacher = binding.etTeacher.text?.toString()?.trim() ?: ""
         slot.room = binding.etRoom.text?.toString()?.trim() ?: ""
+        val useCustomTime = binding.chipGroupTimeMode.checkedChipId == R.id.chip_time_custom
         slot.startNode = binding.etStartNode.text?.toString()?.toIntOrNull() ?: slot.startNode
         slot.endNode = binding.etEndNode.text?.toString()?.toIntOrNull() ?: slot.endNode
         slot.weeks = binding.etWeeks.text?.toString()?.trim() ?: slot.weeks
-        slot.customStartTime = binding.etCustomStartTime.text?.toString()?.trim() ?: ""
-        slot.customEndTime = binding.etCustomEndTime.text?.toString()?.trim() ?: ""
+        slot.customStartTime = if (useCustomTime) binding.etCustomStartTime.text?.toString()?.trim() ?: "" else ""
+        slot.customEndTime = if (useCustomTime) binding.etCustomEndTime.text?.toString()?.trim() ?: "" else ""
 
         val checkedId = binding.chipGroupDay.checkedChipId
         val chip = binding.chipGroupDay.findViewById<Chip>(checkedId)
@@ -305,7 +318,7 @@ class AddCourseActivity : AppCompatActivity() {
                     dao.deleteDetailsByCourseId(editCourseId, tableId)
                     // 更新课程名
                     dao.insertCourseBase(CourseBaseBean(editCourseId, name,
-                        originalColor.ifEmpty { courseColors[editCourseId % courseColors.size] }, tableId))
+                        selectedColor.ifEmpty { originalColor.ifEmpty { courseColors[editCourseId % courseColors.size] } }, tableId))
                     // 插入所有时间段
                     for (slot in timeSlots) {
                         val weeks = parseWeeks(slot.weeks)
@@ -335,34 +348,41 @@ class AddCourseActivity : AppCompatActivity() {
         val startNode = binding.etStartNode.text?.toString()?.toIntOrNull() ?: 0
         val endNode = binding.etEndNode.text?.toString()?.toIntOrNull() ?: 0
         val weeksStr = binding.etWeeks.text?.toString()?.trim() ?: ""
-        val customStart = binding.etCustomStartTime.text?.toString()?.trim() ?: ""
-        val customEnd = binding.etCustomEndTime.text?.toString()?.trim() ?: ""
+        val datesStr = binding.etDates.text?.toString()?.trim() ?: ""
+        val useCustomTime = binding.chipGroupTimeMode.checkedChipId == R.id.chip_time_custom
+        val useDateRange = binding.chipGroupRangeMode.checkedChipId == R.id.chip_range_date
+        val customStart = if (useCustomTime) binding.etCustomStartTime.text?.toString()?.trim() ?: "" else ""
+        val customEnd = if (useCustomTime) binding.etCustomEndTime.text?.toString()?.trim() ?: "" else ""
 
-        val hasCustomTime = customStart.isNotEmpty() && customEnd.isNotEmpty()
-        val hasNodeTime = startNode >= 1 && endNode >= startNode
-
-        if (!hasCustomTime && !hasNodeTime) {
-            Toast.makeText(this, "请填写节次或自定义时间", Toast.LENGTH_SHORT).show()
+        if (!useCustomTime && (startNode < 1 || endNode < startNode)) {
+            Toast.makeText(this, "请选择有效节次", Toast.LENGTH_SHORT).show()
             return
         }
-        if (weeksStr.isEmpty()) {
-            Toast.makeText(this, "请填写周次", Toast.LENGTH_SHORT).show()
+        if (useCustomTime && (customStart.isEmpty() || customEnd.isEmpty())) {
+            Toast.makeText(this, "请输入完整时间", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (!useDateRange && weeksStr.isEmpty()) {
+            Toast.makeText(this, "请输入周次范围", Toast.LENGTH_SHORT).show()
+            return
+        }
+        if (useDateRange && datesStr.isEmpty()) {
+            Toast.makeText(this, "请输入日期范围", Toast.LENGTH_SHORT).show()
             return
         }
 
         val checkedId = binding.chipGroupDay.checkedChipId
         val chip = binding.chipGroupDay.findViewById<Chip>(checkedId)
         val day = (chip?.tag as? Int) ?: 1
-        val weeks = parseWeeks(weeksStr)
+        val weeks = if (useDateRange) parseWeeksFromDateRange(datesStr) else parseWeeks(weeksStr)
         if (weeks.isEmpty()) {
             Toast.makeText(this, "周次格式错误", Toast.LENGTH_SHORT).show()
             return
         }
 
-        // 如果只填了自定义时间没填节次，根据自定义开始时间推算最接近的节次
         val inferredNode = inferNodeByTime(customStart)
-        val finalStartNode = if (hasNodeTime) startNode else inferredNode
-        val finalEndNode = if (hasNodeTime) endNode else inferredNode
+        val finalStartNode = if (useCustomTime) inferredNode else startNode
+        val finalEndNode = if (useCustomTime) inferredNode else endNode
 
         lifecycleScope.launch {
             withContext(Dispatchers.IO) {
@@ -374,7 +394,7 @@ class AddCourseActivity : AppCompatActivity() {
                 }
                 val tid = table.id
                 val newId = (dao.getMaxCourseId(tid) ?: -1) + 1
-                val color = courseColors[newId % courseColors.size]
+                val color = selectedColor.ifEmpty { courseColors[newId % courseColors.size] }
                 dao.insertCourseBase(CourseBaseBean(newId, name, color, tid))
                 val step = finalEndNode - finalStartNode + 1
                 val ranges = toWeekRanges(weeks)
@@ -447,6 +467,35 @@ class AddCourseActivity : AppCompatActivity() {
             }
         }
         return weeks.sorted().distinct()
+    }
+
+    private fun parseWeeksFromDateRange(str: String): List<Int> {
+        val currentStartDate = runBlockingGetStartDate() ?: "2026-02-24"
+        val parts = str.replace("至", "~").replace("—", "~").split("~")
+        if (parts.size < 2) return emptyList()
+        return try {
+            val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.CHINA)
+            val semester = sdf.parse(currentStartDate) ?: return emptyList()
+            val start = sdf.parse(parts[0].trim()) ?: return emptyList()
+            val end = sdf.parse(parts[1].trim()) ?: return emptyList()
+            val startDay = ((start.time - semester.time) / (1000L * 3600L * 24L)).toInt()
+            val endDay = ((end.time - semester.time) / (1000L * 3600L * 24L)).toInt()
+            val startWeek = (startDay / 7 + 1).coerceAtLeast(1)
+            val endWeek = ((endDay / 7) + 1).coerceAtLeast(startWeek)
+            (startWeek..endWeek).toList()
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    private fun runBlockingGetStartDate(): String? {
+        return try {
+            kotlinx.coroutines.runBlocking(Dispatchers.IO) {
+                App.instance.database.courseDao().getFirstTable()?.startDate
+            }
+        } catch (_: Exception) {
+            null
+        }
     }
 
     private fun toWeekRanges(weeks: List<Int>): List<Pair<Int, Int>> {
