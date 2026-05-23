@@ -376,9 +376,6 @@ class ScheduleActivity : AppCompatActivity() {
                     col.addView(createCourseCard(course, nameMap, colorMap, cellHeight, false))
                     currentNode += course.step
                 } else if (otherCourse != null) {
-                    col.addView(createCourseCard(course, nameMap, colorMap, cellHeight, false))
-                    currentNode += course.step
-                } else if (otherCourse != null) {
                     col.addView(createCourseCard(otherCourse, nameMap, colorMap, cellHeight, true))
                     currentNode += otherCourse.step
                 } else {
