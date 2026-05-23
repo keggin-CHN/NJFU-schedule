@@ -365,7 +365,7 @@ class ScheduleActivity : AppCompatActivity() {
             val col = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                if (isToday) setBackgroundColor(Color.parseColor("#085B8DEF"))
+                if (isToday) setBackgroundColor(Color.argb(32, 155, 190, 255))
             }
 
             var currentNode = 1
@@ -485,18 +485,18 @@ class ScheduleActivity : AppCompatActivity() {
             val color = try { Color.parseColor(bgColor) } catch (_: Exception) { Color.parseColor("#7986CB") }
             val drawable = GradientDrawable().apply {
                 if (isOtherWeek) {
-                    setColor(Color.argb(72, Color.red(color), Color.green(color), Color.blue(color)))
-                    setStroke(dpToPx(1), Color.argb(70, Color.red(color), Color.green(color), Color.blue(color)))
+                    setColor(Color.argb(42, Color.red(color), Color.green(color), Color.blue(color)))
+                    setStroke(dpToPx(1), Color.argb(150, 210, 218, 232))
                 } else {
-                    setColor(Color.argb(232, Color.red(color), Color.green(color), Color.blue(color)))
-                    setStroke(dpToPx(1), Color.argb(46, 255, 255, 255))
+                    setColor(Color.argb(246, Color.red(color), Color.green(color), Color.blue(color)))
+                    setStroke(dpToPx(1), Color.argb(210, 255, 255, 255))
                 }
                 cornerRadius = dpToPx(9).toFloat()
             }
             background = drawable
 
             if (isOtherWeek) {
-                setTextColor(Color.argb(150, 255, 255, 255))
+                setTextColor(Color.argb(210, 245, 247, 252))
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 8.8f)
             }
 

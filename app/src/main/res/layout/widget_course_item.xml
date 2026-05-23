@@ -2,29 +2,56 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:gravity="center_vertical"
     android:orientation="horizontal"
-    android:paddingTop="4dp"
-    android:paddingBottom="4dp">
+    android:layout_marginBottom="8dp"
+    android:background="@drawable/widget_item_bg"
+    android:gravity="center_vertical"
+    android:padding="8dp">
 
     <View
-        android:id="@+id/widget_color_dot"
-        android:layout_width="6dp"
-        android:layout_height="6dp" />
+        android:id="@+id/view_course_color"
+        android:layout_width="4dp"
+        android:layout_height="match_parent"
+        android:layout_marginEnd="8dp"
+        android:background="#5B8DEF" />
 
-    <TextView
-        android:id="@+id/tv_widget_course_name"
+    <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
         android:layout_weight="1"
-        android:textColor="@color/text_primary"
-        android:textSize="12sp" />
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tv_course_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="课程名称"
+            android:textColor="@color/text_primary"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/tv_course_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="08:00-09:40"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp"
+            android:maxLines="1" />
+    </LinearLayout>
 
     <TextView
-        android:id="@+id/tv_widget_course_time"
+        android:id="@+id/tv_course_room"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:text="教1401"
         android:textColor="@color/text_secondary"
-        android:textSize="11sp" />
+        android:textSize="12sp"
+        android:maxLines="1"
+        android:ellipsize="end" />
+
 </LinearLayout>

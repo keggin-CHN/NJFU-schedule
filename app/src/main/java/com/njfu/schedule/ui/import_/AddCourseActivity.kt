@@ -151,7 +151,16 @@ class AddCourseActivity : AppCompatActivity() {
                 chipBackgroundColor = android.content.res.ColorStateList.valueOf(parseColorSafe(colorHex))
                 setTextColor(Color.WHITE)
                 chipStrokeWidth = dpToPx(2).toFloat()
-                chipStrokeColor = android.content.res.ColorStateList.valueOf(Color.argb(120, 255, 255, 255))
+                chipStrokeColor = android.content.res.ColorStateList(
+                    arrayOf(
+                        intArrayOf(android.R.attr.state_checked),
+                        intArrayOf()
+                    ),
+                    intArrayOf(
+                        Color.WHITE,
+                        Color.argb(170, 210, 218, 232)
+                    )
+                )
             }
             binding.chipGroupColor.addView(chip)
             if (idx == 0) {

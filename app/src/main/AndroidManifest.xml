@@ -77,6 +77,10 @@
                 android:resource="@xml/widget_today_info" />
         </receiver>
 
+        <service
+            android:name=".widget.TodayCourseWidgetService"
+            android:permission="android.permission.BIND_REMOTEVIEWS" />
+
         <!-- 下节课小组件 (2x2) -->
         <receiver
             android:name=".widget.NextCourseWidget"
