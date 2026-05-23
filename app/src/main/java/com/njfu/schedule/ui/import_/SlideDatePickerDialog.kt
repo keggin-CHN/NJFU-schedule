@@ -119,7 +119,7 @@ class SlideDatePickerDialog(context: Context, private val onRangeSelected: (Stri
             tempCal.add(Calendar.DAY_OF_MONTH, 1)
         }
 
-        adapter.setItems(items)
+        adapter.updateItems(items)
     }
 
     private inner class CalendarAdapter : RecyclerView.Adapter<CalendarAdapter.VH>() {
@@ -127,7 +127,7 @@ class SlideDatePickerDialog(context: Context, private val onRangeSelected: (Stri
         var selStart = -1
         var selEnd = -1
 
-        fun setItems(newItems: List<Date?>) {
+        fun updateItems(newItems: List<Date?>) {
             items = newItems
             selStart = -1
             selEnd = -1
