@@ -250,9 +250,14 @@ class AddCourseActivity : AppCompatActivity() {
         val startNode = binding.etStartNode.text?.toString()?.toIntOrNull() ?: 0
         val endNode = binding.etEndNode.text?.toString()?.toIntOrNull() ?: 0
         val weeksStr = binding.etWeeks.text?.toString()?.trim() ?: ""
+        val customStart = binding.etCustomStartTime.text?.toString()?.trim() ?: ""
+        val customEnd = binding.etCustomEndTime.text?.toString()?.trim() ?: ""
 
-        if (startNode < 1 || endNode < startNode) {
-            Toast.makeText(this, "请正确填写节次", Toast.LENGTH_SHORT).show()
+        val hasCustomTime = customStart.isNotEmpty() && customEnd.isNotEmpty()
+        val hasNodeTime = startNode >= 1 && endNode >= startNode
+
+        if (!hasCustomTime && !hasNodeTime) {
+            Toast.makeText(this, "请填写节次或自定义时间", Toast.LENGTH_SHORT).show()
             return
         }
         if (weeksStr.isEmpty()) {
@@ -269,6 +274,10 @@ class AddCourseActivity : AppCompatActivity() {
             return
         }
 
+        // 如果只填了自定义时间没填节次，默认占1节
+        val finalStartNode = if (hasNodeTime) startNode else 1
+        val finalEndNode = if (hasNodeTime) endNode else 1
+
         lifecycleScope.launch {
             withContext(Dispatchers.IO) {
                 val dao = App.instance.database.courseDao()
@@ -281,12 +290,12 @@ class AddCourseActivity : AppCompatActivity() {
                 val newId = (dao.getMaxCourseId(tid) ?: -1) + 1
                 val color = courseColors[newId % courseColors.size]
                 dao.insertCourseBase(CourseBaseBean(newId, name, color, tid))
-                val step = endNode - startNode + 1
+                val step = finalEndNode - finalStartNode + 1
                 val ranges = toWeekRanges(weeks)
-                val customStart = binding.etCustomStartTime.text?.toString()?.trim()?.ifEmpty { null }
-                val customEnd = binding.etCustomEndTime.text?.toString()?.trim()?.ifEmpty { null }
+                val cStart = customStart.ifEmpty { null }
+                val cEnd = customEnd.ifEmpty { null }
                 for ((startWeek, endWeek) in ranges) {
-                    dao.insertCourseDetail(CourseDetailBean(newId, day, room, teacher, startNode, step, startWeek, endWeek, 0, tid, customStart, customEnd))
+                    dao.insertCourseDetail(CourseDetailBean(newId, day, room, teacher, finalStartNode, step, startWeek, endWeek, 0, tid, cStart, cEnd))
                 }
             }
             Toast.makeText(this@AddCourseActivity, "保存成功", Toast.LENGTH_SHORT).show()

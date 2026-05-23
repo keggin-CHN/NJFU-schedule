@@ -68,7 +68,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="节次"
+            android:text="节次（和自定义时间二选一）"
             android:textSize="14sp"
             android:textStyle="bold" />
 
@@ -118,7 +118,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="自定义时间（可选，留空则按节次）"
+            android:text="或 自定义时间"
             android:textSize="14sp"
             android:textStyle="bold" />
 
