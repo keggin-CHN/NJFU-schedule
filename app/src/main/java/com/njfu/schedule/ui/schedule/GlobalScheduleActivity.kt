@@ -116,7 +116,7 @@ class GlobalScheduleActivity : AppCompatActivity() {
             if (errMsg == null) {
                 loadEntityList()
             } else {
-                showError("登录失败：$errMsg\n\n（请先在"导入课表"页面登录一次）")
+                showError("登录失败：$errMsg\n\n（请先在\"导入课表\"页面登录一次）")
             }
         }
     }
@@ -231,7 +231,7 @@ class GlobalScheduleActivity : AppCompatActivity() {
         val studentId = prefs.getString("student_id", "") ?: ""
         val password = prefs.getString("password", "") ?: ""
         if (studentId.isEmpty() || password.isEmpty()) {
-            return "未找到登录凭证，请先在"导入课表"页面登录"
+            return "未找到登录凭证，请先在\"导入课表\"页面登录"
         }
         return try {
             updateLoadingText("正在连接教务系统...")
