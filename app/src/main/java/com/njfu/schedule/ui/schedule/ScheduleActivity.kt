@@ -93,8 +93,62 @@ class ScheduleActivity : AppCompatActivity() {
             }
         })
 
+        // 底部导航
+        val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottom_nav)
+        bottomNav.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_schedule -> { showScheduleView(); true }
+                R.id.nav_query -> { showQueryView(); true }
+                else -> false
+            }
+        }
+
         loadBackground()
         loadSchedule()
+    }
+
+    private fun showScheduleView() {
+        binding.viewPager.visibility = if (allBases.isNotEmpty()) View.VISIBLE else View.GONE
+        binding.emptyView.visibility = if (allBases.isEmpty()) View.VISIBLE else View.GONE
+        findViewById<View>(R.id.query_container)?.visibility = View.GONE
+    }
+
+    private fun showQueryView() {
+        binding.viewPager.visibility = View.GONE
+        binding.emptyView.visibility = View.GONE
+
+        var queryContainer = findViewById<View>(R.id.query_container)
+        if (queryContainer == null) {
+            val queryView = layoutInflater.inflate(R.layout.fragment_query, null)
+            queryView.id = R.id.query_container
+            val mainContent = findViewById<android.widget.LinearLayout>(R.id.main_content)
+            val params = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f)
+            mainContent.addView(queryView, mainContent.childCount - 1, params) // 在底部导航前插入
+            queryContainer = queryView
+
+            // 绑定点击事件
+            queryView.findViewById<View>(R.id.card_teacher).setOnClickListener {
+                openQuery("https://jwxt.njfu.edu.cn/jsxsd/xskb/xskb_list_jg0101foroutside.do", "教师课表")
+            }
+            queryView.findViewById<View>(R.id.card_room).setOnClickListener {
+                openQuery("https://jwxt.njfu.edu.cn/jsxsd/xskb/xskb_list_jx0601foroutside.do", "教室课表")
+            }
+            queryView.findViewById<View>(R.id.card_course).setOnClickListener {
+                openQuery("https://jwxt.njfu.edu.cn/jsxsd/xskb/xskb_list_jg0101foroutside.do", "课程课表")
+            }
+            queryView.findViewById<View>(R.id.card_class).setOnClickListener {
+                openQuery("https://jwxt.njfu.edu.cn/jsxsd/xskb/xskb_list_jg0101foroutside.do", "班级课表")
+            }
+        }
+        queryContainer.visibility = View.VISIBLE
+    }
+
+    private fun openQuery(url: String, title: String) {
+        val intent = Intent(this, com.njfu.schedule.ui.settings.WebViewActivity::class.java)
+        intent.putExtra("url", url)
+        intent.putExtra("title", title)
+        startActivity(intent)
     }
 
     private fun loadBackground() {
@@ -480,31 +534,6 @@ class ScheduleActivity : AppCompatActivity() {
             showCourseList()
         }
 
-        // 教师课表
-        view.findViewById<View>(R.id.menu_teacher_schedule).setOnClickListener {
-            dialog.dismiss()
-            val intent = Intent(this, com.njfu.schedule.ui.settings.WebViewActivity::class.java)
-            intent.putExtra("url", "https://jwxt.njfu.edu.cn/jsxsd/xskb/xskb_list_jg0101foroutside.do")
-            intent.putExtra("title", "教师课表查询")
-            startActivity(intent)
-        }
-
-        // 教室课表
-        view.findViewById<View>(R.id.menu_room_schedule).setOnClickListener {
-            dialog.dismiss()
-            val intent = Intent(this, com.njfu.schedule.ui.settings.WebViewActivity::class.java)
-            intent.putExtra("url", "https://jwxt.njfu.edu.cn/jsxsd/xskb/xskb_list_jx0601foroutside.do")
-            intent.putExtra("title", "教室课表查询")
-            startActivity(intent)
-        }
-
-        // 背景设置
-        view.findViewById<View>(R.id.menu_about).setOnClickListener {
-            dialog.dismiss()
-            val intent = Intent(this, BackgroundSettingsActivity::class.java)
-            bgLauncher.launch(intent)
-        }
-
         // 关于
         view.findViewById<View>(R.id.menu_about_page).setOnClickListener {
             dialog.dismiss()
@@ -690,7 +719,8 @@ class ScheduleActivity : AppCompatActivity() {
 
                 if (changes.isEmpty() && conflicts.isEmpty()) {
                     log("✓ 课表无变化")
-                    withContext(Dispatchers.IO) { overwriteCourses(result) }
+                    // 保留自定义课程，只更新教务系统的
+                    withContext(Dispatchers.IO) { doSyncUpdateIO(result, customCourseNames) }
                     dialog.dismiss()
                     Toast.makeText(this@ScheduleActivity, "同步完成，无变化", Toast.LENGTH_SHORT).show()
                     loadSchedule()
@@ -865,53 +895,53 @@ class ScheduleActivity : AppCompatActivity() {
 
     private fun doSyncUpdate(result: com.njfu.schedule.njfu.NjfuImporter.ImportResult, keepNames: Set<String>) {
         lifecycleScope.launch {
-            withContext(Dispatchers.IO) {
-                val dao = App.instance.database.courseDao()
-                val t = table ?: return@withContext
-
-                if (keepNames.isEmpty()) {
-                    // 全部覆盖
-                    overwriteCourses(result)
-                } else {
-                    // 保留自定义课程，只更新教务系统的
-                    val keepBases = allBases.filter { it.courseName in keepNames }
-                    val keepDetails = allDetails.filter { d -> keepBases.any { it.id == d.id } }
-
-                    dao.deleteCoursesByTable(t.id)
-                    dao.deleteDetailsByTable(t.id)
-
-                    // 写入新课表
-                    val courses = result.courses
-                    val courseNames = courses.map { it.name }.distinct()
-                    val nameToId = courseNames.mapIndexed { idx, name -> name to idx }.toMap()
-                    for ((name, id) in nameToId) {
-                        dao.insertCourseBase(com.njfu.schedule.bean.CourseBaseBean(id, name, courseColors[id % courseColors.size], t.id))
-                    }
-                    for (course in courses) {
-                        val id = nameToId[course.name]!!
-                        val step = course.endNode - course.startNode + 1
-                        for ((sw, ew) in toWeekRanges(course.weeks)) {
-                            dao.insertCourseDetail(com.njfu.schedule.bean.CourseDetailBean(id, course.day, course.room, course.teacher, course.startNode, step, sw, ew, 0, t.id))
-                        }
-                    }
-
-                    // 写回保留的自定义课程
-                    val maxId = (nameToId.values.maxOrNull() ?: -1) + 1
-                    keepBases.forEachIndexed { idx, base ->
-                        val newId = maxId + idx
-                        dao.insertCourseBase(com.njfu.schedule.bean.CourseBaseBean(newId, base.courseName, base.color, t.id))
-                        keepDetails.filter { it.id == base.id }.forEach { d ->
-                            dao.insertCourseDetail(com.njfu.schedule.bean.CourseDetailBean(newId, d.day, d.room, d.teacher, d.startNode, d.step, d.startWeek, d.endWeek, d.type, t.id))
-                        }
-                    }
-
-                    t.startDate = result.semesterStartDate
-                    dao.updateTable(t)
-                }
-            }
+            withContext(Dispatchers.IO) { doSyncUpdateIO(result, keepNames) }
             Toast.makeText(this@ScheduleActivity, "同步完成", Toast.LENGTH_SHORT).show()
             loadSchedule()
         }
+    }
+
+    private suspend fun doSyncUpdateIO(result: com.njfu.schedule.njfu.NjfuImporter.ImportResult, keepNames: Set<String>) {
+        val dao = App.instance.database.courseDao()
+        val t = table ?: return
+
+        // 保存自定义课程数据
+        val keepBases = allBases.filter { it.courseName in keepNames }
+        val keepDetails = allDetails.filter { d -> keepBases.any { it.id == d.id && it.tableId == d.tableId } }
+
+        // 清空
+        dao.deleteCoursesByTable(t.id)
+        dao.deleteDetailsByTable(t.id)
+
+        // 写入教务系统课程
+        val courses = result.courses
+        val courseNames = courses.map { it.name }.distinct()
+        val nameToId = courseNames.mapIndexed { idx, name -> name to idx }.toMap()
+        for ((name, id) in nameToId) {
+            dao.insertCourseBase(com.njfu.schedule.bean.CourseBaseBean(id, name, courseColors[id % courseColors.size], t.id))
+        }
+        for (course in courses) {
+            val id = nameToId[course.name]!!
+            val step = course.endNode - course.startNode + 1
+            for ((sw, ew) in toWeekRanges(course.weeks)) {
+                dao.insertCourseDetail(com.njfu.schedule.bean.CourseDetailBean(id, course.day, course.room, course.teacher, course.startNode, step, sw, ew, 0, t.id))
+            }
+        }
+
+        // 写回自定义课程
+        if (keepNames.isNotEmpty()) {
+            val maxId = (nameToId.values.maxOrNull() ?: -1) + 1
+            keepBases.forEachIndexed { idx, base ->
+                val newId = maxId + idx
+                dao.insertCourseBase(com.njfu.schedule.bean.CourseBaseBean(newId, base.courseName, base.color, t.id))
+                keepDetails.filter { it.id == base.id }.forEach { d ->
+                    dao.insertCourseDetail(com.njfu.schedule.bean.CourseDetailBean(newId, d.day, d.room, d.teacher, d.startNode, d.step, d.startWeek, d.endWeek, d.type, t.id))
+                }
+            }
+        }
+
+        t.startDate = result.semesterStartDate
+        dao.updateTable(t)
     }
 
     private suspend fun overwriteCourses(result: com.njfu.schedule.njfu.NjfuImporter.ImportResult) {

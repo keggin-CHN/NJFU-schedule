@@ -18,9 +18,9 @@ object TimeNode {
         NodeTime(6, "14:55", "15:40"),
         NodeTime(7, "16:00", "16:45"),
         NodeTime(8, "16:55", "17:40"),
-        NodeTime(9, "19:00", "19:45"),
-        NodeTime(10, "19:55", "20:40"),
-        NodeTime(11, "20:50", "21:35"),
+        NodeTime(9, "18:30", "19:15"),
+        NodeTime(10, "19:20", "20:05"),
+        NodeTime(11, "20:10", "20:55"),
     )
 
     var times: MutableList<NodeTime> = defaultTimes.toMutableList()

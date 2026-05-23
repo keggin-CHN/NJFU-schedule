@@ -119,63 +119,6 @@
         android:background="#EEEEEE" />
 
     <TextView
-        android:id="@+id/menu_teacher_schedule"
-        android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:background="?selectableItemBackground"
-        android:gravity="center_vertical"
-        android:paddingStart="24dp"
-        android:paddingEnd="24dp"
-        android:text="教师课表查询"
-        android:textColor="#1A1A1A"
-        android:textSize="15sp"
-        android:drawableEnd="@drawable/ic_arrow_right" />
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="0.5dp"
-        android:layout_marginStart="24dp"
-        android:background="#EEEEEE" />
-
-    <TextView
-        android:id="@+id/menu_room_schedule"
-        android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:background="?selectableItemBackground"
-        android:gravity="center_vertical"
-        android:paddingStart="24dp"
-        android:paddingEnd="24dp"
-        android:text="教室课表查询"
-        android:textColor="#1A1A1A"
-        android:textSize="15sp"
-        android:drawableEnd="@drawable/ic_arrow_right" />
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="0.5dp"
-        android:layout_marginStart="24dp"
-        android:background="#EEEEEE" />
-
-    <TextView
-        android:id="@+id/menu_about"
-        android:layout_width="match_parent"
-        android:layout_height="52dp"
-        android:background="?selectableItemBackground"
-        android:gravity="center_vertical"
-        android:paddingStart="24dp"
-        android:paddingEnd="24dp"
-        android:text="背景设置"
-        android:textColor="#1A1A1A"
-        android:textSize="15sp"
-        android:drawableEnd="@drawable/ic_arrow_right" />
-
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="0.5dp"
-        android:layout_marginStart="24dp"
-        android:background="#EEEEEE" />
-
-    <TextView
         android:id="@+id/menu_about_page"
         android:layout_width="match_parent"
         android:layout_height="52dp"
