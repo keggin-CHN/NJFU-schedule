@@ -355,20 +355,27 @@ class ScheduleActivity : AppCompatActivity() {
 
             var currentNode = 1
             while (currentNode <= maxNode) {
-                val course = dayCourses.find { it.startNode == currentNode }
+                // 找当前节次的所有课程（检测重叠）
+                val coursesAtNode = dayCourses.filter { it.startNode == currentNode }
                 val otherCourse = otherDayCourses.find { it.startNode == currentNode }
-                // 检测重叠：同一节次有多门课
-                val overlapping = dayCourses.filter { it.startNode <= currentNode && it.startNode + it.step > currentNode }
 
-                if (overlapping.size > 1 && course != null) {
-                    // 有重叠，显示带警告的卡片
+                if (coursesAtNode.size > 1) {
+                    // 多门课重叠！显示第一门 + 重叠标记
+                    val course = coursesAtNode.first()
                     val card = createCourseCard(course, nameMap, colorMap, cellHeight, false)
-                    (card as? TextView)?.let {
-                        it.text = "${it.text}\n⚠重叠"
+                    (card as? TextView)?.let { tv ->
+                        tv.text = "${tv.text}\n⚠${coursesAtNode.size}门重叠"
+                        tv.setOnClickListener {
+                            showOverlapDialog(coursesAtNode, nameMap)
+                        }
                     }
                     col.addView(card)
                     currentNode += course.step
-                } else if (course != null) {
+                } else if (coursesAtNode.size == 1) {
+                    val course = coursesAtNode.first()
+                    col.addView(createCourseCard(course, nameMap, colorMap, cellHeight, false))
+                    currentNode += course.step
+                } else if (otherCourse != null) {
                     col.addView(createCourseCard(course, nameMap, colorMap, cellHeight, false))
                     currentNode += course.step
                 } else if (otherCourse != null) {
@@ -461,6 +468,25 @@ class ScheduleActivity : AppCompatActivity() {
     private fun adjustAlpha(color: Int, factor: Float): Int {
         val alpha = (Color.alpha(color) * factor).toInt()
         return Color.argb(alpha, Color.red(color), Color.green(color), Color.blue(color))
+    }
+
+    private fun showOverlapDialog(courses: List<CourseDetailBean>, nameMap: Map<Int, String>) {
+        val dayNames = arrayOf("周一","周二","周三","周四","周五","周六","周日")
+        val items = courses.map { c ->
+            val name = nameMap[c.id] ?: "未知课程"
+            val time = (c.customStartTime ?: TimeNode.getStartTime(c.startNode)) + "-" +
+                    (c.customEndTime ?: TimeNode.getEndTime(c.startNode + c.step - 1))
+            "$name  $time  ${c.room ?: ""}"
+        }.toTypedArray()
+
+        AlertDialog.Builder(this)
+            .setTitle("该时间段有 ${courses.size} 门课程重叠")
+            .setItems(items) { _, idx ->
+                val course = courses[idx]
+                showCourseDetail(course, nameMap[course.id] ?: "")
+            }
+            .setNegativeButton("关闭", null)
+            .show()
     }
 
     private fun showCourseDetail(course: CourseDetailBean, name: String) {
@@ -723,6 +749,11 @@ class ScheduleActivity : AppCompatActivity() {
                 val serverCourseNames = result.courses.map { it.name }.toSet()
                 val localCourseNames = allBases.map { it.courseName }.toSet()
                 val customCourseNames = localCourseNames - serverCourseNames
+
+                log("本地 ${localCourseNames.size} 门，教务 ${serverCourseNames.size} 门")
+                if (customCourseNames.isNotEmpty()) {
+                    log("自定义课程：${customCourseNames.joinToString()}")
+                }
 
                 // 对比变化
                 val changes = findSyncChanges(result.courses)

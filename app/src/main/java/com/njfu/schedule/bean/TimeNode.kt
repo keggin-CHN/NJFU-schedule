@@ -28,6 +28,13 @@ object TimeNode {
 
     fun load(context: Context) {
         val prefs = context.getSharedPreferences("time_settings", Context.MODE_PRIVATE)
+        val version = prefs.getInt("time_version", 0)
+        // 如果版本不对，重置为默认值
+        if (version < 2) {
+            prefs.edit().clear().putInt("time_version", 2).apply()
+            times = defaultTimes.toMutableList()
+            return
+        }
         times = (1..11).map { node ->
             val defaultNode = defaultTimes[node - 1]
             NodeTime(
@@ -41,6 +48,7 @@ object TimeNode {
     fun save(context: Context) {
         val prefs = context.getSharedPreferences("time_settings", Context.MODE_PRIVATE)
         val editor = prefs.edit()
+        editor.putInt("time_version", 2)
         for (t in times) {
             editor.putString("start_${t.node}", t.start)
             editor.putString("end_${t.node}", t.end)
