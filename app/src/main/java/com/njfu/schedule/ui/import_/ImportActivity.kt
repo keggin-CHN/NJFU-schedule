@@ -97,12 +97,10 @@ class ImportActivity : AppCompatActivity() {
                     .putString("password", password)
                     .apply()
 
-                // 保存备注
-                if (result.remarks.isNotEmpty()) {
-                    getSharedPreferences("njfu_login", Context.MODE_PRIVATE).edit()
-                        .putString("remarks", result.remarks.joinToString("\n"))
-                        .apply()
-                }
+                // 保存备注（始终覆盖旧数据）
+                getSharedPreferences("njfu_login", Context.MODE_PRIVATE).edit()
+                    .putString("remarks", result.remarks.joinToString("\n"))
+                    .apply()
 
                 // 保存到数据库
                 withContext(Dispatchers.IO) {

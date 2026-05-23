@@ -262,7 +262,6 @@ class ScheduleActivity : AppCompatActivity() {
         val nodeCol = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = LinearLayout.LayoutParams(dpToPx(30), LinearLayout.LayoutParams.WRAP_CONTENT)
-            setBackgroundColor(Color.parseColor("#FAFAFA"))
         }
         for (node in 1..maxNode) {
             val time = TimeNode.getStartTime(node)
@@ -270,9 +269,9 @@ class ScheduleActivity : AppCompatActivity() {
                 layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, cellHeight)
                 gravity = Gravity.CENTER
                 text = "$node\n$time"
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 8f)
-                setTextColor(Color.parseColor("#AAAAAA"))
-                setLineSpacing(0f, 0.85f)
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 9f)
+                setTextColor(resources.getColor(R.color.text_secondary, theme))
+                setLineSpacing(0f, 0.9f)
                 setBackgroundResource(R.drawable.cell_border_bottom)
             }
             nodeCol.addView(tv)
@@ -368,6 +367,7 @@ class ScheduleActivity : AppCompatActivity() {
                     setStroke(dpToPx(1), Color.argb(80, Color.red(color), Color.green(color), Color.blue(color)))
                 } else {
                     setColor(color)
+                    setStroke(1, Color.argb(40, 0, 0, 0)) // 轻微深色边框
                 }
                 cornerRadius = dpToPx(4).toFloat()
             }
