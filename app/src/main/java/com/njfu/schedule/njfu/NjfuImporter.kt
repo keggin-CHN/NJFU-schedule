@@ -217,10 +217,10 @@ class NjfuImporter {
         val dataHtml = dataResp.body?.string() ?: ""
 
         onProgress?.invoke("数据获取成功，大小: ${dataHtml.length / 1024} KB。正在解析排课数据...")
-        return parseNewGlobalSchedule(dataHtml, onProgress)
+        return parseNewGlobalSchedule(dataHtml, type, onProgress)
     }
 
-    private fun parseNewGlobalSchedule(html: String, onProgress: ((String) -> Unit)? = null): List<com.njfu.schedule.bean.GlobalCourseInfo> {
+    private fun parseNewGlobalSchedule(html: String, queryType: String, onProgress: ((String) -> Unit)? = null): List<com.njfu.schedule.bean.GlobalCourseInfo> {
         val doc = Jsoup.parse(html)
         val table = doc.selectFirst("table#timetable") ?: return emptyList()
 
@@ -272,29 +272,62 @@ class NjfuImporter {
                         
                     if (lines.isEmpty()) continue
                     
-                    val courseName = lines.getOrNull(0) ?: ""
-                    val className = lines.getOrNull(1) ?: ""
-                    
+                    val courseName: String
+                    var className = ""
                     var teacher = ""
                     var weeksStr = ""
-                    val line2 = lines.getOrNull(2) ?: ""
-                    
-                    // Match "Teacher Name (Weeks周)" or just "(Weeks周)"
-                    val weekMatch = Regex("(.+?)\\s*\\((.+?周)\\)").find(line2)
-                    if (weekMatch != null) {
-                        teacher = weekMatch.groupValues[1].trim()
-                        weeksStr = weekMatch.groupValues[2].trim()
-                    } else if (line2.contains("周")) {
-                        weeksStr = line2
-                    } else {
-                        teacher = line2
+                    var room = ""
+
+                    when (queryType) {
+                        "jg0101" -> { // 教师课表: 课程名 / 班级名 / 周次 / 教室
+                            courseName = lines.getOrNull(0) ?: ""
+                            teacher = entityName
+                            className = lines.getOrNull(1) ?: ""
+                            weeksStr = lines.getOrNull(2) ?: ""
+                            room = lines.getOrNull(3) ?: ""
+                        }
+                        "jx0601" -> { // 教室课表: 课程名 / 教师名 / 班级名 / 周次
+                            courseName = lines.getOrNull(0) ?: ""
+                            room = entityName
+                            teacher = lines.getOrNull(1) ?: ""
+                            className = lines.getOrNull(2) ?: ""
+                            weeksStr = lines.getOrNull(3) ?: ""
+                        }
+                        "kc0101" -> { // 课程课表: 班级名 / 教师名 / 周次 / 教室
+                            courseName = entityName
+                            className = lines.getOrNull(0) ?: ""
+                            teacher = lines.getOrNull(1) ?: ""
+                            weeksStr = lines.getOrNull(2) ?: ""
+                            room = lines.getOrNull(3) ?: ""
+                        }
+                        else -> { // 班级课表 bj0101 或默认: 课程名 / 教师(周次) / 教室
+                            courseName = lines.getOrNull(0) ?: ""
+                            className = entityName
+                            val line2 = lines.getOrNull(1) ?: ""
+                            val weekMatch = Regex("(.+?)\\s*\\((.+?周)\\)").find(line2)
+                            if (weekMatch != null) {
+                                teacher = weekMatch.groupValues[1].trim()
+                                weeksStr = weekMatch.groupValues[2].trim()
+                            } else if (line2.contains("周")) {
+                                weeksStr = line2
+                            } else {
+                                teacher = line2
+                            }
+                            if (weeksStr.isEmpty()) weeksStr = lines.getOrNull(2) ?: ""
+                            room = lines.getOrNull(3) ?: ""
+                            if (room.isEmpty() && lines.size == 3 && !lines[2].contains("周")) {
+                                room = lines[2]
+                            }
+                        }
                     }
-                    
-                    val room = lines.getOrNull(3) ?: ""
-                    
-                    // Append entityName to Teacher or Class Name if it's missing or helpful context
-                    val finalClassName = if (className.isEmpty()) entityName else className
-                    
+
+                    // Clean up weeksStr
+                    if (weeksStr.contains("(")) {
+                        val m = Regex("\\((.+?周)\\)").find(weeksStr)
+                        if (m != null) weeksStr = m.groupValues[1]
+                    }
+
+                    val finalClassName = className
                     courses.add(com.njfu.schedule.bean.GlobalCourseInfo(
                         courseName = courseName,
                         teacher = teacher,
