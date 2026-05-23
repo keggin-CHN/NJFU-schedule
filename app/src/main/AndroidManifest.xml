@@ -52,6 +52,11 @@
             android:name=".ui.settings.AboutActivity"
             android:screenOrientation="portrait" />
 
+        <activity
+            android:name=".ui.settings.WebViewActivity"
+            android:screenOrientation="portrait"
+            android:configChanges="orientation|screenSize" />
+
         <!-- 今日课程桌面小组件 (4x1) -->
         <receiver
             android:name=".widget.TodayCourseWidget"

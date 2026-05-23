@@ -480,6 +480,24 @@ class ScheduleActivity : AppCompatActivity() {
             showCourseList()
         }
 
+        // 教师课表
+        view.findViewById<View>(R.id.menu_teacher_schedule).setOnClickListener {
+            dialog.dismiss()
+            val intent = Intent(this, com.njfu.schedule.ui.settings.WebViewActivity::class.java)
+            intent.putExtra("url", "https://jwxt.njfu.edu.cn/jsxsd/xskb/xskb_list_jg0101foroutside.do")
+            intent.putExtra("title", "教师课表查询")
+            startActivity(intent)
+        }
+
+        // 教室课表
+        view.findViewById<View>(R.id.menu_room_schedule).setOnClickListener {
+            dialog.dismiss()
+            val intent = Intent(this, com.njfu.schedule.ui.settings.WebViewActivity::class.java)
+            intent.putExtra("url", "https://jwxt.njfu.edu.cn/jsxsd/xskb/xskb_list_jx0601foroutside.do")
+            intent.putExtra("title", "教室课表查询")
+            startActivity(intent)
+        }
+
         // 背景设置
         view.findViewById<View>(R.id.menu_about).setOnClickListener {
             dialog.dismiss()
