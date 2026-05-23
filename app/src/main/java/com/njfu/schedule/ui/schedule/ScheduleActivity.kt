@@ -357,8 +357,18 @@ class ScheduleActivity : AppCompatActivity() {
             while (currentNode <= maxNode) {
                 val course = dayCourses.find { it.startNode == currentNode }
                 val otherCourse = otherDayCourses.find { it.startNode == currentNode }
+                // 检测重叠：同一节次有多门课
+                val overlapping = dayCourses.filter { it.startNode <= currentNode && it.startNode + it.step > currentNode }
 
-                if (course != null) {
+                if (overlapping.size > 1 && course != null) {
+                    // 有重叠，显示带警告的卡片
+                    val card = createCourseCard(course, nameMap, colorMap, cellHeight, false)
+                    (card as? TextView)?.let {
+                        it.text = "${it.text}\n⚠重叠"
+                    }
+                    col.addView(card)
+                    currentNode += course.step
+                } else if (course != null) {
                     col.addView(createCourseCard(course, nameMap, colorMap, cellHeight, false))
                     currentNode += course.step
                 } else if (otherCourse != null) {
@@ -468,8 +478,8 @@ class ScheduleActivity : AppCompatActivity() {
         view.findViewById<TextView>(R.id.tv_teacher).text = course.teacher ?: "未设置"
         view.findViewById<TextView>(R.id.tv_room).text = course.room ?: "未设置"
 
-        val startTime = TimeNode.getStartTime(course.startNode)
-        val endTime = TimeNode.getEndTime(course.startNode + course.step - 1)
+        val startTime = course.customStartTime ?: TimeNode.getStartTime(course.startNode)
+        val endTime = course.customEndTime ?: TimeNode.getEndTime(course.startNode + course.step - 1)
         val dayLabels = arrayOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")
         val dayName = dayLabels.getOrElse(course.day - 1) { "" }
         view.findViewById<TextView>(R.id.tv_time).text = "$dayName 第${course.startNode}-${course.startNode + course.step - 1}节  $startTime-$endTime"

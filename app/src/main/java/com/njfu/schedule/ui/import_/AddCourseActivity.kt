@@ -30,7 +30,7 @@ class AddCourseActivity : AppCompatActivity() {
     )
 
     // 多时间段支持
-    private data class TimeSlot(var day: Int, var startNode: Int, var endNode: Int, var weeks: String, var room: String, var teacher: String)
+    private data class TimeSlot(var day: Int, var startNode: Int, var endNode: Int, var weeks: String, var room: String, var teacher: String, var customStartTime: String = "", var customEndTime: String = "")
     private var timeSlots = mutableListOf<TimeSlot>()
     private var currentSlotIndex = 0
 
@@ -92,7 +92,9 @@ class AddCourseActivity : AppCompatActivity() {
                     endNode = key.second + first.step - 1,
                     weeks = weeksStr,
                     room = first.room ?: "",
-                    teacher = first.teacher ?: ""
+                    teacher = first.teacher ?: "",
+                    customStartTime = first.customStartTime ?: "",
+                    customEndTime = first.customEndTime ?: ""
                 ))
             }
 
@@ -170,6 +172,8 @@ class AddCourseActivity : AppCompatActivity() {
         binding.etStartNode.setText(slot.startNode.toString())
         binding.etEndNode.setText(slot.endNode.toString())
         binding.etWeeks.setText(slot.weeks)
+        binding.etCustomStartTime.setText(slot.customStartTime)
+        binding.etCustomEndTime.setText(slot.customEndTime)
 
         // 选中星期
         for (i in 0 until binding.chipGroupDay.childCount) {
@@ -189,6 +193,8 @@ class AddCourseActivity : AppCompatActivity() {
         slot.startNode = binding.etStartNode.text?.toString()?.toIntOrNull() ?: slot.startNode
         slot.endNode = binding.etEndNode.text?.toString()?.toIntOrNull() ?: slot.endNode
         slot.weeks = binding.etWeeks.text?.toString()?.trim() ?: slot.weeks
+        slot.customStartTime = binding.etCustomStartTime.text?.toString()?.trim() ?: ""
+        slot.customEndTime = binding.etCustomEndTime.text?.toString()?.trim() ?: ""
 
         val checkedId = binding.chipGroupDay.checkedChipId
         val chip = binding.chipGroupDay.findViewById<Chip>(checkedId)
@@ -224,7 +230,9 @@ class AddCourseActivity : AppCompatActivity() {
                         for ((startWeek, endWeek) in ranges) {
                             dao.insertCourseDetail(CourseDetailBean(
                                 editCourseId, slot.day, slot.room, slot.teacher,
-                                slot.startNode, step, startWeek, endWeek, 0, tableId
+                                slot.startNode, step, startWeek, endWeek, 0, tableId,
+                                slot.customStartTime.ifEmpty { null },
+                                slot.customEndTime.ifEmpty { null }
                             ))
                         }
                     }
@@ -275,8 +283,10 @@ class AddCourseActivity : AppCompatActivity() {
                 dao.insertCourseBase(CourseBaseBean(newId, name, color, tid))
                 val step = endNode - startNode + 1
                 val ranges = toWeekRanges(weeks)
+                val customStart = binding.etCustomStartTime.text?.toString()?.trim()?.ifEmpty { null }
+                val customEnd = binding.etCustomEndTime.text?.toString()?.trim()?.ifEmpty { null }
                 for ((startWeek, endWeek) in ranges) {
-                    dao.insertCourseDetail(CourseDetailBean(newId, day, room, teacher, startNode, step, startWeek, endWeek, 0, tid))
+                    dao.insertCourseDetail(CourseDetailBean(newId, day, room, teacher, startNode, step, startWeek, endWeek, 0, tid, customStart, customEnd))
                 }
             }
             Toast.makeText(this@AddCourseActivity, "保存成功", Toast.LENGTH_SHORT).show()

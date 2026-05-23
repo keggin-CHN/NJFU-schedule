@@ -25,5 +25,7 @@ data class CourseDetailBean(
     var startWeek: Int,     // 开始周
     var endWeek: Int,       // 结束周
     var type: Int,          // 0=每周, 1=单周, 2=双周
-    var tableId: Int
+    var tableId: Int,
+    var customStartTime: String? = null,  // 自定义开始时间 如 "08:30"
+    var customEndTime: String? = null     // 自定义结束时间 如 "10:00"
 )
