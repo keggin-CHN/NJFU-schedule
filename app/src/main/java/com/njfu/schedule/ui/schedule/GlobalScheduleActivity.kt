@@ -112,11 +112,11 @@ class GlobalScheduleActivity : AppCompatActivity() {
     private fun loginAndLoad() {
         showLoading("正在连接教务系统...")
         lifecycleScope.launch {
-            val ok = withContext(Dispatchers.IO) { doLogin("正在连接教务系统...") }
-            if (ok) {
+            val errMsg = withContext(Dispatchers.IO) { doLoginGetError() }
+            if (errMsg == null) {
                 loadEntityList()
             } else {
-                showError("登录失败，请检查账号密码设置")
+                showError("登录失败：$errMsg\n\n（请先在"导入课表"页面登录一次）")
             }
         }
     }
@@ -129,13 +129,25 @@ class GlobalScheduleActivity : AppCompatActivity() {
                     importer.searchEntity(currentType, "")
                 }
                 if (list.isEmpty()) {
-                    showError("获取列表为空，请检查网络或登录状态")
+                    showError("获取列表为空\n\n可能原因：\n· 教务系统未返回数据\n· 当前学期无对应数据\n\n请点击重试")
                 } else {
                     entityAdapter.setFullList(list)
                     showEntityList()
                 }
             } catch (e: Exception) {
-                showError("获取失败: ${e.message}")
+                val msg = e.message ?: "未知错误"
+                if (msg.contains("会话") || msg.contains("登录")) {
+                    // Session expired, re-login and retry once
+                    showLoading("会话已过期，正在重新登录...")
+                    val errMsg = withContext(Dispatchers.IO) { doLoginGetError() }
+                    if (errMsg == null) {
+                        loadEntityList()
+                    } else {
+                        showError("重新登录失败：$errMsg")
+                    }
+                } else {
+                    showError("获取失败：$msg")
+                }
             }
         }
     }
@@ -213,11 +225,14 @@ class GlobalScheduleActivity : AppCompatActivity() {
 
     // --- Auth ---
 
-    private fun doLogin(statusPrefix: String): Boolean {
+    /** 尝试登录，成功返回 null，失败返回错误信息 */
+    private fun doLoginGetError(): String? {
         val prefs = getSharedPreferences("njfu_login", Context.MODE_PRIVATE)
         val studentId = prefs.getString("student_id", "") ?: ""
         val password = prefs.getString("password", "") ?: ""
-        if (studentId.isEmpty() || password.isEmpty()) return false
+        if (studentId.isEmpty() || password.isEmpty()) {
+            return "未找到登录凭证，请先在"导入课表"页面登录"
+        }
         return try {
             updateLoadingText("正在连接教务系统...")
             importer.prepareSession()
@@ -226,9 +241,9 @@ class GlobalScheduleActivity : AppCompatActivity() {
             updateLoadingText("正在验证账号密码...")
             importer.doLogin(studentId, password, params)
             sessionReady = true
-            true
+            null
         } catch (e: Exception) {
-            false
+            e.message ?: "未知错误"
         }
     }
 
@@ -236,3 +251,4 @@ class GlobalScheduleActivity : AppCompatActivity() {
         runOnUiThread { binding.tvLoadingText.text = text }
     }
 }
+

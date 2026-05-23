@@ -37,7 +37,8 @@ class NjfuImporter {
     )
 
     companion object {
-        private const val APP_URL = "http://jwxt.njfu.edu.cn/sso.jsp"
+        // 统一使用 HTTPS 避免 HTTP/HTTPS 跨 scheme cookie 丢失
+        private const val APP_URL = "https://jwxt.njfu.edu.cn/sso.jsp"
         private const val UIA_BASE = "https://uia.njfu.edu.cn"
         private const val SCHEDULE_URL = "https://jwxt.njfu.edu.cn/jsxsd/xskb/xskb_list.do"
     }
@@ -229,6 +230,11 @@ class NjfuImporter {
         val req = Request.Builder().url(url).post(formBuilder.build()).build()
         val resp = client.newCall(req).execute()
         val json = resp.body?.string() ?: return emptyList()
+
+        // 若响应是 HTML（未登录被重定向到登录页），抛出异常
+        if (json.trimStart().startsWith("<")) {
+            throw Exception("会话已过期，请重新登录")
+        }
 
         val results = mutableListOf<Pair<String, String>>()
         try {
@@ -497,12 +503,13 @@ class NjfuImporter {
     }
 
     /**
-     * 简单的 CookieJar 实现
+     * 简单的 CookieJar 实现（按 host 匹配，忽略 http/https scheme 差异）
      */
     private class SimpleCookieJar : CookieJar {
         private val cookieStore = mutableMapOf<String, MutableList<Cookie>>()
 
         override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
+            // 统一用 host 作为 key
             cookieStore.getOrPut(url.host) { mutableListOf() }.apply {
                 cookies.forEach { cookie ->
                     removeAll { it.name == cookie.name }
@@ -512,7 +519,13 @@ class NjfuImporter {
         }
 
         override fun loadForRequest(url: HttpUrl): List<Cookie> {
-            return cookieStore.values.flatten().filter { it.matches(url) }
+            // 按 host 匹配（不用 Cookie.matches()，因为它会检查 scheme，跨 HTTP/HTTPS 会漏 cookie）
+            val host = url.host
+            return cookieStore.entries
+                .filter { (domain, _) ->
+                    host == domain || host.endsWith(".$domain")
+                }
+                .flatMap { it.value }
         }
     }
 }
