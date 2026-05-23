@@ -138,7 +138,7 @@ class AddCourseActivity : AppCompatActivity() {
                 id = View.generateViewId()
                 tag = colorHex
                 isCheckable = true
-                checkedIconVisible = true
+                isCheckedIconVisible = true
                 checkedIconTint = android.content.res.ColorStateList.valueOf(Color.WHITE)
                 text = "" // Remove text to let the checkmark center properly
                 minWidth = dpToPx(34)
