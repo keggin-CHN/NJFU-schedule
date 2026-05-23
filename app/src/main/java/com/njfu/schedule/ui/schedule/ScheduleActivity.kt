@@ -149,6 +149,9 @@ class ScheduleActivity : AppCompatActivity() {
             queryView.findViewById<View>(R.id.card_class).setOnClickListener {
                 openQuery("https://jwxt.njfu.edu.cn/jsxsd/xskb/xskb_list_jg0101foroutside.do", "班级课表")
             }
+            queryView.findViewById<View>(R.id.card_empty_room).setOnClickListener {
+                startActivity(Intent(this, com.njfu.schedule.ui.schedule.EmptyRoomActivity::class.java))
+            }
         }
         queryContainer.visibility = View.VISIBLE
     }
@@ -491,7 +494,7 @@ class ScheduleActivity : AppCompatActivity() {
                         setColor(Color.argb(24, Color.red(color), Color.green(color), Color.blue(color)))
                         setStroke(dpToPx(1), Color.argb(190, 120, 130, 148), dpToPx(4).toFloat(), dpToPx(3).toFloat())
                     } else {
-                        setColor(Color.argb(132, Color.red(color), Color.green(color), Color.blue(color)))
+                        setColor(Color.argb(76, Color.red(color), Color.green(color), Color.blue(color)))
                         setStroke(dpToPx(2), Color.argb(235, 72, 84, 104), dpToPx(4).toFloat(), dpToPx(3).toFloat())
                     }
                 } else {

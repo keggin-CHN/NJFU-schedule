@@ -29,6 +29,7 @@ class GlobalScheduleActivity : AppCompatActivity() {
 
     // State
     private var sessionReady = false
+    private val filterParams = mutableMapOf<String, String>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -93,6 +94,11 @@ class GlobalScheduleActivity : AppCompatActivity() {
             showInitialState()
         }
 
+        // Filter button
+        binding.btnFilter.setOnClickListener {
+            showFilterDialog()
+        }
+
         // Start: login + load entity list
         loginAndLoad()
     }
@@ -123,7 +129,7 @@ class GlobalScheduleActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val courses = withContext(Dispatchers.IO) {
-                    importer.fetchGlobalSchedule(currentType, keyword) { msg ->
+                    importer.fetchGlobalSchedule(currentType, keyword, filterParams = filterParams) { msg ->
                         runOnUiThread { showLoading(msg) }
                     }
                 }
@@ -162,6 +168,76 @@ class GlobalScheduleActivity : AppCompatActivity() {
         binding.rvResults.visibility = View.GONE
         binding.layoutEmpty.visibility = View.GONE
         binding.fabBack.visibility = View.GONE
+    }
+
+    private fun showFilterDialog() {
+        val dialog = com.google.android.material.bottomsheet.BottomSheetDialog(this)
+        val view = layoutInflater.inflate(com.njfu.schedule.R.layout.dialog_global_filter, null)
+        dialog.setContentView(view)
+
+        val spinnerXnxqh = view.findViewById<android.widget.Spinner>(com.njfu.schedule.R.id.spinner_xnxqh)
+        val spinnerXqid = view.findViewById<android.widget.Spinner>(com.njfu.schedule.R.id.spinner_xqid)
+        val spinnerZc1 = view.findViewById<android.widget.Spinner>(com.njfu.schedule.R.id.spinner_zc1)
+        val spinnerZc2 = view.findViewById<android.widget.Spinner>(com.njfu.schedule.R.id.spinner_zc2)
+        val spinnerSkxq1 = view.findViewById<android.widget.Spinner>(com.njfu.schedule.R.id.spinner_skxq1)
+        val spinnerSkxq2 = view.findViewById<android.widget.Spinner>(com.njfu.schedule.R.id.spinner_skxq2)
+        val spinnerJc1 = view.findViewById<android.widget.Spinner>(com.njfu.schedule.R.id.spinner_jc1)
+        val spinnerJc2 = view.findViewById<android.widget.Spinner>(com.njfu.schedule.R.id.spinner_jc2)
+
+        // Options
+        val terms = listOf("" to "-不限-", "2025-2026-2" to "2025-2026第二学期", "2025-2026-1" to "2025-2026第一学期")
+        val campuses = listOf("" to "-不限-", "1" to "新庄校区", "2" to "白马校区", "3" to "淮安校区")
+        val weeks = listOf("" to "-不限-") + (1..30).map { "$it" to "第${it}周" }
+        val days = listOf("" to "-不限-", "1" to "周一", "2" to "周二", "3" to "周三", "4" to "周四", "5" to "周五", "6" to "周六", "7" to "周日")
+        val sections = listOf("" to "-不限-") + (1..15).map { "$it" to "第${it}节" }
+
+        fun setupSpinner(spinner: android.widget.Spinner, items: List<Pair<String, String>>, key: String) {
+            val adapter = android.widget.ArrayAdapter(this, android.R.layout.simple_spinner_item, items.map { it.second })
+            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+            spinner.adapter = adapter
+            val currentVal = filterParams[key] ?: ""
+            val idx = items.indexOfFirst { it.first == currentVal }
+            if (idx >= 0) spinner.setSelection(idx)
+        }
+
+        setupSpinner(spinnerXnxqh, terms, "xnxqh")
+        setupSpinner(spinnerXqid, campuses, "xqid")
+        setupSpinner(spinnerZc1, weeks, "zc1")
+        setupSpinner(spinnerZc2, weeks, "zc2")
+        setupSpinner(spinnerSkxq1, days, "skxq1")
+        setupSpinner(spinnerSkxq2, days, "skxq2")
+        setupSpinner(spinnerJc1, sections, "jc1")
+        setupSpinner(spinnerJc2, sections, "jc2")
+
+        view.findViewById<android.view.View>(com.njfu.schedule.R.id.btn_filter_reset).setOnClickListener {
+            filterParams.clear()
+            dialog.dismiss()
+            val q = binding.etFilter.text?.toString()?.trim() ?: ""
+            performSearch(q)
+        }
+
+        view.findViewById<android.view.View>(com.njfu.schedule.R.id.btn_filter_apply).setOnClickListener {
+            filterParams["xnxqh"] = terms[spinnerXnxqh.selectedItemPosition].first
+            filterParams["xqid"] = campuses[spinnerXqid.selectedItemPosition].first
+            filterParams["zc1"] = weeks[spinnerZc1.selectedItemPosition].first
+            filterParams["zc2"] = weeks[spinnerZc2.selectedItemPosition].first
+            filterParams["skxq1"] = days[spinnerSkxq1.selectedItemPosition].first
+            filterParams["skxq2"] = days[spinnerSkxq2.selectedItemPosition].first
+            filterParams["jc1"] = sections[spinnerJc1.selectedItemPosition].first
+            filterParams["jc2"] = sections[spinnerJc2.selectedItemPosition].first
+            
+            // clear empty keys
+            val it = filterParams.iterator()
+            while (it.hasNext()) {
+                if (it.next().value.isEmpty()) it.remove()
+            }
+            
+            dialog.dismiss()
+            val q = binding.etFilter.text?.toString()?.trim() ?: ""
+            performSearch(q)
+        }
+
+        dialog.show()
     }
 
     private fun showCourseDetail(item: com.njfu.schedule.bean.GlobalCourseInfo) {

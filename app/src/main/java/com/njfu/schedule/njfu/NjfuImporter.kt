@@ -179,7 +179,7 @@ class NjfuImporter {
      * [keyword] 用户输入的搜索关键字
      * [term] 学期代码（如 2025-2026-2，为空默认查当前学期）
      */
-    fun fetchGlobalSchedule(type: String, keyword: String, term: String = "", onProgress: ((String) -> Unit)? = null): List<com.njfu.schedule.bean.GlobalCourseInfo> {
+    fun fetchGlobalSchedule(type: String, keyword: String, term: String = "", filterParams: Map<String, String> = emptyMap(), onProgress: ((String) -> Unit)? = null): List<com.njfu.schedule.bean.GlobalCourseInfo> {
         // 映射请求路径和参数名
         val (path, paramName) = when (type) {
             "jg0101" -> Pair("kbxx_teacher_ifr", "skjs")
@@ -203,12 +203,22 @@ class NjfuImporter {
             val termMatch = Regex("""name="xnxqh"[^>]*>\s*<option value="([^"]+)"\s*selected""").find(homeHtml)
             targetTerm = termMatch?.groupValues?.get(1) ?: "2025-2026-2"
         }
+        
+        // 如果 filterParams 中提供了学期，则覆盖
+        val finalTerm = filterParams["xnxqh"]?.takeIf { it.isNotEmpty() } ?: targetTerm
 
         // 构造查询参数，直接提交给底层 ifr 接口
         val formBuilder = FormBody.Builder()
-            .add("xnxqh", targetTerm)
+            .add("xnxqh", finalTerm)
             .add("kbjcmsid", kbjcmsid)
             .add(paramName, keyword)
+            
+        // 附加其他过滤参数
+        filterParams.forEach { (key, value) ->
+            if (key != "xnxqh" && value.isNotEmpty()) {
+                formBuilder.add(key, value)
+            }
+        }
 
         onProgress?.invoke("正在获取全校课表数据 (耗时较长，请耐心等待)...")
         val dataUrl = "https://jwxt.njfu.edu.cn/jsxsd/kbcx/$path"
@@ -486,6 +496,43 @@ class NjfuImporter {
 
         // 去重
         return courses.distinctBy { Triple(it.name, it.day, it.startNode) to it.weeks }
+    }
+
+    fun fetchEmptyRooms(xnxqh: String, xqid: String, zc: String, xq: String, jc1: String, jc2: String): List<String> {
+        val url = "https://jwxt.njfu.edu.cn/jsxsd/kbcx/kjscx_ifr"
+        val formBuilder = FormBody.Builder()
+            .add("xnxqh", xnxqh)
+            .add("xqid", xqid)
+            .add("zc1", zc)
+            .add("zc2", zc)
+            .add("skxq1", xq)
+            .add("skxq2", xq)
+            .add("jc1", jc1)
+            .add("jc2", jc2)
+
+        val req = Request.Builder().url(url).post(formBuilder.build()).build()
+        val resp = client.newCall(req).execute()
+        val html = resp.body?.string() ?: ""
+
+        val doc = Jsoup.parse(html)
+        val rooms = mutableListOf<String>()
+        val table = doc.selectFirst("table#dataList") ?: doc.selectFirst("table") ?: return emptyList()
+        val rows = table.select("tr")
+        for (i in 1 until rows.size) { // skip header
+            val tds = rows[i].select("td")
+            if (tds.isNotEmpty()) {
+                val roomName = tds[0].text().trim()
+                val seatCount = if (tds.size > 1) tds[1].text().trim() else ""
+                if (roomName.isNotEmpty() && !roomName.contains("教室名称")) {
+                    if (seatCount.isNotEmpty() && seatCount.toIntOrNull() != null) {
+                        rooms.add("$roomName (座位数: $seatCount)")
+                    } else {
+                        rooms.add(roomName)
+                    }
+                }
+            }
+        }
+        return rooms
     }
 
     private fun parseWeeks(weekStr: String): List<Int> {

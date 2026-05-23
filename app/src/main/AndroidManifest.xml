@@ -82,6 +82,11 @@
             android:permission="android.permission.BIND_REMOTEVIEWS" />
 
         <!-- 今日课程小组件 (2x2) -->
+        <activity
+            android:name=".ui.schedule.EmptyRoomActivity"
+            android:exported="false"
+            android:theme="@style/Theme.NJFU" />
+        
         <receiver
             android:name=".widget.NextCourseWidget"
             android:exported="true"

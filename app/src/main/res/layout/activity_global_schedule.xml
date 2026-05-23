@@ -59,7 +59,7 @@
                     android:layout_height="match_parent"
                     android:layout_weight="1"
                     android:background="@null"
-                    android:hint="筛选..."
+                    android:hint="搜索关键字..."
                     android:imeOptions="actionSearch"
                     android:inputType="text"
                     android:paddingHorizontal="8dp"
@@ -76,6 +76,16 @@
                     app:tint="?attr/colorControlNormal"/>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
+
+        <ImageView
+            android:id="@+id/btn_filter"
+            android:layout_width="42dp"
+            android:layout_height="42dp"
+            android:layout_marginStart="8dp"
+            android:padding="10dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_sort_by_size"
+            app:tint="?attr/colorControlNormal"/>
     </LinearLayout>
 
     <!-- Type tabs -->
