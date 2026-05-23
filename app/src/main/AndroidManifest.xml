@@ -84,8 +84,8 @@
         <!-- 今日课程小组件 (2x2) -->
         <activity
             android:name=".ui.schedule.EmptyRoomActivity"
-            android:exported="false"
-            android:theme="@style/Theme.NJFU" />
+            android:screenOrientation="portrait"
+            android:exported="false" />
         
         <receiver
             android:name=".widget.NextCourseWidget"
