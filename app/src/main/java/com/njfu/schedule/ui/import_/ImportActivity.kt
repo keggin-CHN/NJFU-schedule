@@ -13,6 +13,8 @@ import com.njfu.schedule.bean.CourseDetailBean
 import com.njfu.schedule.bean.TableBean
 import com.njfu.schedule.databinding.ActivityImportBinding
 import com.njfu.schedule.njfu.NjfuImporter
+import com.njfu.schedule.widget.NextCourseWidget
+import com.njfu.schedule.widget.TodayCourseWidget
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -119,6 +121,8 @@ class ImportActivity : AppCompatActivity() {
                 }
                 binding.tvStatus.text = msg
                 Toast.makeText(this@ImportActivity, "导入成功！", Toast.LENGTH_SHORT).show()
+                TodayCourseWidget.refreshAll(this@ImportActivity)
+                NextCourseWidget.refreshAll(this@ImportActivity)
 
                 binding.root.postDelayed({
                     setResult(RESULT_OK)

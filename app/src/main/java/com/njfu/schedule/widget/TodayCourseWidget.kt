@@ -75,10 +75,14 @@ class TodayCourseWidget : AppWidgetProvider() {
                         d.day == todayOfWeek &&
                         d.startWeek <= currentWeek && d.endWeek >= currentWeek &&
                         (d.type == 0 || (d.type == 1 && currentWeek % 2 == 1) || (d.type == 2 && currentWeek % 2 == 0))
-                    }.sortedBy { it.startNode }.map { d: com.njfu.schedule.bean.CourseDetailBean ->
+                    }.sortedWith(compareBy { d: com.njfu.schedule.bean.CourseDetailBean ->
+                        parseMinutes(d.customStartTime ?: TimeNode.getStartTime(d.startNode)) ?: 0
+                    }).map { d: com.njfu.schedule.bean.CourseDetailBean ->
+                        val start = d.customStartTime ?: TimeNode.getStartTime(d.startNode)
+                        val end = d.customEndTime ?: TimeNode.getEndTime(d.startNode + d.step - 1)
                         WidgetCourse(
                             name = nameMap[d.id] ?: "",
-                            time = "${TimeNode.getStartTime(d.startNode)}-${TimeNode.getEndTime(d.startNode + d.step - 1)}",
+                            time = "$start-$end",
                             room = d.room ?: "",
                             color = colorMap[d.id] ?: "#5B8DEF"
                         )
@@ -120,6 +124,14 @@ class TodayCourseWidget : AppWidgetProvider() {
             }
 
             manager.updateAppWidget(widgetId, views)
+        }
+
+        private fun parseMinutes(time: String): Int? {
+            val parts = time.split(":")
+            if (parts.size != 2) return null
+            val hour = parts[0].toIntOrNull() ?: return null
+            val minute = parts[1].toIntOrNull() ?: return null
+            return hour * 60 + minute
         }
     }
 

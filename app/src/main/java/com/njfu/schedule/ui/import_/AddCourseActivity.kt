@@ -14,7 +14,10 @@ import com.njfu.schedule.R
 import com.njfu.schedule.bean.CourseBaseBean
 import com.njfu.schedule.bean.CourseDetailBean
 import com.njfu.schedule.bean.TableBean
+import com.njfu.schedule.bean.TimeNode
 import com.njfu.schedule.databinding.ActivityAddCourseBinding
+import com.njfu.schedule.widget.NextCourseWidget
+import com.njfu.schedule.widget.TodayCourseWidget
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -24,6 +27,7 @@ class AddCourseActivity : AppCompatActivity() {
     private lateinit var binding: ActivityAddCourseBinding
     private var editCourseId: Int = -1
     private var tableId: Int = -1
+    private var originalColor: String = ""
     private val courseColors = listOf(
         "#7E57C2", "#EF5350", "#FF7043", "#5C6BC0", "#66BB6A",
         "#42A5F5", "#26C6DA", "#EC407A", "#FFA726", "#AB47BC"
@@ -76,6 +80,7 @@ class AddCourseActivity : AppCompatActivity() {
 
             if (base == null) return@launch
 
+            originalColor = base.color
             binding.etName.setText(base.courseName)
 
             // 按 (day, startNode) 分组为不同时间段
@@ -221,7 +226,7 @@ class AddCourseActivity : AppCompatActivity() {
                     dao.deleteDetailsByCourseId(editCourseId, tableId)
                     // 更新课程名
                     dao.insertCourseBase(CourseBaseBean(editCourseId, name,
-                        courseColors[editCourseId % courseColors.size], tableId))
+                        originalColor.ifEmpty { courseColors[editCourseId % courseColors.size] }, tableId))
                     // 插入所有时间段
                     for (slot in timeSlots) {
                         val weeks = parseWeeks(slot.weeks)
@@ -238,6 +243,7 @@ class AddCourseActivity : AppCompatActivity() {
                     }
                 }
                 Toast.makeText(this@AddCourseActivity, "保存成功", Toast.LENGTH_SHORT).show()
+                refreshWidgets()
                 setResult(RESULT_OK)
                 finish()
             }
@@ -274,9 +280,10 @@ class AddCourseActivity : AppCompatActivity() {
             return
         }
 
-        // 如果只填了自定义时间没填节次，默认占1节
-        val finalStartNode = if (hasNodeTime) startNode else 1
-        val finalEndNode = if (hasNodeTime) endNode else 1
+        // 如果只填了自定义时间没填节次，根据自定义开始时间推算最接近的节次
+        val inferredNode = inferNodeByTime(customStart)
+        val finalStartNode = if (hasNodeTime) startNode else inferredNode
+        val finalEndNode = if (hasNodeTime) endNode else inferredNode
 
         lifecycleScope.launch {
             withContext(Dispatchers.IO) {
@@ -299,6 +306,7 @@ class AddCourseActivity : AppCompatActivity() {
                 }
             }
             Toast.makeText(this@AddCourseActivity, "保存成功", Toast.LENGTH_SHORT).show()
+            refreshWidgets()
             setResult(RESULT_OK)
             finish()
         }
@@ -316,12 +324,34 @@ class AddCourseActivity : AppCompatActivity() {
                         dao.deleteCourseBase(editCourseId, tableId)
                     }
                     Toast.makeText(this@AddCourseActivity, "已删除", Toast.LENGTH_SHORT).show()
+                    refreshWidgets()
                     setResult(RESULT_OK)
                     finish()
                 }
             }
             .setNegativeButton("取消", null)
             .show()
+    }
+
+    private fun refreshWidgets() {
+        TodayCourseWidget.refreshAll(this)
+        NextCourseWidget.refreshAll(this)
+    }
+
+    private fun inferNodeByTime(time: String): Int {
+        TimeNode.load(this)
+        val target = parseMinutes(time) ?: return 1
+        return TimeNode.times.minByOrNull { nodeTime ->
+            kotlin.math.abs((parseMinutes(nodeTime.start) ?: 0) - target)
+        }?.node ?: 1
+    }
+
+    private fun parseMinutes(time: String): Int? {
+        val parts = time.split(":")
+        if (parts.size != 2) return null
+        val hour = parts[0].toIntOrNull() ?: return null
+        val minute = parts[1].toIntOrNull() ?: return null
+        return hour * 60 + minute
     }
 
     private fun parseWeeks(str: String): List<Int> {

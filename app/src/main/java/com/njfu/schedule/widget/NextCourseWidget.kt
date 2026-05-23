@@ -2,7 +2,9 @@ package com.njfu.schedule.widget
 
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
+import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
 import android.widget.RemoteViews
 import com.njfu.schedule.AppDatabase
 import com.njfu.schedule.R
@@ -23,7 +25,24 @@ class NextCourseWidget : AppWidgetProvider() {
         }
     }
 
+    override fun onReceive(context: Context, intent: Intent) {
+        super.onReceive(context, intent)
+        if (intent.action == Intent.ACTION_TIME_CHANGED ||
+            intent.action == Intent.ACTION_DATE_CHANGED ||
+            intent.action == "com.njfu.schedule.REFRESH_WIDGET") {
+            val manager = AppWidgetManager.getInstance(context)
+            val ids = manager.getAppWidgetIds(ComponentName(context, NextCourseWidget::class.java))
+            onUpdate(context, manager, ids)
+        }
+    }
+
     companion object {
+        fun refreshAll(context: Context) {
+            val intent = Intent("com.njfu.schedule.REFRESH_WIDGET")
+            intent.setPackage(context.packageName)
+            context.sendBroadcast(intent)
+        }
+
         private fun updateWidget(context: Context, manager: AppWidgetManager, widgetId: Int) {
             val views = RemoteViews(context.packageName, R.layout.widget_next_course)
             TimeNode.load(context)
@@ -50,22 +69,21 @@ class NextCourseWidget : AppWidgetProvider() {
                         d.day == todayOfWeek &&
                         d.startWeek <= currentWeek && d.endWeek >= currentWeek &&
                         (d.type == 0 || (d.type == 1 && currentWeek % 2 == 1) || (d.type == 2 && currentWeek % 2 == 0))
-                    }.sortedBy { it.startNode }
+                    }.sortedWith(compareBy { d ->
+                        parseMinutes(d.customStartTime ?: TimeNode.getStartTime(d.startNode)) ?: 0
+                    })
 
-                    // 找下一节课（开始时间在当前时间之后的第一节）
+                    // 找下一节课（优先使用自定义时间，否则使用节次时间）
                     for (course in todayCourses) {
-                        val startTime = TimeNode.getStartTime(course.startNode)
-                        val parts = startTime.split(":")
-                        if (parts.size == 2) {
-                            val courseMinutes = (parts[0].toIntOrNull() ?: 0) * 60 + (parts[1].toIntOrNull() ?: 0)
-                            if (courseMinutes > currentMinutes) {
-                                val endTime = TimeNode.getEndTime(course.startNode + course.step - 1)
-                                return@runBlocking Triple(
-                                    nameMap[course.id] ?: "",
-                                    "${course.room ?: ""} · ${course.teacher ?: ""}",
-                                    "$startTime - $endTime"
-                                )
-                            }
+                        val startTime = course.customStartTime ?: TimeNode.getStartTime(course.startNode)
+                        val courseMinutes = parseMinutes(startTime)
+                        if (courseMinutes != null && courseMinutes > currentMinutes) {
+                            val endTime = course.customEndTime ?: TimeNode.getEndTime(course.startNode + course.step - 1)
+                            return@runBlocking Triple(
+                                nameMap[course.id] ?: "",
+                                "${course.room ?: ""} · ${course.teacher ?: ""}",
+                                "$startTime - $endTime"
+                            )
                         }
                     }
                     null
@@ -93,6 +111,14 @@ class NextCourseWidget : AppWidgetProvider() {
             }
 
             manager.updateAppWidget(widgetId, views)
+        }
+
+        private fun parseMinutes(time: String): Int? {
+            val parts = time.split(":")
+            if (parts.size != 2) return null
+            val hour = parts[0].toIntOrNull() ?: return null
+            val minute = parts[1].toIntOrNull() ?: return null
+            return hour * 60 + minute
         }
     }
 }

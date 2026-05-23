@@ -33,6 +33,8 @@ import com.njfu.schedule.ui.settings.ScheduleSettingsActivity
 import com.njfu.schedule.ui.settings.TimeSettingsActivity
 import com.njfu.schedule.ui.settings.BackgroundSettingsActivity
 import com.njfu.schedule.utils.WeekUtils
+import com.njfu.schedule.widget.NextCourseWidget
+import com.njfu.schedule.widget.TodayCourseWidget
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import android.widget.SeekBar
 import kotlinx.coroutines.Dispatchers
@@ -150,8 +152,7 @@ class ScheduleActivity : AppCompatActivity() {
     }
 
     private fun openQuery(url: String, title: String) {
-        val intent = Intent(this, com.njfu.schedule.ui.settings.WebViewActivity::class.java)
-        intent.putExtra("url", url)
+        val intent = Intent(this, com.njfu.schedule.ui.schedule.GlobalScheduleActivity::class.java)
         intent.putExtra("title", title)
         startActivity(intent)
     }
@@ -203,8 +204,12 @@ class ScheduleActivity : AppCompatActivity() {
         val startDate = table?.startDate ?: "2026-02-24"
         val dates = WeekUtils.getWeekDates(targetWeek, startDate)
         val dayLabels = arrayOf("一", "二", "三", "四", "五", "六", "日")
+        
+        val showSat = table?.showSat ?: true
+        val showSun = table?.showSun ?: true
+        val maxDay = if (showSun) 7 else if (showSat) 6 else 5
 
-        for (i in 0..6) {
+        for (i in 0 until maxDay) {
             val isToday = (targetWeek == currentWeek && i + 1 == todayOfWeek)
             val tv = TextView(this).apply {
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
@@ -310,9 +315,10 @@ class ScheduleActivity : AppCompatActivity() {
                     (d.type == 0 || (d.type == 1 && week % 2 == 1) || (d.type == 2 && week % 2 == 0))
         }
 
-        val otherWeekDetails = if (table?.showSat == true) {
-            allDetails.filter { d -> !(d.startWeek <= week && d.endWeek >= week) }
-        } else emptyList()
+        val otherWeekDetails = allDetails.filter { d ->
+            !(d.startWeek <= week && d.endWeek >= week &&
+                    (d.type == 0 || (d.type == 1 && week % 2 == 1) || (d.type == 2 && week % 2 == 0)))
+        }
 
         //
         // 节次列
@@ -341,8 +347,12 @@ class ScheduleActivity : AppCompatActivity() {
             setBackgroundColor(Color.parseColor("#30000000"))
         })
 
-        // 7天
-        for (day in 1..7) {
+        val showSat = table?.showSat ?: true
+        val showSun = table?.showSun ?: true
+        val maxDay = if (showSun) 7 else if (showSat) 6 else 5
+
+        // 按设置显示天数
+        for (day in 1..maxDay) {
             val dayCourses = weekDetails.filter { it.day == day }.sortedBy { it.startNode }
             val otherDayCourses = otherWeekDetails.filter { it.day == day }.sortedBy { it.startNode }
             val isToday = (week == currentWeek && day == todayOfWeek)
@@ -373,7 +383,23 @@ class ScheduleActivity : AppCompatActivity() {
                     currentNode += course.step
                 } else if (coursesAtNode.size == 1) {
                     val course = coursesAtNode.first()
-                    col.addView(createCourseCard(course, nameMap, colorMap, cellHeight, false))
+                    // 检查是否有其他课程在当前课程的跨度内开始（被覆盖的课程）
+                    val coveredCourses = dayCourses.filter {
+                        it.startNode > currentNode && it.startNode < currentNode + course.step
+                    }
+                    if (coveredCourses.isNotEmpty()) {
+                        val allOverlapping = listOf(course) + coveredCourses
+                        val card = createCourseCard(course, nameMap, colorMap, cellHeight, false)
+                        (card as? TextView)?.let { tv ->
+                            tv.text = "${tv.text}\n⚠${allOverlapping.size}门重叠"
+                            tv.setOnClickListener {
+                                showOverlapDialog(allOverlapping, nameMap)
+                            }
+                        }
+                        col.addView(card)
+                    } else {
+                        col.addView(createCourseCard(course, nameMap, colorMap, cellHeight, false))
+                    }
                     currentNode += course.step
                 } else if (otherCourse != null) {
                     col.addView(createCourseCard(otherCourse, nameMap, colorMap, cellHeight, true))
@@ -390,7 +416,7 @@ class ScheduleActivity : AppCompatActivity() {
             container.addView(col)
 
             // 每天之间的竖线
-            if (day < 7) {
+            if (day < maxDay) {
                 container.addView(View(this).apply {
                     layoutParams = LinearLayout.LayoutParams(1, LinearLayout.LayoutParams.MATCH_PARENT)
                     setBackgroundColor(Color.parseColor("#30000000"))
@@ -420,6 +446,8 @@ class ScheduleActivity : AppCompatActivity() {
             gravity = Gravity.CENTER
             val displayText = buildString {
                 append(name)
+                val customTime = formatCustomTime(course)
+                if (customTime.isNotEmpty()) append("\n$customTime")
                 if (teacher.isNotEmpty() && course.step >= 2) append("\n$teacher")
                 if (room.isNotEmpty()) append("\n$room")
             }
@@ -460,6 +488,23 @@ class ScheduleActivity : AppCompatActivity() {
                 showCourseDetail(course, name)
             }
         }
+    }
+
+    private fun formatCustomTime(course: CourseDetailBean): String {
+        val start = course.customStartTime.orEmpty()
+        val end = course.customEndTime.orEmpty()
+        return if (start.isNotEmpty() && end.isNotEmpty()) "$start-$end" else ""
+    }
+
+    private fun refreshWidgets() {
+        TodayCourseWidget.refreshAll(this)
+        NextCourseWidget.refreshAll(this)
+    }
+
+    private fun saveSyncRemarks(result: com.njfu.schedule.njfu.NjfuImporter.ImportResult) {
+        getSharedPreferences("njfu_login", android.content.Context.MODE_PRIVATE).edit()
+            .putString("remarks", result.remarks.joinToString("\n"))
+            .apply()
     }
 
     private fun adjustAlpha(color: Int, factor: Float): Int {
@@ -601,6 +646,7 @@ class ScheduleActivity : AppCompatActivity() {
                                 dao.deleteDetailsByTable(t.id)
                             }
                             Toast.makeText(this@ScheduleActivity, "课表已清空", Toast.LENGTH_SHORT).show()
+                            refreshWidgets()
                             loadSchedule()
                         }
                     }
@@ -762,8 +808,10 @@ class ScheduleActivity : AppCompatActivity() {
                     log("✓ 课表无变化")
                     // 保留自定义课程，只更新教务系统的
                     withContext(Dispatchers.IO) { doSyncUpdateIO(result, customCourseNames) }
+                    saveSyncRemarks(result)
                     dialog.dismiss()
                     Toast.makeText(this@ScheduleActivity, "同步完成，无变化", Toast.LENGTH_SHORT).show()
+                    refreshWidgets()
                     loadSchedule()
                 } else {
                     log("发现 ${changes.size} 处变动")
@@ -869,8 +917,8 @@ class ScheduleActivity : AppCompatActivity() {
                     val customName = customSlots[slot]
                     if (customName != null) {
                         val dayName = dayNames.getOrElse(c.day - 1) { "" }
-                        conflicts.add(SyncChange("conflict", "$dayName 第${n}节 第${w}周", customName, c.name))
-                        return conflicts // 只报第一个冲突
+                        val conflict = SyncChange("conflict", "$dayName 第${n}节 第${w}周", customName, c.name)
+                        if (conflict !in conflicts) conflicts.add(conflict)
                     }
                 }
             }
@@ -937,7 +985,9 @@ class ScheduleActivity : AppCompatActivity() {
     private fun doSyncUpdate(result: com.njfu.schedule.njfu.NjfuImporter.ImportResult, keepNames: Set<String>) {
         lifecycleScope.launch {
             withContext(Dispatchers.IO) { doSyncUpdateIO(result, keepNames) }
+            saveSyncRemarks(result)
             Toast.makeText(this@ScheduleActivity, "同步完成", Toast.LENGTH_SHORT).show()
+            refreshWidgets()
             loadSchedule()
         }
     }
@@ -976,7 +1026,7 @@ class ScheduleActivity : AppCompatActivity() {
                 val newId = maxId + idx
                 dao.insertCourseBase(com.njfu.schedule.bean.CourseBaseBean(newId, base.courseName, base.color, t.id))
                 keepDetails.filter { it.id == base.id }.forEach { d ->
-                    dao.insertCourseDetail(com.njfu.schedule.bean.CourseDetailBean(newId, d.day, d.room, d.teacher, d.startNode, d.step, d.startWeek, d.endWeek, d.type, t.id))
+                    dao.insertCourseDetail(com.njfu.schedule.bean.CourseDetailBean(newId, d.day, d.room, d.teacher, d.startNode, d.step, d.startWeek, d.endWeek, d.type, t.id, d.customStartTime, d.customEndTime))
                 }
             }
         }
