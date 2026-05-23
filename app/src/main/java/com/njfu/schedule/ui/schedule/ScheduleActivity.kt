@@ -494,8 +494,8 @@ class ScheduleActivity : AppCompatActivity() {
                         setColor(Color.argb(24, Color.red(color), Color.green(color), Color.blue(color)))
                         setStroke(dpToPx(1), Color.argb(190, 120, 130, 148), dpToPx(4).toFloat(), dpToPx(3).toFloat())
                     } else {
-                        setColor(Color.argb(76, Color.red(color), Color.green(color), Color.blue(color)))
-                        setStroke(dpToPx(2), Color.argb(235, 72, 84, 104), dpToPx(4).toFloat(), dpToPx(3).toFloat())
+                        setColor(Color.argb(30, Color.red(color), Color.green(color), Color.blue(color)))
+                        setStroke(dpToPx(1), Color.argb(200, 180, 190, 205), dpToPx(4).toFloat(), dpToPx(3).toFloat())
                     }
                 } else {
                     setColor(Color.argb(252, Color.red(color), Color.green(color), Color.blue(color)))

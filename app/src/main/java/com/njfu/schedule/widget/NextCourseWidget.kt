@@ -54,6 +54,9 @@ class NextCourseWidget : AppWidgetProvider() {
             val todayOfWeek = WeekUtils.getTodayOfWeek()
             val dateText = SimpleDateFormat("M月d日 E", Locale.CHINA).format(Date())
 
+            val calendar = Calendar.getInstance()
+            val nowTotalMin = calendar.get(Calendar.HOUR_OF_DAY) * 60 + calendar.get(Calendar.MINUTE)
+
             val todayCourses = runBlocking(Dispatchers.IO) {
                 try {
                     val db = AppDatabase.getDatabase(context)
@@ -64,11 +67,17 @@ class NextCourseWidget : AppWidgetProvider() {
                     val allDetails = dao.getCourseDetailsById_sync(table.id)
                     val allBases = dao.getCourseBaseById_sync(table.id)
                     val nameMap = allBases.associate { it.id to it.courseName }
+                    val colorMap = allBases.associate { it.id to it.color }
+                    val teacherMap = allDetails.associate { it.id to it.teacher }
 
                     allDetails.filter { d ->
                         d.day == todayOfWeek &&
                         d.startWeek <= currentWeek && d.endWeek >= currentWeek &&
                         (d.type == 0 || (d.type == 1 && currentWeek % 2 == 1) || (d.type == 2 && currentWeek % 2 == 0))
+                    }.filter { d ->
+                        val endTimeStr = d.customEndTime ?: TimeNode.getEndTime(d.startNode + d.step - 1)
+                        val endMin = parseMinutes(endTimeStr) ?: 0
+                        endMin > nowTotalMin // 只显示未结束的课程
                     }.sortedWith(compareBy(
                         { d -> parseMinutes(d.customStartTime ?: TimeNode.getStartTime(d.startNode)) ?: 0 },
                         { d -> parseMinutes(d.customEndTime ?: TimeNode.getEndTime(d.startNode + d.step - 1)) ?: 0 },
@@ -79,7 +88,9 @@ class NextCourseWidget : AppWidgetProvider() {
                         WidgetCourseLine(
                             time = "$startTime-$endTime",
                             name = nameMap[course.id].orEmpty(),
-                            room = course.room.orEmpty()
+                            room = course.room.orEmpty(),
+                            teacher = teacherMap[course.id].orEmpty(),
+                            color = colorMap[course.id].orEmpty()
                         )
                     }
                 } catch (_: Exception) {
@@ -88,30 +99,43 @@ class NextCourseWidget : AppWidgetProvider() {
             }
 
             views.setTextViewText(R.id.tv_widget2_title, dateText)
-            if (todayCourses.isEmpty()) {
-                views.setTextViewText(R.id.tv_widget2_name, "今天没有课")
-                views.setTextViewText(R.id.tv_widget2_info, "可以休息一下")
-                views.setTextViewText(R.id.tv_widget2_time, "")
-            } else {
-                val first = todayCourses.first()
-                val second = todayCourses.getOrNull(1)
-                val third = todayCourses.getOrNull(2)
-                val moreCount = todayCourses.size - 3
+            views.removeAllViews(R.id.ll_widget_courses)
 
-                views.setTextViewText(R.id.tv_widget2_name, "${first.time}\n${first.name}")
-                views.setTextViewText(
-                    R.id.tv_widget2_info,
-                    first.room.ifEmpty { second?.let { "${it.time}  ${it.name}" }.orEmpty() }
-                )
-                views.setTextViewText(
-                    R.id.tv_widget2_time,
-                    when {
-                        second != null && first.room.isNotEmpty() -> "${second.time}  ${second.name}"
-                        third != null -> "${third.time}  ${third.name}"
-                        moreCount > 0 -> "还有 ${moreCount} 节课"
-                        else -> ""
+            if (todayCourses.isEmpty()) {
+                views.setViewVisibility(R.id.tv_widget2_empty, android.view.View.VISIBLE)
+            } else {
+                views.setViewVisibility(R.id.tv_widget2_empty, android.view.View.GONE)
+                
+                // 最多显示 3 个课程，以免超出 2x2 范围
+                val displayCourses = todayCourses.take(3)
+                for (course in displayCourses) {
+                    val itemView = RemoteViews(context.packageName, R.layout.item_widget_course)
+                    itemView.setTextViewText(R.id.tv_course_time, course.time)
+                    itemView.setTextViewText(R.id.tv_course_name, course.name)
+                    
+                    val info = buildString {
+                        if (course.room.isNotEmpty()) append(course.room)
+                        if (course.teacher.isNotEmpty()) {
+                            if (isNotEmpty()) append(" | ")
+                            append(course.teacher)
+                        }
                     }
-                )
+                    itemView.setTextViewText(R.id.tv_course_info, info)
+                    if (info.isEmpty()) {
+                        itemView.setViewVisibility(R.id.tv_course_info, android.view.View.GONE)
+                    } else {
+                        itemView.setViewVisibility(R.id.tv_course_info, android.view.View.VISIBLE)
+                    }
+                    
+                    try {
+                        val parsedColor = android.graphics.Color.parseColor(course.color.ifEmpty { "#7986CB" })
+                        itemView.setInt(R.id.view_course_color, "setBackgroundColor", parsedColor)
+                    } catch (e: Exception) {
+                        itemView.setInt(R.id.view_course_color, "setBackgroundColor", android.graphics.Color.parseColor("#7986CB"))
+                    }
+                    
+                    views.addView(R.id.ll_widget_courses, itemView)
+                }
             }
 
             // 点击打开APP
@@ -122,9 +146,7 @@ class NextCourseWidget : AppWidgetProvider() {
                 views.setOnClickPendingIntent(R.id.widget2_root, pi)
                 views.setOnClickPendingIntent(R.id.tv_widget2_badge, pi)
                 views.setOnClickPendingIntent(R.id.tv_widget2_title, pi)
-                views.setOnClickPendingIntent(R.id.tv_widget2_name, pi)
-                views.setOnClickPendingIntent(R.id.tv_widget2_info, pi)
-                views.setOnClickPendingIntent(R.id.tv_widget2_time, pi)
+                views.setOnClickPendingIntent(R.id.ll_widget_courses, pi)
             }
 
             manager.updateAppWidget(widgetId, views)
@@ -133,7 +155,9 @@ class NextCourseWidget : AppWidgetProvider() {
         private data class WidgetCourseLine(
             val time: String,
             val name: String,
-            val room: String
+            val room: String,
+            val teacher: String,
+            val color: String
         )
 
         private fun parseMinutes(time: String): Int? {

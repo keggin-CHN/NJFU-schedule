@@ -42,35 +42,21 @@
             android:textSize="11sp" />
     </LinearLayout>
 
-    <TextView
-        android:id="@+id/tv_widget2_name"
+    <LinearLayout
+        android:id="@+id/ll_widget_courses"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_marginTop="12dp"
-        android:layout_weight="1"
-        android:ellipsize="end"
-        android:gravity="center_vertical"
-        android:maxLines="2"
-        android:textColor="@color/text_primary"
-        android:textSize="15sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:id="@+id/tv_widget2_info"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:ellipsize="end"
-        android:singleLine="true"
-        android:textColor="@color/text_secondary"
-        android:textSize="12sp" />
-
-    <TextView
-        android:id="@+id/tv_widget2_time"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="5dp"
-        android:ellipsize="end"
-        android:singleLine="true"
-        android:textColor="@color/text_hint"
-        android:textSize="11sp" />
+        android:layout_height="match_parent"
+        android:layout_marginTop="6dp"
+        android:orientation="vertical">
+        
+        <TextView
+            android:id="@+id/tv_widget2_empty"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="今天没有课\n可以休息一下"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp"
+            android:visibility="gone"/>
+    </LinearLayout>
 </LinearLayout>
