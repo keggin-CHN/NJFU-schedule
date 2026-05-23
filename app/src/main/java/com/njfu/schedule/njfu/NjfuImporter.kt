@@ -211,47 +211,42 @@ class NjfuImporter {
     }
 
     /**
-     * 搜索实体的接口（自动完成接口）
-     * [type] 可以是 "jg0101" (教师), "jx0601" (教室) 等
-     * [keyword] 搜索关键字
+     * 搜索实体（自动完成接口）
+     * [type] 可以是 "jg0101" (教师), "jx0601" (教室), "bj0101" (班级), "kc0101" (课程)
+     * [keyword] 搜索关键字，为空时获取全量列表
      */
     fun searchEntity(type: String, keyword: String): List<Pair<String, String>> {
-        // 请求例如：/jsxsd/xskb/getJg0101.do?maxRow=1000&xx0301=&jgxx=关键字
         val searchType = type.replaceFirstChar { if (it.isLowerCase()) it.titlecase(java.util.Locale.getDefault()) else it.toString() }
-        val formBuilder = FormBody.Builder().add("maxRow", "50")
-        
+        val maxRow = if (keyword.isEmpty()) "500" else "50"
+        val formBuilder = FormBody.Builder().add("maxRow", maxRow)
         when (type) {
             "jg0101" -> { formBuilder.add("jgxx", keyword); formBuilder.add("xx0301", "") }
             "jx0601" -> { formBuilder.add("jxxx", keyword); formBuilder.add("xx0301", "") }
             "bj0101" -> { formBuilder.add("bjxx", keyword); formBuilder.add("xx0301", "") }
             "kc0101" -> { formBuilder.add("kcxx", keyword); formBuilder.add("xx0301", "") }
         }
-
         val url = "https://jwxt.njfu.edu.cn/jsxsd/xskb/get$searchType.do"
         val req = Request.Builder().url(url).post(formBuilder.build()).build()
         val resp = client.newCall(req).execute()
         val json = resp.body?.string() ?: return emptyList()
-        
-        // 简单使用正则解析返回的JSON数据中的建议列表
+
         val results = mutableListOf<Pair<String, String>>()
         try {
-            val contentMatch = Regex(""""\w+Content":\s*\[(.*?)\]""").find(json)
+            // JSON 解析：找到 xxContent 数组
+            val contentMatch = Regex(""""[^"]+Content"\s*:\s*\[([^\]]*)\]""", RegexOption.DOT_MATCHES_ALL).find(json)
             if (contentMatch != null) {
                 val arrayStr = contentMatch.groupValues[1]
-                val itemRegex = Regex("""\{[^}]+\}""")
+                val itemRegex = Regex("""\{[^{}]+\}""")
                 for (itemMatch in itemRegex.findAll(arrayStr)) {
                     val itemStr = itemMatch.value
-                    // 不同类型的字段名不同，比如教师是 jg0101id 和 xm(姓名)，教室是 jx0601id 和 jx0601mc(名称)
-                    val idMatch = Regex(""""${type}id":"([^"]+)"""").find(itemStr)
-                    var nameMatch = Regex(""""(?:xm|jx0601mc|bj0101mc|kc0101mc)":"([^"]+)"""").find(itemStr)
-                    if (nameMatch == null) {
-                        // 尝试提取任意名称相关的字段
-                        nameMatch = Regex(""""\w+mc":"([^"]+)"""").find(itemStr)
+                    val idMatch = Regex(""""${type}id"\s*:\s*"([^"]+)"""").find(itemStr)
+                    val nameMatch = when (type) {
+                        "jg0101" -> Regex(""""xm"\s*:\s*"([^"]+)"""").find(itemStr)
+                        "jx0601" -> Regex(""""jx0601mc"\s*:\s*"([^"]+)"""").find(itemStr)
+                        "bj0101" -> Regex(""""bj0101mc"\s*:\s*"([^"]+)"""").find(itemStr)
+                        "kc0101" -> Regex(""""kc0101mc"\s*:\s*"([^"]+)"""").find(itemStr)
+                        else -> null
                     }
-                    if (nameMatch == null && type == "jg0101") {
-                        nameMatch = Regex(""""xm":"([^"]+)"""").find(itemStr)
-                    }
-                    
                     if (idMatch != null && nameMatch != null) {
                         results.add(Pair(nameMatch.groupValues[1], idMatch.groupValues[1]))
                     }

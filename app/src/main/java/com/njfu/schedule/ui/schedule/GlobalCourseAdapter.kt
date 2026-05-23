@@ -4,47 +4,24 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.recyclerview.widget.DiffUtil
+import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import com.njfu.schedule.R
 import com.njfu.schedule.bean.GlobalCourseInfo
 
-class GlobalCourseAdapter : RecyclerView.Adapter<GlobalCourseAdapter.ViewHolder>() {
+class GlobalCourseAdapter : ListAdapter<GlobalCourseInfo, GlobalCourseAdapter.VH>(DIFF) {
 
-    private val items = mutableListOf<GlobalCourseInfo>()
-    private val dayNames = arrayOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")
-
-    fun submitList(list: List<GlobalCourseInfo>) {
-        items.clear()
-        items.addAll(list)
-        notifyDataSetChanged()
-    }
-
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_global_course, parent, false)
-        return ViewHolder(view)
-    }
-
-    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val item = items[position]
-        holder.tvDay.text = if (item.day in 1..7) dayNames[item.day - 1] else "未知"
-        holder.tvSections.text = item.sectionsStr.replace(Regex("\\[|\\]|节"), "")
-        holder.tvCourseName.text = item.courseName
-        
-        holder.tvRoom.text = item.room.ifEmpty { "未安排教室" }
-        holder.tvTeacher.text = item.teacher.ifEmpty { "未知教师" }
-        holder.tvWeeks.text = item.weeksStr.ifEmpty { "未知周次" }
-
-        if (item.className.isNotEmpty()) {
-            holder.tvClassName.visibility = View.VISIBLE
-            holder.tvClassName.text = item.className
-        } else {
-            holder.tvClassName.visibility = View.GONE
+    companion object {
+        val DIFF = object : DiffUtil.ItemCallback<GlobalCourseInfo>() {
+            override fun areItemsTheSame(a: GlobalCourseInfo, b: GlobalCourseInfo) =
+                a.courseName == b.courseName && a.day == b.day && a.sectionsStr == b.sectionsStr
+            override fun areContentsTheSame(a: GlobalCourseInfo, b: GlobalCourseInfo) = a == b
         }
+        private val DAY_NAMES = arrayOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")
     }
 
-    override fun getItemCount() = items.size
-
-    class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+    inner class VH(view: View) : RecyclerView.ViewHolder(view) {
         val tvDay: TextView = view.findViewById(R.id.tv_day)
         val tvSections: TextView = view.findViewById(R.id.tv_sections)
         val tvCourseName: TextView = view.findViewById(R.id.tv_course_name)
@@ -52,5 +29,30 @@ class GlobalCourseAdapter : RecyclerView.Adapter<GlobalCourseAdapter.ViewHolder>
         val tvTeacher: TextView = view.findViewById(R.id.tv_teacher)
         val tvWeeks: TextView = view.findViewById(R.id.tv_weeks)
         val tvClassName: TextView = view.findViewById(R.id.tv_class_name)
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
+        return VH(LayoutInflater.from(parent.context).inflate(R.layout.item_global_course, parent, false))
+    }
+
+    override fun onBindViewHolder(holder: VH, position: Int) {
+        val item = getItem(position)
+        holder.tvDay.text = if (item.day in 1..7) DAY_NAMES[item.day - 1] else "?"
+        // Extract "1-2" style section display from something like "[1-2节]"
+        val sectionNum = item.sectionsStr
+            .replace(Regex("\\[|\\]|节|第"), "")
+            .replace(Regex("\\(.*?\\)"), "")
+            .trim()
+        holder.tvSections.text = sectionNum.ifEmpty { "-" }
+        holder.tvCourseName.text = item.courseName
+        holder.tvRoom.text = item.room.ifEmpty { "未知教室" }
+        holder.tvTeacher.text = item.teacher.ifEmpty { "未知教师" }
+        holder.tvWeeks.text = item.weeksStr.ifEmpty { "未知周次" }
+        if (item.className.isNotEmpty()) {
+            holder.tvClassName.visibility = View.VISIBLE
+            holder.tvClassName.text = item.className
+        } else {
+            holder.tvClassName.visibility = View.GONE
+        }
     }
 }

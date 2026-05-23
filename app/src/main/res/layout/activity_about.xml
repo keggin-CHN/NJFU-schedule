@@ -3,6 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/bg_page_gradient"
     android:orientation="vertical">
 
     <com.google.android.material.appbar.MaterialToolbar
@@ -80,7 +81,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="52dp"
                 android:layout_marginTop="16dp"
-                android:background="?selectableItemBackground"
+                android:background="@drawable/bg_list_item_glass"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
@@ -122,7 +123,8 @@
                 android:id="@+id/btn_email"
                 android:layout_width="match_parent"
                 android:layout_height="52dp"
-                android:background="?selectableItemBackground"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_list_item_glass"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 
@@ -164,7 +166,8 @@
                 android:id="@+id/btn_github"
                 android:layout_width="match_parent"
                 android:layout_height="52dp"
-                android:background="?selectableItemBackground"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/bg_list_item_glass"
                 android:gravity="center_vertical"
                 android:orientation="horizontal">
 

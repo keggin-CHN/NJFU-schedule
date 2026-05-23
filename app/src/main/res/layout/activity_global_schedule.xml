@@ -1,186 +1,213 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout
+<LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F5F7FA"
+    android:orientation="vertical"
+    android:background="@drawable/bg_page_gradient"
     tools:context=".ui.schedule.GlobalScheduleActivity">
 
-    <com.google.android.material.appbar.AppBarLayout
+    <!-- Toolbar -->
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorSurface"
+        app:title="全校课表查询"
+        app:titleTextAppearance="@style/TextAppearance.MaterialComponents.Headline6" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="?attr/colorControlHighlight" />
+
+    <!-- Search bar -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@android:color/transparent"
-        app:elevation="0dp">
+        android:orientation="horizontal"
+        android:paddingHorizontal="12dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="8dp"
+        android:gravity="center_vertical">
 
-        <androidx.appcompat.widget.Toolbar
-            android:id="@+id/toolbar"
-            android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            app:title="全校课表查询"
-            app:titleTextColor="#333333" />
+        <androidx.cardview.widget.CardView
+            android:layout_width="0dp"
+            android:layout_height="42dp"
+            android:layout_weight="1"
+            app:cardCornerRadius="21dp"
+            app:cardElevation="4dp"
+            app:cardBackgroundColor="#F7FFFFFF">
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingHorizontal="16dp"
-            android:paddingBottom="16dp"
-            app:layout_scrollFlags="scroll|enterAlways">
-
-            <androidx.cardview.widget.CardView
+            <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="50dp"
-                app:cardCornerRadius="25dp"
-                app:cardElevation="2dp"
-                app:cardBackgroundColor="@android:color/white"
-                android:layout_marginTop="8dp">
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="12dp">
 
-                <LinearLayout
-                    android:layout_width="match_parent"
+                <ImageView
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@android:drawable/ic_menu_search"
+                    app:tint="?attr/colorControlNormal"/>
+
+                <EditText
+                    android:id="@+id/et_filter"
+                    android:layout_width="0dp"
                     android:layout_height="match_parent"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:paddingHorizontal="16dp">
+                    android:layout_weight="1"
+                    android:background="@null"
+                    android:hint="筛选..."
+                    android:imeOptions="actionSearch"
+                    android:inputType="text"
+                    android:paddingHorizontal="8dp"
+                    android:textSize="14sp"
+                    android:textColorHint="?attr/colorControlNormal"
+                    android:textColor="?attr/colorOnSurface" />
 
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@android:drawable/ic_menu_search"
-                        app:tint="#9E9E9E"/>
+                <ImageView
+                    android:id="@+id/btn_clear"
+                    android:layout_width="18dp"
+                    android:layout_height="18dp"
+                    android:src="@android:drawable/ic_menu_close_clear_cancel"
+                    android:visibility="gone"
+                    app:tint="?attr/colorControlNormal"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+    </LinearLayout>
 
-                    <AutoCompleteTextView
-                        android:id="@+id/et_search"
-                        android:layout_width="0dp"
-                        android:layout_height="match_parent"
-                        android:layout_weight="1"
-                        android:background="@null"
-                        android:hint="输入名称搜索，如: 张三"
-                        android:imeOptions="actionSearch"
-                        android:inputType="text"
-                        android:paddingHorizontal="8dp"
-                        android:textColor="#333333"
-                        android:textColorHint="#999999"
-                        android:textSize="15sp"
-                        android:dropDownWidth="match_parent"
-                        android:dropDownAnchor="@id/toolbar"
-                        android:completionThreshold="1" />
+    <!-- Type tabs -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none"
+        android:paddingHorizontal="12dp"
+        android:paddingBottom="4dp">
 
-                    <ProgressBar
-                        android:id="@+id/progress_search"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:visibility="gone"
-                        android:indeterminateTint="#5C6BC0"/>
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chip_group_type"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:singleSelection="true"
+            app:selectionRequired="true">
 
-            <HorizontalScrollView
-                android:layout_width="match_parent"
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_teacher"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:scrollbars="none"
-                android:layout_marginTop="16dp">
+                android:text="教师"
+                android:checked="true" />
 
-                <com.google.android.material.chip.ChipGroup
-                    android:id="@+id/chip_group_type"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    app:singleSelection="true"
-                    app:selectionRequired="true">
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_room"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="教室" />
 
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_teacher"
-                        style="@style/Widget.MaterialComponents.Chip.Choice"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="按教师"
-                        android:textColor="#333333"
-                        android:checked="true"
-                        app:chipBackgroundColor="@color/bg_chip_state_list"
-                        app:chipStrokeColor="@color/stroke_chip_state_list"
-                        app:chipStrokeWidth="1dp" />
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_class"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="班级" />
 
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_room"
-                        style="@style/Widget.MaterialComponents.Chip.Choice"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="按教室"
-                        android:textColor="#333333"
-                        app:chipBackgroundColor="@color/bg_chip_state_list"
-                        app:chipStrokeColor="@color/stroke_chip_state_list"
-                        app:chipStrokeWidth="1dp"/>
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chip_course"
+                style="@style/Widget.MaterialComponents.Chip.Choice"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="课程" />
+        </com.google.android.material.chip.ChipGroup>
+    </HorizontalScrollView>
 
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_course"
-                        style="@style/Widget.MaterialComponents.Chip.Choice"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="按课程"
-                        android:textColor="#333333"
-                        app:chipBackgroundColor="@color/bg_chip_state_list"
-                        app:chipStrokeColor="@color/stroke_chip_state_list"
-                        app:chipStrokeWidth="1dp"/>
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_class"
-                        style="@style/Widget.MaterialComponents.Chip.Choice"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="按班级"
-                        android:textColor="#333333"
-                        app:chipBackgroundColor="@color/bg_chip_state_list"
-                        app:chipStrokeColor="@color/stroke_chip_state_list"
-                        app:chipStrokeWidth="1dp"/>
-                </com.google.android.material.chip.ChipGroup>
-            </HorizontalScrollView>
-        </LinearLayout>
-    </com.google.android.material.appbar.AppBarLayout>
-
+    <!-- Entity list / Results / Loading -->
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior">
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
+        <!-- Entity selection list (shown when no result yet) -->
         <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recycler_view"
+            android:id="@+id/rv_entities"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingBottom="8dp" />
+
+        <!-- Course result list (shown after tap) -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_results"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clipToPadding="false"
             android:paddingHorizontal="12dp"
-            android:paddingVertical="8dp" />
+            android:paddingVertical="8dp"
+            android:visibility="gone" />
 
+        <!-- Loading state -->
         <LinearLayout
             android:id="@+id/layout_loading"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
             android:orientation="vertical"
             android:gravity="center"
             android:visibility="gone">
+
             <ProgressBar
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:indeterminateTint="#5C6BC0"/>
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:indeterminateTint="?attr/colorPrimary"/>
+
             <TextView
                 android:id="@+id/tv_loading_text"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="正在处理..."
-                android:textColor="#666666"
+                android:layout_marginTop="14dp"
+                android:text="正在加载..."
+                android:textColor="?attr/colorOnSurface"
                 android:textSize="14sp"/>
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/tv_empty"
+        <!-- Empty / Error state -->
+        <LinearLayout
+            android:id="@+id/layout_empty"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tv_empty"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="暂无数据"
+                android:textColor="?attr/colorControlNormal"
+                android:textSize="15sp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_retry"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="44dp"
+                android:layout_marginTop="16dp"
+                android:text="重试"
+                app:cornerRadius="18dp" />
+        </LinearLayout>
+
+        <!-- Back button when viewing results -->
+        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+            android:id="@+id/fab_back"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:text="请在上方搜索栏输入关键字查询"
-            android:textColor="#999999"
-            android:textSize="16sp"
-            android:visibility="visible" />
+            android:layout_gravity="bottom|end"
+            android:layout_margin="16dp"
+            android:text="返回列表"
+            app:icon="@android:drawable/ic_media_previous"
+            android:visibility="gone" />
     </FrameLayout>
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+</LinearLayout>

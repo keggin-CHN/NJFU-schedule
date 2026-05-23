@@ -254,6 +254,9 @@ class ScheduleActivity : AppCompatActivity() {
                         showEmpty(false)
                         setupViewPager()
                     }
+                    // 课程数据发生变化时刷新桌面小组件
+                    TodayCourseWidget.refreshAll(this@ScheduleActivity)
+                    NextCourseWidget.refreshAll(this@ScheduleActivity)
                 }
         }
     }
@@ -327,14 +330,16 @@ class ScheduleActivity : AppCompatActivity() {
             layoutParams = LinearLayout.LayoutParams(dpToPx(30), LinearLayout.LayoutParams.WRAP_CONTENT)
         }
         for (node in 1..maxNode) {
-            val time = TimeNode.getStartTime(node)
+            val startTime = TimeNode.getStartTime(node)
+            val endTime = TimeNode.getEndTime(node)
             val tv = TextView(this).apply {
                 layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, cellHeight)
                 gravity = Gravity.CENTER
-                text = "$node\n$time"
-                setTextSize(TypedValue.COMPLEX_UNIT_SP, 9f)
+                text = "$node\n$startTime\n~$endTime"
+                setTextSize(TypedValue.COMPLEX_UNIT_SP, 8f)
                 setTextColor(resources.getColor(R.color.text_secondary, theme))
-                setLineSpacing(0f, 0.9f)
+                setLineSpacing(0f, 0.86f)
+                includeFontPadding = false
                 setBackgroundResource(R.drawable.cell_border_bottom)
             }
             nodeCol.addView(tv)
@@ -405,10 +410,22 @@ class ScheduleActivity : AppCompatActivity() {
                     col.addView(createCourseCard(otherCourse, nameMap, colorMap, cellHeight, true))
                     currentNode += otherCourse.step
                 } else {
-                    // 空格子，固定高度，底部有细线
+                    // 空格子，点击可在此时间段加课
+                    val capturedDay = day
+                    val capturedNode = currentNode
+                    val capturedTableId = table?.id ?: -1
                     col.addView(View(this).apply {
                         layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, cellHeight)
                         setBackgroundResource(R.drawable.cell_border_bottom)
+                        isClickable = true
+                        isFocusable = true
+                        setOnClickListener {
+                            val intent = Intent(this@ScheduleActivity, AddCourseActivity::class.java)
+                            intent.putExtra("table_id", capturedTableId)
+                            intent.putExtra("prefill_day", capturedDay)
+                            intent.putExtra("prefill_start_node", capturedNode)
+                            addCourseLauncher.launch(intent)
+                        }
                     })
                     currentNode++
                 }
@@ -438,49 +455,65 @@ class ScheduleActivity : AppCompatActivity() {
         val bgColor = colorMap[course.id] ?: courseColors[course.id % courseColors.size]
 
         return TextView(this).apply {
+            val margin = dpToPx(3)
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 cellHeight * course.step
-            )
+            ).apply {
+                setMargins(margin, dpToPx(2), margin, dpToPx(2))
+            }
 
             gravity = Gravity.CENTER
+            val timeText = formatCustomTime(course).ifEmpty {
+                "${TimeNode.getStartTime(course.startNode)}~${TimeNode.getEndTime(course.startNode + course.step - 1)}"
+            }
             val displayText = buildString {
-                append(name)
-                val customTime = formatCustomTime(course)
-                if (customTime.isNotEmpty()) append("\n$customTime")
-                if (teacher.isNotEmpty() && course.step >= 2) append("\n$teacher")
-                if (room.isNotEmpty()) append("\n$room")
+                append("✦ ").append(name)
+                if (course.step >= 2) append("\n").append(timeText)
+                if (teacher.isNotEmpty() && course.step >= 2) append("\n👤 ").append(teacher)
+                if (room.isNotEmpty()) append("\n📍 ").append(room)
             }
             text = displayText
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, if (course.step <= 1) 9.2f else 10f)
             setTextColor(Color.WHITE)
-            setPadding(dpToPx(2), dpToPx(2), dpToPx(2), dpToPx(2))
-            maxLines = course.step * 2 + 2
+            setPadding(dpToPx(4), dpToPx(5), dpToPx(4), dpToPx(5))
+            maxLines = course.step * 2 + 3
             includeFontPadding = false
             typeface = Typeface.DEFAULT_BOLD
+            elevation = dpToPx(2).toFloat()
 
             val color = try { Color.parseColor(bgColor) } catch (_: Exception) { Color.parseColor("#7986CB") }
             val drawable = GradientDrawable().apply {
                 if (isOtherWeek) {
-                    setColor(Color.argb(200, 255, 255, 255))
-                    setStroke(dpToPx(1), Color.argb(60, Color.red(color), Color.green(color), Color.blue(color)))
+                    val faint = Color.argb(178, 255, 255, 255)
+                    val tint = Color.argb(52, Color.red(color), Color.green(color), Color.blue(color))
+                    colors = intArrayOf(faint, Color.argb(216, 248, 250, 255), tint)
+                    orientation = GradientDrawable.Orientation.TL_BR
+                    setStroke(dpToPx(1), Color.argb(82, Color.red(color), Color.green(color), Color.blue(color)))
                 } else {
-                    // 微渐变效果：顶部稍亮，底部原色
-                    val lighterColor = Color.argb(255,
-                        Math.min(255, Color.red(color) + 20),
-                        Math.min(255, Color.green(color) + 20),
-                        Math.min(255, Color.blue(color) + 20))
-                    colors = intArrayOf(lighterColor, color)
-                    orientation = GradientDrawable.Orientation.TOP_BOTTOM
-                    setStroke(1, Color.argb(30, 0, 0, 0))
+                    val glassTop = Color.argb(238,
+                        Math.min(255, Color.red(color) + 72),
+                        Math.min(255, Color.green(color) + 72),
+                        Math.min(255, Color.blue(color) + 72))
+                    val glassMid = Color.argb(224,
+                        Math.min(255, Color.red(color) + 28),
+                        Math.min(255, Color.green(color) + 28),
+                        Math.min(255, Color.blue(color) + 28))
+                    val glassBottom = Color.argb(238,
+                        Math.max(0, Color.red(color) - 10),
+                        Math.max(0, Color.green(color) - 10),
+                        Math.max(0, Color.blue(color) - 10))
+                    colors = intArrayOf(glassTop, glassMid, glassBottom)
+                    orientation = GradientDrawable.Orientation.TL_BR
+                    setStroke(dpToPx(1), Color.argb(90, 255, 255, 255))
                 }
-                cornerRadius = dpToPx(5).toFloat()
+                cornerRadius = dpToPx(10).toFloat()
             }
             background = drawable
 
             if (isOtherWeek) {
-                setTextColor(Color.argb(150, Color.red(color), Color.green(color), Color.blue(color)))
-                typeface = Typeface.DEFAULT
+                setTextColor(Color.argb(176, Color.red(color), Color.green(color), Color.blue(color)))
+                typeface = Typeface.DEFAULT_BOLD
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 9f)
             }
 
@@ -493,7 +526,7 @@ class ScheduleActivity : AppCompatActivity() {
     private fun formatCustomTime(course: CourseDetailBean): String {
         val start = course.customStartTime.orEmpty()
         val end = course.customEndTime.orEmpty()
-        return if (start.isNotEmpty() && end.isNotEmpty()) "$start-$end" else ""
+        return if (start.isNotEmpty() && end.isNotEmpty()) "$start~$end" else ""
     }
 
     private fun refreshWidgets() {

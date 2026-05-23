@@ -1,5 +1,7 @@
 package com.njfu.schedule.ui.import_
 
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.View
 import android.widget.LinearLayout
@@ -21,6 +23,9 @@ import com.njfu.schedule.widget.TodayCourseWidget
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.Locale
+import kotlin.math.ceil
 
 class AddCourseActivity : AppCompatActivity() {
 
@@ -28,6 +33,7 @@ class AddCourseActivity : AppCompatActivity() {
     private var editCourseId: Int = -1
     private var tableId: Int = -1
     private var originalColor: String = ""
+    private var selectedColor: String = ""
     private val courseColors = listOf(
         "#7E57C2", "#EF5350", "#FF7043", "#5C6BC0", "#66BB6A",
         "#42A5F5", "#26C6DA", "#EC407A", "#FFA726", "#AB47BC"
@@ -59,6 +65,9 @@ class AddCourseActivity : AppCompatActivity() {
             if (idx == 0) binding.chipGroupDay.check(chip.id)
         }
 
+        setupColorChips()
+        setupModeSwitches()
+
         // 如果是编辑模式，加载已有数据
         if (editCourseId >= 0 && tableId >= 0) {
             title = getString(R.string.title_edit_course)
@@ -66,10 +75,80 @@ class AddCourseActivity : AppCompatActivity() {
             loadCourseData()
         } else {
             title = getString(R.string.title_add_course)
+            // 优先预填充点击空白格子传入的日期和节次
+            val prefillDay = intent.getIntExtra("prefill_day", -1)
+            val prefillStartNode = intent.getIntExtra("prefill_start_node", -1)
+            if (prefillDay > 0 && prefillStartNode > 0) {
+                applyPrefill(prefillDay, prefillStartNode)
+            }
         }
 
         binding.btnSave.setOnClickListener { saveCourse() }
         binding.btnDelete.setOnClickListener { deleteCourse() }
+    }
+
+    private fun setupColorChips() {
+        binding.chipGroupColor.removeAllViews()
+        courseColors.forEachIndexed { idx, colorHex ->
+            val chip = Chip(this).apply {
+                id = View.generateViewId()
+                tag = colorHex
+                isCheckable = true
+                text = if (idx == 0) "默认" else " "
+                minWidth = dpToPx(44)
+                chipMinHeight = dpToPx(36).toFloat()
+                chipBackgroundColor = android.content.res.ColorStateList.valueOf(parseColorSafe(colorHex))
+                setTextColor(Color.WHITE)
+                chipStrokeWidth = dpToPx(2).toFloat()
+                chipStrokeColor = android.content.res.ColorStateList.valueOf(Color.argb(120, 255, 255, 255))
+            }
+            binding.chipGroupColor.addView(chip)
+            if (idx == 0) {
+                binding.chipGroupColor.check(chip.id)
+                selectedColor = colorHex
+            }
+        }
+        binding.chipGroupColor.setOnCheckedStateChangeListener { group, checkedIds ->
+            val chip = checkedIds.firstOrNull()?.let { group.findViewById<Chip>(it) }
+            selectedColor = chip?.tag as? String ?: courseColors.first()
+        }
+    }
+
+    private fun setupModeSwitches() {
+        binding.chipGroupTimeMode.setOnCheckedStateChangeListener { _, checkedIds ->
+            val useCustomTime = checkedIds.firstOrNull() == R.id.chip_time_custom
+            binding.layoutNodeTime.visibility = if (useCustomTime) View.GONE else View.VISIBLE
+            binding.layoutCustomTime.visibility = if (useCustomTime) View.VISIBLE else View.GONE
+        }
+        binding.chipGroupRangeMode.setOnCheckedStateChangeListener { _, checkedIds ->
+            val useDate = checkedIds.firstOrNull() == R.id.chip_range_date
+            binding.inputWeeks.visibility = if (useDate) View.GONE else View.VISIBLE
+            binding.inputDates.visibility = if (useDate) View.VISIBLE else View.GONE
+        }
+    }
+
+    private fun parseColorSafe(colorHex: String): Int {
+        return try { Color.parseColor(colorHex) } catch (_: Exception) { Color.parseColor("#5C6BC0") }
+    }
+
+    private fun applyPrefill(day: Int, startNode: Int) {
+        // 选中对应星期 Chip
+        for (i in 0 until binding.chipGroupDay.childCount) {
+            val chip = binding.chipGroupDay.getChildAt(i) as? Chip ?: continue
+            if (chip.tag == day) {
+                binding.chipGroupDay.check(chip.id)
+                break
+            }
+        }
+        // 预选开始节次
+        if (startNode >= 1 && startNode <= binding.spStartNode.count) {
+            binding.spStartNode.setSelection(startNode - 1)
+            binding.spEndNode.setSelection(startNode - 1)
+        }
+        // 初始化默认时间段列表
+        if (timeSlots.isEmpty()) {
+            timeSlots.add(TimeSlot(day, startNode, startNode, "1-20", "", ""))
+        }
     }
 
     private fun loadCourseData() {
