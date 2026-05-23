@@ -30,6 +30,7 @@ class GlobalScheduleActivity : AppCompatActivity() {
     // State
     private var isShowingResults = false
     private var sessionReady = false
+    private var searchJob: kotlinx.coroutines.Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -66,14 +67,22 @@ class GlobalScheduleActivity : AppCompatActivity() {
             }
         }
 
-        // Filter input (local filter on loaded list)
+        // Filter input (dynamic network search)
         binding.etFilter.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                val q = s?.toString() ?: ""
+                val q = s?.toString()?.trim() ?: ""
                 binding.btnClear.visibility = if (q.isNotEmpty()) View.VISIBLE else View.GONE
-                if (!isShowingResults) {
-                    entityAdapter.filter(q)
+                if (!isShowingResults && sessionReady) {
+                    searchJob?.cancel()
+                    if (q.isEmpty()) {
+                        entityAdapter.setFullList(emptyList())
+                    } else {
+                        searchJob = lifecycleScope.launch {
+                            kotlinx.coroutines.delay(500) // debounce
+                            loadEntityList(q)
+                        }
+                    }
                 }
             }
             override fun afterTextChanged(s: Editable?) {}
@@ -88,7 +97,8 @@ class GlobalScheduleActivity : AppCompatActivity() {
             if (isShowingResults) {
                 // Will be set before calling, not used here
             } else {
-                loadEntityList()
+                val q = binding.etFilter.text?.toString()?.trim() ?: ""
+                if (q.isNotEmpty()) loadEntityList(q)
             }
         }
 
@@ -114,39 +124,42 @@ class GlobalScheduleActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val errMsg = withContext(Dispatchers.IO) { doLoginGetError() }
             if (errMsg == null) {
-                loadEntityList()
+                sessionReady = true
+                showEntityList()
+                entityAdapter.setFullList(emptyList()) // 提示输入
+                binding.tvMessage.text = "请输入关键字搜索\n（注：部分查询类型可能未开放）"
+                binding.tvMessage.visibility = View.VISIBLE
             } else {
                 showError("登录失败：$errMsg\n\n（请先在\"导入课表\"页面登录一次）")
             }
         }
     }
 
-    private fun loadEntityList() {
-        showLoading("正在获取${currentTypeName()}列表...")
+    private fun loadEntityList(keyword: String, isRetry: Boolean = false) {
+        showLoading("正在检索${currentTypeName()}...")
         lifecycleScope.launch {
             try {
                 val list = withContext(Dispatchers.IO) {
-                    importer.searchEntity(currentType, "")
+                    importer.searchEntity(currentType, keyword)
                 }
                 if (list.isEmpty()) {
-                    showError("获取列表为空\n\n可能原因：\n· 教务系统未返回数据\n· 当前学期无对应数据\n\n请点击重试")
+                    showError("检索结果为空\n\n可能原因：\n· 关键字无匹配结果\n· 该查询类型（如课程）暂未开放")
                 } else {
                     entityAdapter.setFullList(list)
                     showEntityList()
                 }
             } catch (e: Exception) {
                 val msg = e.message ?: "未知错误"
-                if (msg.contains("会话") || msg.contains("登录")) {
-                    // Session expired, re-login and retry once
+                if (!isRetry && (msg.contains("会话") || msg.contains("登录"))) {
                     showLoading("会话已过期，正在重新登录...")
                     val errMsg = withContext(Dispatchers.IO) { doLoginGetError() }
                     if (errMsg == null) {
-                        loadEntityList()
+                        loadEntityList(keyword, true)
                     } else {
                         showError("重新登录失败：$errMsg")
                     }
                 } else {
-                    showError("获取失败：$msg")
+                    showError("检索失败：$msg")
                 }
             }
         }

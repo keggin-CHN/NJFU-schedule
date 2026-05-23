@@ -237,8 +237,11 @@ class NjfuImporter {
         val resp = client.newCall(req).execute()
         val json = resp.body?.string() ?: return emptyList()
 
-        // 若响应是 HTML（未登录被重定向到登录页），抛出异常
+        // 若响应是 HTML（未登录被重定向到登录页，或系统未开放），抛出异常
         if (json.trimStart().startsWith("<")) {
+            if (json.contains("系统未开放")) {
+                throw Exception("该查询类型系统暂未开放")
+            }
             throw Exception("会话已过期，请重新登录")
         }
 
