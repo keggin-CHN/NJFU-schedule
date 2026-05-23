@@ -1,6 +1,7 @@
 package com.njfu.schedule.ui.schedule
 
 import android.content.Intent
+import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -483,20 +484,26 @@ class ScheduleActivity : AppCompatActivity() {
             elevation = 0f
 
             val color = try { Color.parseColor(bgColor) } catch (_: Exception) { Color.parseColor("#7986CB") }
+            val isNightMode = (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
             val drawable = GradientDrawable().apply {
                 if (isOtherWeek) {
-                    setColor(Color.argb(24, Color.red(color), Color.green(color), Color.blue(color)))
-                    setStroke(dpToPx(1), Color.argb(190, 120, 130, 148), dpToPx(4).toFloat(), dpToPx(3).toFloat())
+                    if (isNightMode) {
+                        setColor(Color.argb(24, Color.red(color), Color.green(color), Color.blue(color)))
+                        setStroke(dpToPx(1), Color.argb(190, 120, 130, 148), dpToPx(4).toFloat(), dpToPx(3).toFloat())
+                    } else {
+                        setColor(Color.argb(62, Color.red(color), Color.green(color), Color.blue(color)))
+                        setStroke(dpToPx(1), Color.argb(150, 96, 106, 122), dpToPx(4).toFloat(), dpToPx(3).toFloat())
+                    }
                 } else {
                     setColor(Color.argb(252, Color.red(color), Color.green(color), Color.blue(color)))
-                    setStroke(dpToPx(1), Color.argb(235, 255, 255, 255))
+                    setStroke(dpToPx(1), if (isNightMode) Color.argb(235, 255, 255, 255) else Color.argb(185, 255, 255, 255))
                 }
                 cornerRadius = dpToPx(9).toFloat()
             }
             background = drawable
 
             if (isOtherWeek) {
-                setTextColor(Color.argb(150, 226, 231, 239))
+                setTextColor(if (isNightMode) Color.argb(150, 226, 231, 239) else Color.argb(150, 54, 62, 74))
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 8.8f)
             }
         }
