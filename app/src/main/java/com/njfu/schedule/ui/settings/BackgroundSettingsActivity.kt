@@ -37,7 +37,6 @@ class BackgroundSettingsActivity : AppCompatActivity() {
 
         binding.toolbar.setNavigationOnClickListener { finish() }
 
-        // 加载当前设置
         val prefs = getSharedPreferences("bg_settings", Context.MODE_PRIVATE)
         val alpha = prefs.getInt("alpha", 50)
         binding.seekbarAlpha.progress = alpha
@@ -60,32 +59,27 @@ class BackgroundSettingsActivity : AppCompatActivity() {
             setResult(RESULT_OK)
         }
 
-        // 加载已有背景
         loadCurrentBackground()
 
-        // 透明度滑块 - 实时预览
         binding.seekbarAlpha.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 binding.tvAlphaValue.text = "${progress}%"
                 updateOverlayPreview(progress)
-                // 实时保存
+
                 prefs.edit().putInt("alpha", progress).apply()
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
-        // 从相册选择
         binding.btnGallery.setOnClickListener {
             pickImage.launch("image/*")
         }
 
-        // 从URL加载
         binding.btnUrl.setOnClickListener {
             showUrlDialog()
         }
 
-        // 清除背景
         binding.btnClear.setOnClickListener {
             val file = File(filesDir, "schedule_bg.jpg")
             if (file.exists()) file.delete()

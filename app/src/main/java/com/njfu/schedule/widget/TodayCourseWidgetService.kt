@@ -32,14 +32,14 @@ class TodayCourseWidgetFactory(private val context: Context) : RemoteViewsServic
     private var courseList = mutableListOf<WidgetCourse>()
 
     override fun onCreate() {
-        // Init
+
     }
 
     override fun onDataSetChanged() {
-        // Fetch data
+
         TimeNode.load(context)
         val todayOfWeek = WeekUtils.getTodayOfWeek()
-        
+
         runBlocking(Dispatchers.IO) {
             try {
                 val db = AppDatabase.getDatabase(context)
@@ -49,7 +49,7 @@ class TodayCourseWidgetFactory(private val context: Context) : RemoteViewsServic
                     courseList.clear()
                     return@runBlocking
                 }
-                
+
                 val currentWeek = WeekUtils.getCurrentWeek(table.startDate)
                 val allDetails = dao.getCourseDetailsById_sync(table.id)
                 val allBases = dao.getCourseBaseById_sync(table.id)
@@ -103,7 +103,7 @@ class TodayCourseWidgetFactory(private val context: Context) : RemoteViewsServic
         }
         val course = courseList[position]
         val rv = RemoteViews(context.packageName, R.layout.widget_course_item)
-        
+
         rv.setTextViewText(R.id.tv_course_name, course.name)
         rv.setTextViewText(R.id.tv_course_time, course.time)
         rv.setTextViewText(R.id.tv_course_room, course.room.ifBlank { "地点待定" })

@@ -22,12 +22,10 @@ class GlobalScheduleActivity : AppCompatActivity() {
 
     private var currentType = "jg0101"
 
-    // Adapters
     private val courseAdapter = GlobalCourseAdapter { item ->
         showCourseDetail(item)
     }
 
-    // State
     private var sessionReady = false
     private val filterParams = mutableMapOf<String, String>()
 
@@ -40,11 +38,9 @@ class GlobalScheduleActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         binding.toolbar.setNavigationOnClickListener { onBackPressed() }
 
-        // Setup RecyclerView
         binding.rvResults.layoutManager = LinearLayoutManager(this)
         binding.rvResults.adapter = courseAdapter
 
-        // Read intent and hide chips
         val title = intent.getStringExtra("title") ?: "全校课表查询"
         currentType = when (title) {
             "教师课表" -> "jg0101"
@@ -56,7 +52,6 @@ class GlobalScheduleActivity : AppCompatActivity() {
         supportActionBar?.title = title
         binding.chipGroupType.visibility = View.GONE
 
-        // Filter input (direct search on submit)
         binding.etFilter.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH) {
                 val q = binding.etFilter.text?.toString()?.trim() ?: ""
@@ -67,7 +62,6 @@ class GlobalScheduleActivity : AppCompatActivity() {
             }
         }
 
-        // Filter input (dynamic network search)
         binding.etFilter.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -82,24 +76,20 @@ class GlobalScheduleActivity : AppCompatActivity() {
             showInitialState()
         }
 
-        // Retry button
         binding.btnRetry.setOnClickListener {
             val q = binding.etFilter.text?.toString()?.trim() ?: ""
             performSearch(q)
         }
 
-        // FAB to clear search
         binding.fabBack.setOnClickListener {
             binding.etFilter.setText("")
             showInitialState()
         }
 
-        // Filter button
         binding.btnFilter.setOnClickListener {
             showFilterDialog()
         }
 
-        // Start: login + load entity list
         loginAndLoad()
     }
 
@@ -159,8 +149,6 @@ class GlobalScheduleActivity : AppCompatActivity() {
         }
     }
 
-    // --- UI state helpers ---
-
     private fun showLoading(msg: String) {
         binding.layoutLoading.visibility = View.VISIBLE
         binding.tvLoadingText.text = msg
@@ -184,7 +172,6 @@ class GlobalScheduleActivity : AppCompatActivity() {
         val spinnerJc1 = view.findViewById<android.widget.Spinner>(com.njfu.schedule.R.id.spinner_jc1)
         val spinnerJc2 = view.findViewById<android.widget.Spinner>(com.njfu.schedule.R.id.spinner_jc2)
 
-        // Options
         val terms = listOf("" to "-不限-", "2025-2026-2" to "2025-2026第二学期", "2025-2026-1" to "2025-2026第一学期")
         val campuses = listOf("" to "-不限-", "1" to "新庄校区", "2" to "白马校区", "3" to "淮安校区")
         val weeks = listOf("" to "-不限-") + (1..30).map { "$it" to "第${it}周" }
@@ -225,13 +212,12 @@ class GlobalScheduleActivity : AppCompatActivity() {
             filterParams["skxq2"] = days[spinnerSkxq2.selectedItemPosition].first
             filterParams["jc1"] = sections[spinnerJc1.selectedItemPosition].first
             filterParams["jc2"] = sections[spinnerJc2.selectedItemPosition].first
-            
-            // clear empty keys
+
             val it = filterParams.iterator()
             while (it.hasNext()) {
                 if (it.next().value.isEmpty()) it.remove()
             }
-            
+
             dialog.dismiss()
             val q = binding.etFilter.text?.toString()?.trim() ?: ""
             performSearch(q)
@@ -244,7 +230,7 @@ class GlobalScheduleActivity : AppCompatActivity() {
         val dialog = com.google.android.material.bottomsheet.BottomSheetDialog(this)
         val view = layoutInflater.inflate(com.njfu.schedule.R.layout.dialog_global_course_detail, null)
         dialog.setContentView(view)
-        
+
         view.findViewById<android.widget.TextView>(com.njfu.schedule.R.id.tv_detail_course_name).text = item.courseName
         val tvClass = view.findViewById<android.widget.TextView>(com.njfu.schedule.R.id.tv_detail_class_name)
         if (item.className.isNotEmpty()) {
@@ -259,9 +245,9 @@ class GlobalScheduleActivity : AppCompatActivity() {
         val dayStr = if (item.day in 1..7) days[item.day - 1] else "未知"
         view.findViewById<android.widget.TextView>(com.njfu.schedule.R.id.tv_detail_time).text = "$dayStr ${item.sectionsStr}"
         view.findViewById<android.widget.TextView>(com.njfu.schedule.R.id.tv_detail_weeks).text = item.weeksStr.ifEmpty { "未知周次" }
-        
+
         view.findViewById<android.view.View>(com.njfu.schedule.R.id.btn_detail_close).setOnClickListener { dialog.dismiss() }
-        
+
         dialog.show()
     }
 
@@ -302,9 +288,6 @@ class GlobalScheduleActivity : AppCompatActivity() {
         else -> "列表"
     }
 
-    // --- Auth ---
-
-    /** 尝试登录，成功返回 null，失败返回错误信息 */
     private fun doLoginGetError(): String? {
         val prefs = getSharedPreferences("njfu_login", Context.MODE_PRIVATE)
         val studentId = prefs.getString("student_id", "") ?: ""

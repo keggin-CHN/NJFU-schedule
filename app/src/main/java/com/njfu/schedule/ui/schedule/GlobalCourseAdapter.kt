@@ -38,7 +38,7 @@ class GlobalCourseAdapter(private val onItemClick: (GlobalCourseInfo) -> Unit) :
     override fun onBindViewHolder(holder: VH, position: Int) {
         val item = getItem(position)
         holder.tvDay.text = if (item.day in 1..7) DAY_NAMES[item.day - 1] else "?"
-        // Extract "1-2" style section display from something like "[1-2节]"
+
         val sectionNum = item.sectionsStr
             .replace(Regex("\\[|\\]|节|第"), "")
             .replace(Regex("\\(.*?\\)"), "")
@@ -54,7 +54,7 @@ class GlobalCourseAdapter(private val onItemClick: (GlobalCourseInfo) -> Unit) :
         } else {
             holder.tvClassName.visibility = View.GONE
         }
-        
+
         holder.itemView.setOnClickListener {
             onItemClick(item)
         }

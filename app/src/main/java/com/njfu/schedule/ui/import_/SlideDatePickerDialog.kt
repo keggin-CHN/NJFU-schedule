@@ -20,7 +20,7 @@ class SlideDatePickerDialog(context: Context, private val onRangeSelected: (Stri
     private val recyclerView: RecyclerView
     private val tvMonth: TextView
     private val btnConfirm: View
-    
+
     private val calendar = Calendar.getInstance()
     private val adapter = CalendarAdapter()
 
@@ -31,7 +31,7 @@ class SlideDatePickerDialog(context: Context, private val onRangeSelected: (Stri
         recyclerView = view.findViewById(R.id.rv_calendar)
         tvMonth = view.findViewById(R.id.tv_month)
         btnConfirm = view.findViewById(R.id.btn_confirm)
-        
+
         view.findViewById<View>(R.id.btn_prev).setOnClickListener {
             calendar.add(Calendar.MONTH, -1)
             updateCalendar()
@@ -44,7 +44,6 @@ class SlideDatePickerDialog(context: Context, private val onRangeSelected: (Stri
         recyclerView.layoutManager = GridLayoutManager(context, 7)
         recyclerView.adapter = adapter
 
-        // Touch listener for slide to select
         recyclerView.addOnItemTouchListener(object : RecyclerView.OnItemTouchListener {
             var isSelecting = false
             var startIdx = -1
@@ -106,7 +105,7 @@ class SlideDatePickerDialog(context: Context, private val onRangeSelected: (Stri
         val tempCal = calendar.clone() as Calendar
         tempCal.set(Calendar.DAY_OF_MONTH, 1)
 
-        val firstDayOfWeek = tempCal.get(Calendar.DAY_OF_WEEK) // 1=Sun, 2=Mon...
+        val firstDayOfWeek = tempCal.get(Calendar.DAY_OF_WEEK) 
         val emptyDays = if (firstDayOfWeek == Calendar.SUNDAY) 6 else firstDayOfWeek - 2
 
         for (i in 0 until emptyDays) {

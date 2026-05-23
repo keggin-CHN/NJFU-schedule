@@ -32,17 +32,16 @@ class EmptyRoomActivity : AppCompatActivity() {
         binding.btnSearch.setOnClickListener {
             performSearch()
         }
-        
+
         binding.rvResults.layoutManager = LinearLayoutManager(this)
-        
-        // Auto-login check
+
         lifecycleScope.launch {
             try {
                 withContext(Dispatchers.IO) {
                     importer.prepareSession()
                 }
             } catch (e: Exception) {
-                // Ignore, will prompt on search
+
             }
         }
     }

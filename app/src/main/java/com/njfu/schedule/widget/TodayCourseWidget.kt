@@ -36,8 +36,7 @@ class TodayCourseWidget : AppWidgetProvider() {
             val manager = AppWidgetManager.getInstance(context)
             val ids = manager.getAppWidgetIds(ComponentName(context, TodayCourseWidget::class.java))
             manager.notifyAppWidgetViewDataChanged(ids, R.id.widget_course_list)
-            
-            // Also update the date text
+
             val intent = Intent(context, TodayCourseWidget::class.java)
             intent.action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
             intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
@@ -52,14 +51,12 @@ class TodayCourseWidget : AppWidgetProvider() {
             val dateStr = SimpleDateFormat("M月d日 ", Locale.CHINA).format(Date()) + dayNames[todayOfWeek - 1]
             views.setTextViewText(R.id.tv_widget_date, dateStr)
 
-            // Bind list view
             val intent = Intent(context, TodayCourseWidgetService::class.java)
             intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, widgetId)
             intent.data = Uri.parse(intent.toUri(Intent.URI_INTENT_SCHEME))
             views.setRemoteAdapter(R.id.widget_course_list, intent)
             views.setEmptyView(R.id.widget_course_list, R.id.tv_widget_empty)
 
-            // Open app on click
             val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
             if (launchIntent != null) {
                 val pendingIntent = android.app.PendingIntent.getActivity(

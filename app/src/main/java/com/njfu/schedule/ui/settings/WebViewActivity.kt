@@ -8,10 +8,6 @@ import android.webkit.*
 import androidx.appcompat.app.AppCompatActivity
 import com.njfu.schedule.databinding.ActivityWebviewBinding
 
-/**
- * 内嵌 WebView 页面，用于教师课表/教室课表查询
- * 自动注入登录 Cookie，用户只需输入验证码即可查询
- */
 class WebViewActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityWebviewBinding
@@ -52,7 +48,6 @@ class WebViewActivity : AppCompatActivity() {
             }
         }
 
-        // 先通过 SSO 登录，然后跳转到目标页面
         autoLogin(url)
     }
 
@@ -62,12 +57,11 @@ class WebViewActivity : AppCompatActivity() {
         val password = prefs.getString("password", "") ?: ""
 
         if (studentId.isEmpty()) {
-            // 没有保存的账号，直接打开
+
             binding.webview.loadUrl(targetUrl)
             return
         }
 
-        // 先访问 SSO 触发登录，然后跳转
         binding.progress.visibility = View.VISIBLE
         binding.webview.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView?, url: String?, favicon: android.graphics.Bitmap?) {
@@ -75,7 +69,7 @@ class WebViewActivity : AppCompatActivity() {
             }
             override fun onPageFinished(view: WebView?, url: String?) {
                 binding.progress.visibility = View.GONE
-                // 如果到了教务系统页面，说明登录成功
+
                 if (url != null && url.contains("jwxt.njfu.edu.cn")) {
                     if (!url.contains(targetUrl.substringAfterLast("/"))) {
                         binding.webview.loadUrl(targetUrl)
@@ -83,7 +77,7 @@ class WebViewActivity : AppCompatActivity() {
                 }
             }
         }
-        // 先访问 SSO 入口
+
         binding.webview.loadUrl("http://jwxt.njfu.edu.cn/sso.jsp")
     }
 

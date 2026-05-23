@@ -13,31 +13,27 @@ import javax.crypto.spec.SecretKeySpec
 import javax.net.ssl.*
 import android.util.Base64
 
-/**
- * 南京林业大学教务系统课表导入器
- * 通过统一认证系统登录，获取课表HTML并解析
- */
 class NjfuImporter {
 
     data class ImportResult(
         val courses: List<CourseInfo>,
         val studentName: String,
         val semesterStartDate: String = "",
-        val remarks: List<String> = emptyList()  // 备注（无课表课程等）
+        val remarks: List<String> = emptyList()  
     )
 
     data class CourseInfo(
         val name: String,
         val teacher: String,
         val room: String,
-        val day: Int,           // 1-7
+        val day: Int,           
         val startNode: Int,
         val endNode: Int,
         val weeks: List<Int>
     )
 
     companion object {
-        // CAS要求必须使用 http 协议的 service，不能改为 https
+
         private const val APP_URL = "http://jwxt.njfu.edu.cn/sso.jsp"
         private const val UIA_BASE = "https://uia.njfu.edu.cn"
         private const val SCHEDULE_URL = "https://jwxt.njfu.edu.cn/jsxsd/xskb/xskb_list.do"
@@ -70,17 +66,11 @@ class NjfuImporter {
 
     private var studentNameResult = ""
 
-    /**
-     * 步骤1：准备会话，访问教务系统获取cookie
-     */
     fun prepareSession() {
         val appReq = Request.Builder().url(APP_URL).get().build()
         client.newCall(appReq).execute().close()
     }
 
-    /**
-     * 步骤2：访问统一认证登录页，获取表单参数
-     */
     fun fetchLoginPage(): LoginParams {
         val uiaUrl = "$UIA_BASE/authserver/login?service=${URLEncoder.encode(APP_URL, "UTF-8")}"
         val loginPageReq = Request.Builder().url(uiaUrl).get().build()
@@ -98,11 +88,8 @@ class NjfuImporter {
         return LoginParams(lt, salt, dllt, uiaUrl)
     }
 
-    /**
-     * 步骤3：加密密码并登录
-     */
     fun doLogin(studentId: String, password: String, params: LoginParams) {
-        // 检查验证码
+
         val captchaUrl = "$UIA_BASE/authserver/needCaptcha.html?username=$studentId&pwdEncrypt2=pwdEncryptSalt&_=${System.currentTimeMillis()}"
         val captchaReq = Request.Builder().url(captchaUrl).get().build()
         val captchaResp = client.newCall(captchaReq).execute()
@@ -133,11 +120,8 @@ class NjfuImporter {
         }
     }
 
-    /**
-     * 步骤4：获取课表并解析
-     */
     fun fetchAndParseSchedule(): ImportResult {
-        // 获取学生姓名和当前教学周
+
         var studentName = ""
         var currentTeachingWeek = 12
         try {
@@ -147,14 +131,13 @@ class NjfuImporter {
             val infoDoc = Jsoup.parse(infoHtml)
             studentName = infoDoc.select("span#Top1_divLoginName, #xhxm, .middletopdwxxdiv span").text()
                 .replace("同学", "").trim()
-            // 从"教学第X周"获取当前周数
+
             val weekMatch = Regex("教学第(\\d+)周").find(infoHtml)
             if (weekMatch != null) {
                 currentTeachingWeek = weekMatch.groupValues[1].toIntOrNull() ?: 12
             }
         } catch (_: Exception) {}
 
-        // 根据当前教学周反推学期第1周周一的日期
         val cal = java.util.Calendar.getInstance()
         val dayOfWeek = cal.get(java.util.Calendar.DAY_OF_WEEK)
         val todayDow = if (dayOfWeek == java.util.Calendar.SUNDAY) 7 else dayOfWeek - 1
@@ -162,28 +145,20 @@ class NjfuImporter {
         cal.add(java.util.Calendar.DAY_OF_YEAR, -daysBack)
         val startDate = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.CHINA).format(cal.time)
 
-        // 获取课表
         val scheduleReq = Request.Builder().url(SCHEDULE_URL).get().build()
         val scheduleResp = client.newCall(scheduleReq).execute()
         val scheduleHtml = scheduleResp.body?.string() ?: throw Exception("获取课表页面失败")
 
-        // 解析备注（无课表课程）
         val remarks = parseRemarks(scheduleHtml)
 
         return ImportResult(parseSchedule(scheduleHtml), studentName, startDate, remarks)
     }
 
-    /**
-     * 全校查询接口：获取对应实体（如教师、教室、班级、课程）的课表
-     * [type] 可以是 "jg0101" (教师), "jx0601" (教室), "bj0101" (班级), "kc0101" (课程)
-     * [keyword] 用户输入的搜索关键字
-     * [term] 学期代码（如 2025-2026-2，为空默认查当前学期）
-     */
     fun fetchGlobalSchedule(type: String, keyword: String, term: String = "", filterParams: Map<String, String> = emptyMap(), onProgress: ((String) -> Unit)? = null): List<com.njfu.schedule.bean.GlobalCourseInfo> {
-        // 映射请求路径和参数名
+
         val (path, paramName) = when (type) {
             "jg0101" -> Pair("kbxx_teacher_ifr", "skjs")
-            "jx0601" -> Pair("kbxx_classroom_ifr", "jxcdmc") // 教室可能使用 jxcdmc，也可能是 skjs，若不确定可用通配符
+            "jx0601" -> Pair("kbxx_classroom_ifr", "jxcdmc") 
             "bj0101" -> Pair("kbxx_xzb_ifr", "skbj")
             "kc0101" -> Pair("kbxx_kc_ifr", "kcmc")
             else -> Pair("kbxx_xzb_ifr", "skbj")
@@ -197,23 +172,20 @@ class NjfuImporter {
 
         val kbjcmsidMatch = Regex("""id="kbjcmsid"\s+value="([^"]+)"""").find(homeHtml)
         val kbjcmsid = kbjcmsidMatch?.groupValues?.get(1) ?: "933E103D1CA84D64A71CE6FC60BFE57B"
-        
+
         var targetTerm = term
         if (targetTerm.isEmpty()) {
             val termMatch = Regex("""name="xnxqh"[^>]*>\s*<option value="([^"]+)"\s*selected""").find(homeHtml)
             targetTerm = termMatch?.groupValues?.get(1) ?: "2025-2026-2"
         }
-        
-        // 如果 filterParams 中提供了学期，则覆盖
+
         val finalTerm = filterParams["xnxqh"]?.takeIf { it.isNotEmpty() } ?: targetTerm
 
-        // 构造查询参数，直接提交给底层 ifr 接口
         val formBuilder = FormBody.Builder()
             .add("xnxqh", finalTerm)
             .add("kbjcmsid", kbjcmsid)
             .add(paramName, keyword)
-            
-        // 附加其他过滤参数
+
         filterParams.forEach { (key, value) ->
             if (key != "xnxqh" && value.isNotEmpty()) {
                 formBuilder.add(key, value)
@@ -236,10 +208,9 @@ class NjfuImporter {
 
         val courses = mutableListOf<com.njfu.schedule.bean.GlobalCourseInfo>()
         val rows = table.select("tr")
-        
-        // Rows 0 and 1 are headers, skip them
+
         if (rows.size <= 2) return emptyList()
-        
+
         for (i in 2 until rows.size) {
             if (i % 50 == 0) {
                 onProgress?.invoke("正在解析排课数据... ($i / ${rows.size})")
@@ -247,18 +218,15 @@ class NjfuImporter {
             val row = rows[i]
             val tds = row.select("td")
             if (tds.isEmpty()) continue
-            
-            // First td is usually the entity name (Class Name, Teacher Name, etc.)
-            // e.g. <nobr>23101011</nobr>
+
             val entityName = tds[0].text().trim()
             if (entityName.isEmpty()) continue
-            
-            // The remaining 35 tds are the schedule blocks
+
             for (colIdx in 1 until tds.size) {
                 val td = tds[colIdx]
                 val day = ((colIdx - 1) / 5) + 1
                 val sectionIdx = (colIdx - 1) % 5
-                
+
                 val sectionsStr = when (sectionIdx) {
                     0 -> "1,2"
                     1 -> "3,4"
@@ -267,21 +235,19 @@ class NjfuImporter {
                     4 -> "9,10,11"
                     else -> ""
                 }
-                
-                // Content can be in kbcontent1 or kbcontent
+
                 val divs = td.select("div.kbcontent1, div.kbcontent")
                 for (div in divs) {
-                    // Remove configuration fonts to prevent text pollution
+
                     div.select("font.kchConfig").remove()
-                    
-                    // Fields are usually separated by <br> tags
+
                     val rawHtml = div.html()
                     val lines = rawHtml.split(Regex("<br\\s*/?>", RegexOption.IGNORE_CASE))
                         .map { Jsoup.parse(it).text().trim() }
                         .filter { it.isNotEmpty() }
-                        
+
                     if (lines.isEmpty()) continue
-                    
+
                     val courseName: String
                     var className = ""
                     var teacher = ""
@@ -289,28 +255,28 @@ class NjfuImporter {
                     var room = ""
 
                     when (queryType) {
-                        "jg0101" -> { // 教师课表: 课程名 / 班级名 / 周次 / 教室
+                        "jg0101" -> { 
                             courseName = lines.getOrNull(0) ?: ""
                             teacher = entityName
                             className = lines.getOrNull(1) ?: ""
                             weeksStr = lines.getOrNull(2) ?: ""
                             room = lines.getOrNull(3) ?: ""
                         }
-                        "jx0601" -> { // 教室课表: 课程名 / 教师名 / 班级名 / 周次
+                        "jx0601" -> { 
                             courseName = lines.getOrNull(0) ?: ""
                             room = entityName
                             teacher = lines.getOrNull(1) ?: ""
                             className = lines.getOrNull(2) ?: ""
                             weeksStr = lines.getOrNull(3) ?: ""
                         }
-                        "kc0101" -> { // 课程课表: 班级名 / 教师名 / 周次 / 教室
+                        "kc0101" -> { 
                             courseName = entityName
                             className = lines.getOrNull(0) ?: ""
                             teacher = lines.getOrNull(1) ?: ""
                             weeksStr = lines.getOrNull(2) ?: ""
                             room = lines.getOrNull(3) ?: ""
                         }
-                        else -> { // 班级课表 bj0101 或默认: 课程名 / 教师(周次) / 教室
+                        else -> { 
                             courseName = lines.getOrNull(0) ?: ""
                             className = entityName
                             val line2 = lines.getOrNull(1) ?: ""
@@ -331,7 +297,6 @@ class NjfuImporter {
                         }
                     }
 
-                    // Clean up weeksStr
                     if (weeksStr.contains("(")) {
                         val m = Regex("\\((.+?周)\\)").find(weeksStr)
                         if (m != null) weeksStr = m.groupValues[1]
@@ -350,18 +315,14 @@ class NjfuImporter {
                 }
             }
         }
-        
+
         return courses.distinct()
     }
 
-    /**
-     * 解析备注区域（colspan=7 的备注 + 无课表课程表格）
-     */
     private fun parseRemarks(html: String): List<String> {
         val doc = Jsoup.parse(html)
         val remarks = mutableListOf<String>()
 
-        // 1. 解析 colspan=7 的备注行
         val remarkTds = doc.select("td[colspan=7]")
         for (td in remarkTds) {
             val text = td.text().trim()
@@ -370,12 +331,11 @@ class NjfuImporter {
             }
         }
 
-        // 2. 解析"无课表课程"表格
         val tables = doc.select("table")
         for (table in tables) {
             val firstRow = table.selectFirst("tr") ?: continue
             if (firstRow.text().contains("无课表课程") && table.select("tr").size > 2) {
-                val rows = table.select("tr").drop(2) // 跳过标题行
+                val rows = table.select("tr").drop(2) 
                 for (row in rows) {
                     val cols = row.select("td")
                     if (cols.size >= 4) {
@@ -391,9 +351,6 @@ class NjfuImporter {
         return remarks
     }
 
-    /**
-     * 一步完成（保留兼容）
-     */
     suspend fun importSchedule(studentId: String, password: String): ImportResult {
         prepareSession()
         val params = fetchLoginPage()
@@ -427,7 +384,6 @@ class NjfuImporter {
         val courses = mutableListOf<CourseInfo>()
         val rows = table.select("tr")
 
-        // 大节默认节次
         val sectionDefaults = mapOf(0 to Pair(1, 2), 1 to Pair(3, 4), 2 to Pair(5, 6), 3 to Pair(7, 8), 4 to Pair(9, 11))
 
         rows.drop(1).forEachIndexed { rowIdx, row ->
@@ -494,7 +450,6 @@ class NjfuImporter {
             }
         }
 
-        // 去重
         return courses.distinctBy { Triple(it.name, it.day, it.startNode) to it.weeks }
     }
 
@@ -518,7 +473,7 @@ class NjfuImporter {
         val rooms = mutableListOf<String>()
         val table = doc.selectFirst("table#dataList") ?: doc.selectFirst("table") ?: return emptyList()
         val rows = table.select("tr")
-        for (i in 1 until rows.size) { // skip header
+        for (i in 1 until rows.size) { 
             val tds = rows[i].select("td")
             if (tds.isNotEmpty()) {
                 val roomName = tds[0].text().trim()
@@ -559,14 +514,11 @@ class NjfuImporter {
         return Pair(1, 2)
     }
 
-    /**
-     * 简单的 CookieJar 实现（按 host 匹配，忽略 http/https scheme 差异）
-     */
     private class SimpleCookieJar : CookieJar {
         private val cookieStore = mutableMapOf<String, MutableList<Cookie>>()
 
         override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
-            // 统一用 host 作为 key
+
             cookieStore.getOrPut(url.host) { mutableListOf() }.apply {
                 cookies.forEach { cookie ->
                     removeAll { it.name == cookie.name }
@@ -576,7 +528,7 @@ class NjfuImporter {
         }
 
         override fun loadForRequest(url: HttpUrl): List<Cookie> {
-            // 按 host 匹配（不用 Cookie.matches()，因为它会检查 scheme，跨 HTTP/HTTPS 会漏 cookie）
+
             val host = url.host
             return cookieStore.entries
                 .filter { (domain, _) ->

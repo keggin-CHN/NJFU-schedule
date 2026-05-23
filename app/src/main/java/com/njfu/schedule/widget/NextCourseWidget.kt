@@ -15,9 +15,6 @@ import kotlinx.coroutines.runBlocking
 import java.text.SimpleDateFormat
 import java.util.*
 
-/**
- * 今日课程 2x2 紧凑小组件
- */
 class NextCourseWidget : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
@@ -77,7 +74,7 @@ class NextCourseWidget : AppWidgetProvider() {
                     }.filter { d ->
                         val endTimeStr = d.customEndTime ?: TimeNode.getEndTime(d.startNode + d.step - 1)
                         val endMin = parseMinutes(endTimeStr) ?: 0
-                        endMin > nowTotalMin // 只显示未结束的课程
+                        endMin > nowTotalMin 
                     }.sortedWith(compareBy(
                         { d -> parseMinutes(d.customStartTime ?: TimeNode.getStartTime(d.startNode)) ?: 0 },
                         { d -> parseMinutes(d.customEndTime ?: TimeNode.getEndTime(d.startNode + d.step - 1)) ?: 0 },
@@ -105,14 +102,13 @@ class NextCourseWidget : AppWidgetProvider() {
                 views.setViewVisibility(R.id.tv_widget2_empty, android.view.View.VISIBLE)
             } else {
                 views.setViewVisibility(R.id.tv_widget2_empty, android.view.View.GONE)
-                
-                // 最多显示 3 个课程，以免超出 2x2 范围
+
                 val displayCourses = todayCourses.take(3)
                 for (course in displayCourses) {
                     val itemView = RemoteViews(context.packageName, R.layout.item_widget_course)
                     itemView.setTextViewText(R.id.tv_course_time, course.time)
                     itemView.setTextViewText(R.id.tv_course_name, course.name)
-                    
+
                     val info = buildString {
                         if (course.room.isNotEmpty()) append(course.room)
                         if (course.teacher.isNotEmpty()) {
@@ -126,19 +122,18 @@ class NextCourseWidget : AppWidgetProvider() {
                     } else {
                         itemView.setViewVisibility(R.id.tv_course_info, android.view.View.VISIBLE)
                     }
-                    
+
                     try {
                         val parsedColor = android.graphics.Color.parseColor(course.color.ifEmpty { "#7986CB" })
                         itemView.setInt(R.id.view_course_color, "setBackgroundColor", parsedColor)
                     } catch (e: Exception) {
                         itemView.setInt(R.id.view_course_color, "setBackgroundColor", android.graphics.Color.parseColor("#7986CB"))
                     }
-                    
+
                     views.addView(R.id.ll_widget_courses, itemView)
                 }
             }
 
-            // 点击打开APP
             val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
             if (launchIntent != null) {
                 val pi = android.app.PendingIntent.getActivity(context, 1, launchIntent,

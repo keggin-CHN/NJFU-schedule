@@ -3,9 +3,6 @@ package com.njfu.schedule.bean
 import android.content.Context
 import android.content.SharedPreferences
 
-/**
- * 南京林业大学作息时间表（可自定义修改）
- */
 object TimeNode {
     data class NodeTime(val node: Int, var start: String, var end: String)
 
@@ -29,7 +26,7 @@ object TimeNode {
     fun load(context: Context) {
         val prefs = context.getSharedPreferences("time_settings", Context.MODE_PRIVATE)
         val version = prefs.getInt("time_version", 0)
-        // 如果版本不对，重置为默认值
+
         if (version < 2) {
             prefs.edit().clear().putInt("time_version", 2).apply()
             times = defaultTimes.toMutableList()

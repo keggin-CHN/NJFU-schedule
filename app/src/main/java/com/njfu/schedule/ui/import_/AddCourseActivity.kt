@@ -41,7 +41,6 @@ class AddCourseActivity : AppCompatActivity() {
         "#42A5F5", "#26C6DA", "#EC407A", "#FFA726", "#AB47BC"
     )
 
-    // 多时间段支持
     private data class TimeSlot(var day: Int, var startNode: Int, var endNode: Int, var weeks: String, var room: String, var teacher: String, var customStartTime: String = "", var customEndTime: String = "")
     private var timeSlots = mutableListOf<TimeSlot>()
     private var currentSlotIndex = 0
@@ -54,7 +53,6 @@ class AddCourseActivity : AppCompatActivity() {
         editCourseId = intent.getIntExtra("course_id", -1)
         tableId = intent.getIntExtra("table_id", -1)
 
-        // 星期 Chips
         val days = resources.getStringArray(R.array.days)
         days.forEachIndexed { idx, day ->
             val chip = Chip(this, null, com.google.android.material.R.attr.chipStyle).apply {
@@ -73,14 +71,13 @@ class AddCourseActivity : AppCompatActivity() {
         setupColorChips()
         setupModeSwitches()
 
-        // 如果是编辑模式，加载已有数据
         if (editCourseId >= 0 && tableId >= 0) {
             title = getString(R.string.title_edit_course)
             binding.btnDelete.visibility = View.VISIBLE
             loadCourseData()
         } else {
             title = getString(R.string.title_add_course)
-            // 优先预填充点击空白格子传入的日期和节次
+
             val prefillDay = intent.getIntExtra("prefill_day", -1)
             val prefillStartNode = intent.getIntExtra("prefill_start_node", -1)
             if (prefillDay > 0 && prefillStartNode > 0) {
@@ -140,12 +137,12 @@ class AddCourseActivity : AppCompatActivity() {
                 isCheckable = true
                 isCheckedIconVisible = true
                 checkedIconTint = android.content.res.ColorStateList.valueOf(Color.WHITE)
-                text = "" // Remove text to let the checkmark center properly
+                text = "" 
                 minWidth = dpToPx(34)
                 chipMinHeight = dpToPx(30).toFloat()
                 chipBackgroundColor = android.content.res.ColorStateList.valueOf(parseColorSafe(colorHex))
                 setTextColor(Color.WHITE)
-                chipStrokeWidth = 0f // Remove stroke to make it look cleaner with the checkmark
+                chipStrokeWidth = 0f 
             }
             binding.chipGroupColor.addView(chip)
             if (idx == 0) {
@@ -177,7 +174,7 @@ class AddCourseActivity : AppCompatActivity() {
     }
 
     private fun applyPrefill(day: Int, startNode: Int) {
-        // 选中对应星期 Chip
+
         for (i in 0 until binding.chipGroupDay.childCount) {
             val chip = binding.chipGroupDay.getChildAt(i) as? Chip ?: continue
             if (chip.tag == day) {
@@ -185,12 +182,12 @@ class AddCourseActivity : AppCompatActivity() {
                 break
             }
         }
-        // 预填开始节次
+
         if (startNode >= 1) {
             binding.etStartNode.setText(startNode.toString())
             binding.etEndNode.setText(startNode.toString())
         }
-        // 初始化默认时间段列表
+
         if (timeSlots.isEmpty()) {
             timeSlots.add(TimeSlot(day, startNode, startNode, "1-20", "", ""))
         }
@@ -209,7 +206,6 @@ class AddCourseActivity : AppCompatActivity() {
             binding.etName.setText(base.courseName)
             checkColorChip(selectedColor)
 
-            // 按 (day, startNode) 分组为不同时间段
             val grouped = details.groupBy { Pair(it.day, it.startNode) }
             timeSlots.clear()
             for ((key, slotDetails) in grouped) {
@@ -231,12 +227,10 @@ class AddCourseActivity : AppCompatActivity() {
 
             if (timeSlots.isEmpty()) return@launch
 
-            // 显示时间段切换器
             if (timeSlots.size > 1) {
                 showSlotSelector()
             }
 
-            // 加载第一个时间段
             loadSlot(0)
         }
     }
@@ -253,13 +247,12 @@ class AddCourseActivity : AppCompatActivity() {
 
     private fun showSlotSelector() {
         val container = binding.root.findViewById<LinearLayout>(R.id.slot_selector_container)
-            ?: return // 如果布局中没有这个容器，动态添加
+            ?: return 
         container.visibility = View.VISIBLE
         container.removeAllViews()
 
         val dayNames = arrayOf("周一","周二","周三","周四","周五","周六","周日")
 
-        // 添加标题
         val title = TextView(this).apply {
             text = "时间段（${timeSlots.size}个，点击切换）"
             textSize = 13f
@@ -268,7 +261,6 @@ class AddCourseActivity : AppCompatActivity() {
         }
         container.addView(title)
 
-        // 添加每个时间段按钮
         timeSlots.forEachIndexed { idx, slot ->
             val dayName = dayNames.getOrElse(slot.day - 1) { "" }
             val btn = com.google.android.material.button.MaterialButton(this, null,
@@ -293,7 +285,7 @@ class AddCourseActivity : AppCompatActivity() {
     }
 
     private fun highlightSlot(container: LinearLayout, activeIdx: Int) {
-        // 从 index 1 开始（跳过标题）
+
         for (i in 1 until container.childCount) {
             val child = container.getChildAt(i)
             if (child is com.google.android.material.button.MaterialButton) {
@@ -318,7 +310,6 @@ class AddCourseActivity : AppCompatActivity() {
         val useCustomTime = slot.customStartTime.isNotEmpty() && slot.customEndTime.isNotEmpty()
         binding.chipGroupTimeMode.check(if (useCustomTime) R.id.chip_time_custom else R.id.chip_time_node)
 
-        // 选中星期
         for (i in 0 until binding.chipGroupDay.childCount) {
             val chip = binding.chipGroupDay.getChildAt(i) as? Chip
             if (chip?.tag == slot.day) {
@@ -336,7 +327,7 @@ class AddCourseActivity : AppCompatActivity() {
         val useCustomTime = binding.chipGroupTimeMode.checkedChipId == R.id.chip_time_custom
         val customStart = if (useCustomTime) binding.etCustomStartTime.text?.toString()?.trim() ?: "" else ""
         val customEnd = if (useCustomTime) binding.etCustomEndTime.text?.toString()?.trim() ?: "" else ""
-        
+
         val inferredStart = if (useCustomTime && customStart.isNotEmpty()) inferNodeByTime(customStart) else binding.etStartNode.text?.toString()?.toIntOrNull() ?: slot.startNode
         val inferredEnd = if (useCustomTime && customEnd.isNotEmpty()) inferNodeByTime(customEnd).coerceAtLeast(inferredStart) else binding.etEndNode.text?.toString()?.toIntOrNull() ?: slot.endNode
 
@@ -352,7 +343,7 @@ class AddCourseActivity : AppCompatActivity() {
     }
 
     private fun saveCourse() {
-        // 先保存当前正在编辑的时间段
+
         saveCurrentSlot()
 
         val name = binding.etName.text?.toString()?.trim() ?: ""
@@ -362,17 +353,16 @@ class AddCourseActivity : AppCompatActivity() {
             return
         }
 
-        // 编辑模式：保存所有时间段
         if (editCourseId >= 0 && timeSlots.isNotEmpty()) {
             lifecycleScope.launch {
                 withContext(Dispatchers.IO) {
                     val dao = App.instance.database.courseDao()
-                    // 删除旧的详情
+
                     dao.deleteDetailsByCourseId(editCourseId, tableId)
-                    // 更新课程名
+
                     dao.insertCourseBase(CourseBaseBean(editCourseId, name,
                         selectedColor.ifEmpty { originalColor.ifEmpty { courseColors[editCourseId % courseColors.size] } }, tableId))
-                    // 插入所有时间段
+
                     for (slot in timeSlots) {
                         val weeks = parseWeeks(slot.weeks)
                         val step = slot.endNode - slot.startNode + 1
@@ -395,7 +385,6 @@ class AddCourseActivity : AppCompatActivity() {
             return
         }
 
-        // 新增模式
         val teacher = binding.etTeacher.text?.toString()?.trim() ?: ""
         val room = binding.etRoom.text?.toString()?.trim() ?: ""
         val startNode = binding.etStartNode.text?.toString()?.toIntOrNull() ?: 0

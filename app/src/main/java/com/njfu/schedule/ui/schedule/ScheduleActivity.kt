@@ -54,7 +54,6 @@ class ScheduleActivity : AppCompatActivity() {
     private var currentWeek = 1
     private var todayOfWeek = 1
 
-    // 柔和但有辨识度的课程颜色
     private val courseColors = listOf(
         "#7986CB", "#4DB6AC", "#FF8A65", "#A1887F", "#90A4AE",
         "#4DD0E1", "#81C784", "#FFD54F", "#F06292", "#BA68C8",
@@ -97,7 +96,6 @@ class ScheduleActivity : AppCompatActivity() {
             }
         })
 
-        // 底部导航
         val bottomNav = findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottom_nav)
         bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
@@ -115,7 +113,7 @@ class ScheduleActivity : AppCompatActivity() {
         binding.viewPager.visibility = if (allBases.isNotEmpty()) View.VISIBLE else View.GONE
         binding.emptyView.visibility = if (allBases.isEmpty()) View.VISIBLE else View.GONE
         findViewById<View>(R.id.query_container)?.visibility = View.GONE
-        // 显示课表顶部栏
+
         findViewById<View>(R.id.schedule_header)?.visibility = View.VISIBLE
         binding.headerRow.visibility = View.VISIBLE
     }
@@ -123,7 +121,7 @@ class ScheduleActivity : AppCompatActivity() {
     private fun showQueryView() {
         binding.viewPager.visibility = View.GONE
         binding.emptyView.visibility = View.GONE
-        // 隐藏课表顶部栏
+
         findViewById<View>(R.id.schedule_header)?.visibility = View.GONE
         binding.headerRow.visibility = View.GONE
 
@@ -173,7 +171,7 @@ class ScheduleActivity : AppCompatActivity() {
             val bitmap = android.graphics.BitmapFactory.decodeFile(file.absolutePath)
             ivBg.setImageBitmap(bitmap)
             ivBg.visibility = View.VISIBLE
-            // 设置主内容区域的背景透明度
+
             val mainContent = binding.viewPager
             mainContent.setBackgroundColor(Color.argb(255 * alpha / 100, 255, 255, 255))
         } else {
@@ -209,7 +207,7 @@ class ScheduleActivity : AppCompatActivity() {
         val startDate = table?.startDate ?: "2026-02-24"
         val dates = WeekUtils.getWeekDates(targetWeek, startDate)
         val dayLabels = arrayOf("一", "二", "三", "四", "五", "六", "日")
-        
+
         val showSat = table?.showSat ?: true
         val showSun = table?.showSun ?: true
         val maxDay = if (showSun) 7 else if (showSat) 6 else 5
@@ -245,7 +243,7 @@ class ScheduleActivity : AppCompatActivity() {
 
             val t = table!!
             maxWeek = t.maxWeek
-            // 自动计算当前周（从系统时间）
+
             currentWeek = WeekUtils.getCurrentWeek(t.startDate).coerceIn(1, maxWeek)
 
             dao.getCourseBaseByTable(t.id)
@@ -259,7 +257,7 @@ class ScheduleActivity : AppCompatActivity() {
                         showEmpty(false)
                         setupViewPager()
                     }
-                    // 课程数据发生变化时刷新桌面小组件
+
                     TodayCourseWidget.refreshAll(this@ScheduleActivity)
                     NextCourseWidget.refreshAll(this@ScheduleActivity)
                 }
@@ -294,12 +292,12 @@ class ScheduleActivity : AppCompatActivity() {
 
         override fun onBindViewHolder(holder: VH, position: Int) {
             renderWeek(holder.grid, position + 1)
-            // 显示备注
+
             val prefs = getSharedPreferences("njfu_login", android.content.Context.MODE_PRIVATE)
             val remarks = prefs.getString("remarks", null)
             if (!remarks.isNullOrEmpty()) {
                 holder.tvRemarks.visibility = View.VISIBLE
-                // 一门课一行
+
                 val lines = remarks.split("\n").filter { it.isNotBlank() }
                 holder.tvRemarks.text = lines.joinToString("\n") { "· $it" }
             } else {
@@ -328,8 +326,6 @@ class ScheduleActivity : AppCompatActivity() {
                     (d.type == 0 || (d.type == 1 && week % 2 == 1) || (d.type == 2 && week % 2 == 0)))
         }
 
-        //
-        // 节次列
         val nodeCol = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             layoutParams = LinearLayout.LayoutParams(dpToPx(30), LinearLayout.LayoutParams.WRAP_CONTENT)
@@ -351,7 +347,6 @@ class ScheduleActivity : AppCompatActivity() {
         }
         container.addView(nodeCol)
 
-        // 节次列右边的竖线
         container.addView(View(this).apply {
             layoutParams = LinearLayout.LayoutParams(1, LinearLayout.LayoutParams.MATCH_PARENT)
             setBackgroundColor(resources.getColor(R.color.divider, theme))
@@ -361,7 +356,6 @@ class ScheduleActivity : AppCompatActivity() {
         val showSun = table?.showSun ?: true
         val maxDay = if (showSun) 7 else if (showSat) 6 else 5
 
-        // 按设置显示天数
         for (day in 1..maxDay) {
             val dayCourses = weekDetails.filter { it.day == day }.sortedBy { it.startNode }
             val otherDayCourses = otherWeekDetails.filter { it.day == day }.sortedBy { it.startNode }
@@ -375,12 +369,12 @@ class ScheduleActivity : AppCompatActivity() {
 
             var currentNode = 1
             while (currentNode <= maxNode) {
-                // 找当前节次的所有课程（检测重叠）
+
                 val coursesAtNode = dayCourses.filter { it.startNode == currentNode }
                 val otherCourse = otherDayCourses.find { it.startNode == currentNode }
 
                 if (coursesAtNode.size > 1) {
-                    // 多门课重叠！显示第一门 + 重叠标记
+
                     val course = coursesAtNode.first()
                     val card = createCourseCard(course, nameMap, colorMap, cellHeight, false, coursesAtNode.size)
                     card.setOnClickListener {
@@ -390,7 +384,7 @@ class ScheduleActivity : AppCompatActivity() {
                     currentNode += course.step
                 } else if (coursesAtNode.size == 1) {
                     val course = coursesAtNode.first()
-                    // 检查是否有其他课程在当前课程的跨度内开始（被覆盖的课程）
+
                     val coveredCourses = dayCourses.filter {
                         it.startNode > currentNode && it.startNode < currentNode + course.step
                     }
@@ -409,7 +403,7 @@ class ScheduleActivity : AppCompatActivity() {
                     col.addView(createCourseCard(otherCourse, nameMap, colorMap, cellHeight, true))
                     currentNode += otherCourse.step
                 } else {
-                    // 空格子，点击可在此时间段加课
+
                     val capturedDay = day
                     val capturedNode = currentNode
                     val capturedTableId = table?.id ?: -1
@@ -431,7 +425,6 @@ class ScheduleActivity : AppCompatActivity() {
             }
             container.addView(col)
 
-            // 每天之间的竖线
             if (day < maxDay) {
                 container.addView(View(this).apply {
                     layoutParams = LinearLayout.LayoutParams(1, LinearLayout.LayoutParams.MATCH_PARENT)
@@ -510,7 +503,7 @@ class ScheduleActivity : AppCompatActivity() {
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 8.8f)
             }
         }
-        
+
         container.addView(tv)
 
         if (overlapCount > 1) {
@@ -525,9 +518,9 @@ class ScheduleActivity : AppCompatActivity() {
                 }
             }
             container.addView(layerBg, 0)
-            
+
             (tv.layoutParams as FrameLayout.LayoutParams).setMargins(0, 0, dpToPx(3), dpToPx(3))
-            
+
             val badge = TextView(this).apply {
                 layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.WRAP_CONTENT, FrameLayout.LayoutParams.WRAP_CONTENT).apply {
                     gravity = Gravity.TOP or Gravity.END
@@ -591,20 +584,20 @@ class ScheduleActivity : AppCompatActivity() {
         tvTitle.text = "该时间段有 ${courses.size} 门课程重叠"
 
         val container = view.findViewById<LinearLayout>(R.id.ll_courses_container)
-        
+
         courses.forEach { course ->
             val name = nameMap[course.id] ?: "未知课程"
             val time = (course.customStartTime ?: TimeNode.getStartTime(course.startNode)) + "-" +
                     (course.customEndTime ?: TimeNode.getEndTime(course.startNode + course.step - 1))
             val room = course.room ?: "未指定地点"
             val teacher = course.teacher ?: "未知教师"
-            
+
             val cardView = LayoutInflater.from(this).inflate(R.layout.item_overlap_course, container, false)
             cardView.findViewById<TextView>(R.id.tv_course_name).text = name
             cardView.findViewById<TextView>(R.id.tv_course_time).text = time
             cardView.findViewById<TextView>(R.id.tv_course_room).text = room
             cardView.findViewById<TextView>(R.id.tv_course_teacher).text = teacher
-            
+
             cardView.setOnClickListener {
                 dialog.dismiss()
                 showCourseDetail(course, name)
@@ -660,7 +653,6 @@ class ScheduleActivity : AppCompatActivity() {
         val view = LayoutInflater.from(this).inflate(R.layout.bottom_sheet_menu, null)
         dialog.setContentView(view)
 
-        // 周数 SeekBar
         val seekbar = view.findViewById<SeekBar>(R.id.seekbar_week)
         val tvLabel = view.findViewById<TextView>(R.id.tv_seekbar_label)
         seekbar.max = maxWeek
@@ -680,42 +672,35 @@ class ScheduleActivity : AppCompatActivity() {
             override fun onStopTrackingTouch(sb: SeekBar?) {}
         })
 
-        // 课表名
         val studentInfo = table?.studentName?.let { if (it.isNotEmpty()) " · $it" else "" } ?: ""
         view.findViewById<TextView>(R.id.tv_table_name).text = "${table?.tableName ?: "南林课表"}$studentInfo"
 
-        // 上课时间
         view.findViewById<View>(R.id.menu_time).setOnClickListener {
             dialog.dismiss()
             startActivity(Intent(this, TimeSettingsActivity::class.java))
         }
 
-        // 课表设置
         view.findViewById<View>(R.id.menu_schedule_settings).setOnClickListener {
             dialog.dismiss()
             val intent = Intent(this, ScheduleSettingsActivity::class.java)
             settingsLauncher.launch(intent)
         }
 
-        // 已添课程
         view.findViewById<View>(R.id.menu_courses).setOnClickListener {
             dialog.dismiss()
             showCourseList()
         }
 
-        // 背景设置
         view.findViewById<View>(R.id.menu_background).setOnClickListener {
             dialog.dismiss()
             bgLauncher.launch(Intent(this, BackgroundSettingsActivity::class.java))
         }
 
-        // 关于
         view.findViewById<View>(R.id.menu_about_page).setOnClickListener {
             dialog.dismiss()
             startActivity(Intent(this, com.njfu.schedule.ui.settings.AboutActivity::class.java))
         }
 
-        // 桌面小组件
         view.findViewById<View>(R.id.menu_widget).setOnClickListener {
             dialog.dismiss()
             AlertDialog.Builder(this)
@@ -725,7 +710,6 @@ class ScheduleActivity : AppCompatActivity() {
                 .show()
         }
 
-        // 删除课表
         view.findViewById<View>(R.id.menu_delete).setOnClickListener {
             dialog.dismiss()
             AlertDialog.Builder(this)
@@ -821,15 +805,13 @@ class ScheduleActivity : AppCompatActivity() {
     }
 
     private fun showSettingsDialog() {
-        // 保留旧方法作为备用
+
         startActivity(Intent(this, ScheduleSettingsActivity::class.java))
     }
 
     private fun dpToPx(dp: Int): Int {
         return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp.toFloat(), resources.displayMetrics).toInt()
     }
-
-    // ==================== 同步课表 ====================
 
     private fun syncSchedule() {
         val prefs = getSharedPreferences("njfu_login", android.content.Context.MODE_PRIVATE)
@@ -841,7 +823,6 @@ class ScheduleActivity : AppCompatActivity() {
             return
         }
 
-        // 创建进度对话框
         val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_sync_progress, null)
         val tvLog = dialogView.findViewById<TextView>(R.id.tv_log)
         val progress = dialogView.findViewById<com.google.android.material.progressindicator.LinearProgressIndicator>(R.id.progress)
@@ -882,7 +863,6 @@ class ScheduleActivity : AppCompatActivity() {
 
                 log("获取到 ${result.courses.map { it.name }.distinct().size} 门课程")
 
-                // 找出自定义课程（本地有但教务系统没有的）
                 val serverCourseNames = result.courses.map { it.name }.toSet()
                 val localCourseNames = allBases.map { it.courseName }.toSet()
                 val customCourseNames = localCourseNames - serverCourseNames
@@ -892,7 +872,6 @@ class ScheduleActivity : AppCompatActivity() {
                     log("自定义课程：${customCourseNames.joinToString()}")
                 }
 
-                // 对比变化
                 val changes = findSyncChanges(result.courses)
                 val conflicts = findTimeConflicts(result.courses, customCourseNames)
 
@@ -900,7 +879,7 @@ class ScheduleActivity : AppCompatActivity() {
 
                 if (changes.isEmpty() && conflicts.isEmpty()) {
                     log("✓ 课表无变化")
-                    // 保留自定义课程，只更新教务系统的
+
                     withContext(Dispatchers.IO) { doSyncUpdateIO(result, customCourseNames) }
                     saveSyncRemarks(result)
                     dialog.dismiss()
@@ -924,7 +903,7 @@ class ScheduleActivity : AppCompatActivity() {
     }
 
     data class SyncChange(
-        val type: String,  // "changed", "added", "conflict"
+        val type: String,  
         val timeDesc: String,
         val oldName: String,
         val newName: String
@@ -934,7 +913,6 @@ class ScheduleActivity : AppCompatActivity() {
         val changes = mutableListOf<SyncChange>()
         val dayNames = arrayOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")
 
-        // 构建旧课表映射: (day, startNode, week) -> courseName
         val oldSlots = mutableMapOf<Triple<Int, Int, Int>, String>()
         for (base in allBases) {
             val details = allDetails.filter { it.id == base.id && it.tableId == base.tableId }
@@ -945,7 +923,6 @@ class ScheduleActivity : AppCompatActivity() {
             }
         }
 
-        // 构建新课表映射
         val newSlots = mutableMapOf<Triple<Int, Int, Int>, String>()
         for (c in newCourses) {
             for (w in c.weeks) {
@@ -953,7 +930,6 @@ class ScheduleActivity : AppCompatActivity() {
             }
         }
 
-        // 1. 找出变化的（同一时间槽课程名不同）
         val checkedChanged = mutableSetOf<String>()
         for ((slot, oldName) in oldSlots) {
             val newName = newSlots[slot]
@@ -967,7 +943,6 @@ class ScheduleActivity : AppCompatActivity() {
             }
         }
 
-        // 2. 找出新增的（新课表有但旧课表没有的时间槽）
         val newCourseNames = mutableSetOf<String>()
         for ((slot, newName) in newSlots) {
             if (slot !in oldSlots) {
@@ -988,7 +963,6 @@ class ScheduleActivity : AppCompatActivity() {
         val conflicts = mutableListOf<SyncChange>()
         val dayNames = arrayOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")
 
-        // 自定义课程的时间槽
         val customSlots = mutableMapOf<Triple<Int, Int, Int>, String>()
         for (base in allBases) {
             if (base.courseName in customCourseNames) {
@@ -1003,7 +977,6 @@ class ScheduleActivity : AppCompatActivity() {
             }
         }
 
-        // 检查新课表是否和自定义课程冲突
         for (c in newCourses) {
             for (w in c.weeks) {
                 for (n in c.startNode..c.endNode) {
@@ -1090,15 +1063,12 @@ class ScheduleActivity : AppCompatActivity() {
         val dao = App.instance.database.courseDao()
         val t = table ?: return
 
-        // 保存自定义课程数据
         val keepBases = allBases.filter { it.courseName in keepNames }
         val keepDetails = allDetails.filter { d -> keepBases.any { it.id == d.id && it.tableId == d.tableId } }
 
-        // 清空
         dao.deleteCoursesByTable(t.id)
         dao.deleteDetailsByTable(t.id)
 
-        // 写入教务系统课程
         val courses = result.courses
         val courseNames = courses.map { it.name }.distinct()
         val nameToId = courseNames.mapIndexed { idx, name -> name to idx }.toMap()
@@ -1113,7 +1083,6 @@ class ScheduleActivity : AppCompatActivity() {
             }
         }
 
-        // 写回自定义课程
         if (keepNames.isNotEmpty()) {
             val maxId = (nameToId.values.maxOrNull() ?: -1) + 1
             keepBases.forEachIndexed { idx, base ->
@@ -1156,7 +1125,6 @@ class ScheduleActivity : AppCompatActivity() {
             }
         }
 
-        // 更新 startDate
         t.startDate = result.semesterStartDate
         dao.updateTable(t)
     }

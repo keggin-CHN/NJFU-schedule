@@ -34,7 +34,6 @@ class ImportActivity : AppCompatActivity() {
         binding = ActivityImportBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // 恢复保存的账号密码
         val prefs = getSharedPreferences("njfu_login", Context.MODE_PRIVATE)
         val savedId = prefs.getString("student_id", "") ?: ""
         val savedPwd = prefs.getString("password", "") ?: ""
@@ -93,18 +92,15 @@ class ImportActivity : AppCompatActivity() {
 
                 updateStep("正在保存 ${result.courses.map { it.name }.distinct().size} 门课程...")
 
-                // 保存账号密码
                 getSharedPreferences("njfu_login", Context.MODE_PRIVATE).edit()
                     .putString("student_id", studentId)
                     .putString("password", password)
                     .apply()
 
-                // 保存备注（始终覆盖旧数据）
                 getSharedPreferences("njfu_login", Context.MODE_PRIVATE).edit()
                     .putString("remarks", result.remarks.joinToString("\n"))
                     .apply()
 
-                // 保存到数据库
                 withContext(Dispatchers.IO) {
                     saveCourses(result, studentId)
                 }
@@ -144,7 +140,6 @@ class ImportActivity : AppCompatActivity() {
         val courses = result.courses
         val studentName = result.studentName
 
-        // 创建或更新课表
         var table = dao.getFirstTable()
         if (table == null) {
             val id = dao.insertTable(TableBean(
@@ -162,21 +157,17 @@ class ImportActivity : AppCompatActivity() {
         }
         val tableId = table.id
 
-        // 清除旧数据
         dao.deleteCoursesByTable(tableId)
         dao.deleteDetailsByTable(tableId)
 
-        // 按课程名分组
         val courseNames = courses.map { it.name }.distinct()
         val nameToId = courseNames.mapIndexed { idx, name -> name to idx }.toMap()
 
-        // 插入 CourseBaseBean
         for ((name, id) in nameToId) {
             val color = courseColors[id % courseColors.size]
             dao.insertCourseBase(CourseBaseBean(id, name, color, tableId))
         }
 
-        // 插入 CourseDetailBean
         for (course in courses) {
             val id = nameToId[course.name]!!
             val step = course.endNode - course.startNode + 1
