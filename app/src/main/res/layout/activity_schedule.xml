@@ -19,6 +19,7 @@
         android:orientation="vertical">
         <!-- 顶部：简洁白底 -->
         <LinearLayout
+            android:id="@+id/schedule_header"
             android:layout_width="match_parent"
             android:layout_height="52dp"
             android:background="@color/surface"

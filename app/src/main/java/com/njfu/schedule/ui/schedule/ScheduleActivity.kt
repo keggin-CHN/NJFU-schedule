@@ -111,11 +111,17 @@ class ScheduleActivity : AppCompatActivity() {
         binding.viewPager.visibility = if (allBases.isNotEmpty()) View.VISIBLE else View.GONE
         binding.emptyView.visibility = if (allBases.isEmpty()) View.VISIBLE else View.GONE
         findViewById<View>(R.id.query_container)?.visibility = View.GONE
+        // 显示课表顶部栏
+        findViewById<View>(R.id.schedule_header)?.visibility = View.VISIBLE
+        binding.headerRow.visibility = View.VISIBLE
     }
 
     private fun showQueryView() {
         binding.viewPager.visibility = View.GONE
         binding.emptyView.visibility = View.GONE
+        // 隐藏课表顶部栏
+        findViewById<View>(R.id.schedule_header)?.visibility = View.GONE
+        binding.headerRow.visibility = View.GONE
 
         var queryContainer = findViewById<View>(R.id.query_container)
         if (queryContainer == null) {
@@ -124,10 +130,9 @@ class ScheduleActivity : AppCompatActivity() {
             val mainContent = findViewById<android.widget.LinearLayout>(R.id.main_content)
             val params = android.widget.LinearLayout.LayoutParams(
                 android.widget.LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f)
-            mainContent.addView(queryView, mainContent.childCount - 1, params) // 在底部导航前插入
+            mainContent.addView(queryView, mainContent.childCount, params)
             queryContainer = queryView
 
-            // 绑定点击事件
             queryView.findViewById<View>(R.id.card_teacher).setOnClickListener {
                 openQuery("https://jwxt.njfu.edu.cn/jsxsd/xskb/xskb_list_jg0101foroutside.do", "教师课表")
             }
@@ -309,9 +314,7 @@ class ScheduleActivity : AppCompatActivity() {
             allDetails.filter { d -> !(d.startWeek <= week && d.endWeek >= week) }
         } else emptyList()
 
-        val gridLineColor = Color.parseColor("#CCCCCC")
-        val gridLineWidth = dpToPx(1)
-
+        //
         // 节次列
         val nodeCol = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
