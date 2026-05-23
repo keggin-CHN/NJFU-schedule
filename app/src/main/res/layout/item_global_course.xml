@@ -33,7 +33,7 @@
             android:id="@+id/tv_day"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="?attr/colorPrimary"
+            android:textColor="#1976D2"
             android:textSize="11sp"
             android:textStyle="bold"
             tools:text="周一" />
@@ -43,7 +43,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
-            android:textColor="?attr/colorOnSurface"
+            android:textColor="#222222"
             android:textSize="17sp"
             android:textStyle="bold"
             tools:text="1-2" />
@@ -51,7 +51,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:textColor="?attr/colorControlNormal"
+            android:textColor="#555555"
             android:textSize="10sp"
             android:text="节" />
     </LinearLayout>

@@ -10,7 +10,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.njfu.schedule.R
 import com.njfu.schedule.bean.GlobalCourseInfo
 
-class GlobalCourseAdapter : ListAdapter<GlobalCourseInfo, GlobalCourseAdapter.VH>(DIFF) {
+class GlobalCourseAdapter(private val onItemClick: (GlobalCourseInfo) -> Unit) : ListAdapter<GlobalCourseInfo, GlobalCourseAdapter.VH>(DIFF) {
 
     companion object {
         val DIFF = object : DiffUtil.ItemCallback<GlobalCourseInfo>() {
@@ -53,6 +53,10 @@ class GlobalCourseAdapter : ListAdapter<GlobalCourseInfo, GlobalCourseAdapter.VH
             holder.tvClassName.text = item.className
         } else {
             holder.tvClassName.visibility = View.GONE
+        }
+        
+        holder.itemView.setOnClickListener {
+            onItemClick(item)
         }
     }
 }

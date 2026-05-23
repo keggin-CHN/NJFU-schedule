@@ -465,9 +465,9 @@ class ScheduleActivity : AppCompatActivity() {
         val tv = TextView(this).apply {
             layoutParams = FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
             gravity = Gravity.CENTER
-            val timeText = formatCustomTime(course).ifEmpty {
+            val timeText = preventTimeWrap(formatCustomTime(course).ifEmpty {
                 "${TimeNode.getStartTime(course.startNode)}~${TimeNode.getEndTime(course.startNode + course.step - 1)}"
-            }
+            })
             val displayText = buildString {
                 append(name)
                 if (course.step >= 2) append("\n").append(timeText)
@@ -491,8 +491,8 @@ class ScheduleActivity : AppCompatActivity() {
                         setColor(Color.argb(24, Color.red(color), Color.green(color), Color.blue(color)))
                         setStroke(dpToPx(1), Color.argb(190, 120, 130, 148), dpToPx(4).toFloat(), dpToPx(3).toFloat())
                     } else {
-                        setColor(Color.argb(62, Color.red(color), Color.green(color), Color.blue(color)))
-                        setStroke(dpToPx(1), Color.argb(150, 96, 106, 122), dpToPx(4).toFloat(), dpToPx(3).toFloat())
+                        setColor(Color.argb(132, Color.red(color), Color.green(color), Color.blue(color)))
+                        setStroke(dpToPx(2), Color.argb(235, 72, 84, 104), dpToPx(4).toFloat(), dpToPx(3).toFloat())
                     }
                 } else {
                     setColor(Color.argb(252, Color.red(color), Color.green(color), Color.blue(color)))
@@ -503,7 +503,7 @@ class ScheduleActivity : AppCompatActivity() {
             background = drawable
 
             if (isOtherWeek) {
-                setTextColor(if (isNightMode) Color.argb(150, 226, 231, 239) else Color.argb(150, 54, 62, 74))
+                setTextColor(if (isNightMode) Color.argb(150, 226, 231, 239) else Color.argb(230, 35, 43, 56))
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 8.8f)
             }
         }
@@ -555,6 +555,12 @@ class ScheduleActivity : AppCompatActivity() {
         val start = course.customStartTime.orEmpty()
         val end = course.customEndTime.orEmpty()
         return if (start.isNotEmpty() && end.isNotEmpty()) "$start~$end" else ""
+    }
+
+    private fun preventTimeWrap(time: String): String {
+        return time
+            .replace("-", "\u2060-\u2060")
+            .replace("~", "\u2060~\u2060")
     }
 
     private fun refreshWidgets() {

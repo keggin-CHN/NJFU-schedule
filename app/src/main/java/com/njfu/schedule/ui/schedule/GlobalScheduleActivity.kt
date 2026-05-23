@@ -23,7 +23,9 @@ class GlobalScheduleActivity : AppCompatActivity() {
     private var currentType = "jg0101"
 
     // Adapters
-    private val courseAdapter = GlobalCourseAdapter()
+    private val courseAdapter = GlobalCourseAdapter { item ->
+        showCourseDetail(item)
+    }
 
     // State
     private var sessionReady = false
@@ -41,30 +43,23 @@ class GlobalScheduleActivity : AppCompatActivity() {
         binding.rvResults.layoutManager = LinearLayoutManager(this)
         binding.rvResults.adapter = courseAdapter
 
-        // Type selector
-        binding.chipGroupType.setOnCheckedStateChangeListener { _, checkedIds ->
-            if (checkedIds.isEmpty()) return@setOnCheckedStateChangeListener
-            val newType = when (checkedIds[0]) {
-                binding.chipTeacher.id -> "jg0101"
-                binding.chipRoom.id -> "jx0601"
-                binding.chipClass.id -> "bj0101"
-                binding.chipCourse.id -> "kc0101"
-                else -> "jg0101"
-            }
-            if (newType != currentType) {
-                currentType = newType
-                binding.etFilter.setText("")
-                showInitialState()
-            }
+        // Read intent and hide chips
+        val title = intent.getStringExtra("title") ?: "全校课表查询"
+        currentType = when (title) {
+            "教师课表" -> "jg0101"
+            "教室课表" -> "jx0601"
+            "班级课表" -> "bj0101"
+            "课程课表" -> "kc0101"
+            else -> "jg0101"
         }
+        supportActionBar?.title = title
+        binding.chipGroupType.visibility = View.GONE
 
         // Filter input (direct search on submit)
         binding.etFilter.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH) {
                 val q = binding.etFilter.text?.toString()?.trim() ?: ""
-                if (q.isNotEmpty()) {
-                    performSearch(q)
-                }
+                performSearch(q)
                 true
             } else {
                 false
@@ -89,7 +84,7 @@ class GlobalScheduleActivity : AppCompatActivity() {
         // Retry button
         binding.btnRetry.setOnClickListener {
             val q = binding.etFilter.text?.toString()?.trim() ?: ""
-            if (q.isNotEmpty()) performSearch(q)
+            performSearch(q)
         }
 
         // FAB to clear search
@@ -116,7 +111,7 @@ class GlobalScheduleActivity : AppCompatActivity() {
             val errMsg = withContext(Dispatchers.IO) { doLoginGetError() }
             if (errMsg == null) {
                 sessionReady = true
-                showInitialState()
+                performSearch("")
             } else {
                 showError("登录失败：$errMsg\n\n（请先在\"导入课表\"页面登录一次）")
             }
@@ -128,7 +123,9 @@ class GlobalScheduleActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 val courses = withContext(Dispatchers.IO) {
-                    importer.fetchGlobalSchedule(currentType, keyword)
+                    importer.fetchGlobalSchedule(currentType, keyword) { msg ->
+                        runOnUiThread { showLoading(msg) }
+                    }
                 }
                 val sorted = courses.sortedWith(compareBy({ it.day }, {
                     it.sectionsStr.replace(Regex("\\D"), "").take(2).toIntOrNull() ?: 0
@@ -167,8 +164,32 @@ class GlobalScheduleActivity : AppCompatActivity() {
         binding.fabBack.visibility = View.GONE
     }
 
+    private fun showCourseDetail(item: com.njfu.schedule.bean.GlobalCourseInfo) {
+        val dialog = com.google.android.material.bottomsheet.BottomSheetDialog(this)
+        val view = layoutInflater.inflate(com.njfu.schedule.R.layout.dialog_global_course_detail, null)
+        dialog.setContentView(view)
+        
+        view.findViewById<android.widget.TextView>(com.njfu.schedule.R.id.tv_detail_course_name).text = item.courseName
+        val tvClass = view.findViewById<android.widget.TextView>(com.njfu.schedule.R.id.tv_detail_class_name)
+        if (item.className.isNotEmpty()) {
+            tvClass.visibility = View.VISIBLE
+            tvClass.text = item.className
+        } else {
+            tvClass.visibility = View.GONE
+        }
+        view.findViewById<android.widget.TextView>(com.njfu.schedule.R.id.tv_detail_teacher).text = item.teacher.ifEmpty { "未知教师" }
+        view.findViewById<android.widget.TextView>(com.njfu.schedule.R.id.tv_detail_room).text = item.room.ifEmpty { "未知教室" }
+        val days = arrayOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")
+        val dayStr = if (item.day in 1..7) days[item.day - 1] else "未知"
+        view.findViewById<android.widget.TextView>(com.njfu.schedule.R.id.tv_detail_time).text = "$dayStr ${item.sectionsStr}"
+        view.findViewById<android.widget.TextView>(com.njfu.schedule.R.id.tv_detail_weeks).text = item.weeksStr.ifEmpty { "未知周次" }
+        
+        view.findViewById<android.view.View>(com.njfu.schedule.R.id.btn_detail_close).setOnClickListener { dialog.dismiss() }
+        
+        dialog.show()
+    }
+
     private fun showInitialState() {
-        supportActionBar?.title = "全校课表查询"
         binding.layoutLoading.visibility = View.GONE
         binding.layoutEmpty.visibility = View.VISIBLE
         binding.tvEmpty.text = "请输入关键字并点击键盘上的【搜索】按钮查询\n（可输入班级、教师姓名等进行精确检索）"

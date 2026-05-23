@@ -179,7 +179,7 @@ class NjfuImporter {
      * [keyword] 用户输入的搜索关键字
      * [term] 学期代码（如 2025-2026-2，为空默认查当前学期）
      */
-    fun fetchGlobalSchedule(type: String, keyword: String, term: String = ""): List<com.njfu.schedule.bean.GlobalCourseInfo> {
+    fun fetchGlobalSchedule(type: String, keyword: String, term: String = "", onProgress: ((String) -> Unit)? = null): List<com.njfu.schedule.bean.GlobalCourseInfo> {
         // 映射请求路径和参数名
         val (path, paramName) = when (type) {
             "jg0101" -> Pair("kbxx_teacher_ifr", "skjs")
@@ -189,7 +189,7 @@ class NjfuImporter {
             else -> Pair("kbxx_xzb_ifr", "skbj")
         }
 
-        // 先尝试获取该类型查询主页，以获取隐藏参数 kbjcmsid 和当前学期
+        onProgress?.invoke("正在获取查询基础参数...")
         val homeUrl = "https://jwxt.njfu.edu.cn/jsxsd/kbcx/${path.replace("_ifr", "")}"
         val homeReq = Request.Builder().url(homeUrl).get().build()
         val homeResp = client.newCall(homeReq).execute()
@@ -210,15 +210,17 @@ class NjfuImporter {
             .add("kbjcmsid", kbjcmsid)
             .add(paramName, keyword)
 
+        onProgress?.invoke("正在获取全校课表数据 (耗时较长，请耐心等待)...")
         val dataUrl = "https://jwxt.njfu.edu.cn/jsxsd/kbcx/$path"
         val dataReq = Request.Builder().url(dataUrl).post(formBuilder.build()).build()
         val dataResp = client.newCall(dataReq).execute()
         val dataHtml = dataResp.body?.string() ?: ""
 
-        return parseNewGlobalSchedule(dataHtml)
+        onProgress?.invoke("数据获取成功，大小: ${dataHtml.length / 1024} KB。正在解析排课数据...")
+        return parseNewGlobalSchedule(dataHtml, onProgress)
     }
 
-    private fun parseNewGlobalSchedule(html: String): List<com.njfu.schedule.bean.GlobalCourseInfo> {
+    private fun parseNewGlobalSchedule(html: String, onProgress: ((String) -> Unit)? = null): List<com.njfu.schedule.bean.GlobalCourseInfo> {
         val doc = Jsoup.parse(html)
         val table = doc.selectFirst("table#timetable") ?: return emptyList()
 
@@ -229,6 +231,9 @@ class NjfuImporter {
         if (rows.size <= 2) return emptyList()
         
         for (i in 2 until rows.size) {
+            if (i % 50 == 0) {
+                onProgress?.invoke("正在解析排课数据... ($i / ${rows.size})")
+            }
             val row = rows[i]
             val tds = row.select("td")
             if (tds.isEmpty()) continue

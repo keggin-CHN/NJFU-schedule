@@ -69,9 +69,11 @@ class NextCourseWidget : AppWidgetProvider() {
                         d.day == todayOfWeek &&
                         d.startWeek <= currentWeek && d.endWeek >= currentWeek &&
                         (d.type == 0 || (d.type == 1 && currentWeek % 2 == 1) || (d.type == 2 && currentWeek % 2 == 0))
-                    }.sortedWith(compareBy { d ->
-                        parseMinutes(d.customStartTime ?: TimeNode.getStartTime(d.startNode)) ?: 0
-                    }).map { course ->
+                    }.sortedWith(compareBy(
+                        { d -> parseMinutes(d.customStartTime ?: TimeNode.getStartTime(d.startNode)) ?: 0 },
+                        { d -> parseMinutes(d.customEndTime ?: TimeNode.getEndTime(d.startNode + d.step - 1)) ?: 0 },
+                        { d -> nameMap[d.id].orEmpty().lowercase(Locale.CHINA) }
+                    )).map { course ->
                         val startTime = course.customStartTime ?: TimeNode.getStartTime(course.startNode)
                         val endTime = course.customEndTime ?: TimeNode.getEndTime(course.startNode + course.step - 1)
                         WidgetCourseLine(
