@@ -39,7 +39,7 @@ class EmptyRoomActivity : AppCompatActivity() {
         lifecycleScope.launch {
             try {
                 withContext(Dispatchers.IO) {
-                    importer.getCookie()
+                    importer.prepareSession()
                 }
             } catch (e: Exception) {
                 // Ignore, will prompt on search
