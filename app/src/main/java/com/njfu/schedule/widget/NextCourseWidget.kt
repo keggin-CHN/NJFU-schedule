@@ -99,9 +99,9 @@ class NextCourseWidget : AppWidgetProvider() {
             views.removeAllViews(R.id.ll_widget_courses)
 
             if (todayCourses.isEmpty()) {
-                views.setViewVisibility(R.id.tv_widget2_empty, android.view.View.VISIBLE)
+                val emptyView = RemoteViews(context.packageName, R.layout.widget_empty_text)
+                views.addView(R.id.ll_widget_courses, emptyView)
             } else {
-                views.setViewVisibility(R.id.tv_widget2_empty, android.view.View.GONE)
 
                 val displayCourses = todayCourses.take(3)
                 for (course in displayCourses) {

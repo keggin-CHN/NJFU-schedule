@@ -487,19 +487,19 @@ class ScheduleActivity : AppCompatActivity() {
                         setColor(Color.argb(24, Color.red(color), Color.green(color), Color.blue(color)))
                         setStroke(dpToPx(1), Color.argb(190, 120, 130, 148), dpToPx(4).toFloat(), dpToPx(3).toFloat())
                     } else {
-                        setColor(Color.argb(30, Color.red(color), Color.green(color), Color.blue(color)))
-                        setStroke(dpToPx(1), Color.argb(200, 180, 190, 205), dpToPx(4).toFloat(), dpToPx(3).toFloat())
+                        setColor(Color.argb(18, Color.red(color), Color.green(color), Color.blue(color)))
+                        setStroke(dpToPx(1), Color.argb(120, 180, 190, 205), dpToPx(4).toFloat(), dpToPx(3).toFloat())
                     }
                 } else {
-                    setColor(Color.argb(252, Color.red(color), Color.green(color), Color.blue(color)))
-                    setStroke(dpToPx(1), if (isNightMode) Color.argb(235, 255, 255, 255) else Color.argb(185, 255, 255, 255))
+                    setColor(Color.argb(255, Color.red(color), Color.green(color), Color.blue(color)))
+                    setStroke(dpToPx(1), if (isNightMode) Color.argb(235, 255, 255, 255) else Color.argb(60, 0, 0, 0))
                 }
                 cornerRadius = dpToPx(9).toFloat()
             }
             background = drawable
 
             if (isOtherWeek) {
-                setTextColor(if (isNightMode) Color.argb(150, 226, 231, 239) else Color.argb(230, 35, 43, 56))
+                setTextColor(if (isNightMode) Color.argb(150, 226, 231, 239) else Color.argb(160, 90, 100, 115))
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 8.8f)
             }
         }

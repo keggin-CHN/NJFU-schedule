@@ -35,7 +35,9 @@
     <TextView
         android:id="@+id/tv_widget_empty"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="8dp"
         android:gravity="center"
         android:text="今天没有课"
         android:textColor="@color/text_secondary"

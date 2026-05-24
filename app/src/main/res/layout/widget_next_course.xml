@@ -47,16 +47,5 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_marginTop="6dp"
-        android:orientation="vertical">
-        
-        <TextView
-            android:id="@+id/tv_widget2_empty"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="center"
-            android:text="今天没有课\n可以休息一下"
-            android:textColor="@color/text_secondary"
-            android:textSize="13sp"
-            android:visibility="gone"/>
-    </LinearLayout>
+        android:orientation="vertical" />
 </LinearLayout>
