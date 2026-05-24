@@ -107,7 +107,16 @@ class NextCourseWidget : AppWidgetProvider() {
                 } catch (_: Exception) {}
 
                 manager.updateAppWidget(widgetId, views)
-            } catch (_: Exception) {}
+            } catch (t: Throwable) {
+                try {
+                    val views = RemoteViews(context.packageName, R.layout.widget_next_course)
+                    views.setTextViewText(R.id.tv_widget2_title, "加载出错: ${t.javaClass.simpleName} ${t.message}")
+                    views.setViewVisibility(R.id.tv_widget2_empty, View.GONE)
+                    manager.updateAppWidget(widgetId, views)
+                } catch (e2: Throwable) {
+                    // Ignore
+                }
+            }
         }
 
         private fun bindCourse(views: RemoteViews, index: Int, course: WidgetCourse?) {
@@ -133,18 +142,23 @@ class NextCourseWidget : AppWidgetProvider() {
             }
             try {
                 views.setViewVisibility(containerIds[index], View.VISIBLE)
-                views.setTextViewText(timeIds[index], preventTimeWrap(course.time))
+                val timeText = compactTime(course.time)
+                views.setViewVisibility(timeIds[index], View.GONE)
                 views.setTextViewText(nameIds[index], course.name.ifBlank { "未命名课程" })
                 
                 val info = buildString {
-                    if (course.room.isNotEmpty()) append(course.room)
+                    append(timeText)
+                    if (course.room.isNotEmpty()) {
+                        append(" | ")
+                        append(course.room)
+                    }
                     if (course.teacher.isNotEmpty()) {
-                        if (isNotEmpty()) append(" | ")
+                        append(" | ")
                         append(course.teacher)
                     }
                 }
-                views.setTextViewText(infoIds[index], info.ifBlank { "地点/教师待定" })
-                views.setViewVisibility(infoIds[index], if (info.isEmpty()) View.GONE else View.VISIBLE)
+                views.setTextViewText(infoIds[index], info)
+                views.setViewVisibility(infoIds[index], View.VISIBLE)
 
                 views.setInt(
                     colorIds[index],
@@ -154,11 +168,12 @@ class NextCourseWidget : AppWidgetProvider() {
             } catch (_: Exception) {}
         }
 
-        private fun preventTimeWrap(time: String): String {
+        private fun compactTime(time: String): String {
             return time
-                .replace("-", "\u2060-\u2060")
-                .replace("~", "\u2060~\u2060")
+                .replace(" ", "")
+                .replace("~", "-")
         }
+
 
         private fun schedulePeriodicRefresh(context: Context) {
             val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return

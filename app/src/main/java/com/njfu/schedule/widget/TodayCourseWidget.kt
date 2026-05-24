@@ -107,7 +107,16 @@ class TodayCourseWidget : AppWidgetProvider() {
                 } catch (_: Exception) {}
 
                 manager.updateAppWidget(widgetId, views)
-            } catch (_: Exception) {}
+            } catch (t: Throwable) {
+                try {
+                    val views = RemoteViews(context.packageName, R.layout.widget_today_courses)
+                    views.setTextViewText(R.id.tv_widget_date, "加载出错: ${t.javaClass.simpleName} ${t.message}")
+                    views.setViewVisibility(R.id.tv_widget_empty, View.GONE)
+                    manager.updateAppWidget(widgetId, views)
+                } catch (e2: Throwable) {
+                    // If even the fallback fails, it's a layout/RemoteViews issue
+                }
+            }
         }
 
         private fun bindCourse(views: RemoteViews, index: Int, course: WidgetCourse?) {
