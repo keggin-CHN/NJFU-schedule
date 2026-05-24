@@ -13,6 +13,7 @@ import com.njfu.schedule.bean.CourseDetailBean
 import com.njfu.schedule.bean.TableBean
 import com.njfu.schedule.databinding.ActivityImportBinding
 import com.njfu.schedule.njfu.NjfuImporter
+import com.njfu.schedule.utils.SecurePrefs
 import com.njfu.schedule.widget.NextCourseWidget
 import com.njfu.schedule.widget.TodayCourseWidget
 import com.njfu.schedule.worker.GlobalCacheScheduler
@@ -35,7 +36,7 @@ class ImportActivity : AppCompatActivity() {
         binding = ActivityImportBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        val prefs = getSharedPreferences("njfu_login", Context.MODE_PRIVATE)
+        val prefs = SecurePrefs.get(this)
         val savedId = prefs.getString("student_id", "") ?: ""
         val savedPwd = prefs.getString("password", "") ?: ""
         if (savedId.isNotEmpty()) binding.etId.setText(savedId)
@@ -93,12 +94,9 @@ class ImportActivity : AppCompatActivity() {
 
                 updateStep("正在保存 ${result.courses.map { it.name }.distinct().size} 门课程...")
 
-                getSharedPreferences("njfu_login", Context.MODE_PRIVATE).edit()
+                SecurePrefs.get(this@ImportActivity).edit()
                     .putString("student_id", studentId)
                     .putString("password", password)
-                    .apply()
-
-                getSharedPreferences("njfu_login", Context.MODE_PRIVATE).edit()
                     .putString("remarks", result.remarks.joinToString("\n"))
                     .apply()
 

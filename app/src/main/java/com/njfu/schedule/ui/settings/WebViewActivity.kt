@@ -36,7 +36,11 @@ class WebViewActivity : AppCompatActivity() {
             loadWithOverviewMode = true
             builtInZoomControls = true
             displayZoomControls = false
-            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+            allowFileAccess = false
+            allowContentAccess = false
+            allowFileAccessFromFileURLs = false
+            allowUniversalAccessFromFileURLs = false
         }
 
         binding.webview.webViewClient = object : WebViewClient() {
@@ -52,7 +56,7 @@ class WebViewActivity : AppCompatActivity() {
     }
 
     private fun autoLogin(targetUrl: String) {
-        val prefs = getSharedPreferences("njfu_login", Context.MODE_PRIVATE)
+        val prefs = com.njfu.schedule.utils.SecurePrefs.get(this)
         val studentId = prefs.getString("student_id", "") ?: ""
         val password = prefs.getString("password", "") ?: ""
 

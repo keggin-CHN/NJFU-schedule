@@ -368,7 +368,7 @@ class ScheduleActivity : AppCompatActivity() {
         override fun onBindViewHolder(holder: VH, position: Int) {
             renderWeek(holder.grid, position + 1)
 
-            val prefs = getSharedPreferences("njfu_login", android.content.Context.MODE_PRIVATE)
+            val prefs = com.njfu.schedule.utils.SecurePrefs.get(this@ScheduleActivity)
             val remarks = prefs.getString("remarks", null)
             if (!remarks.isNullOrEmpty()) {
                 holder.tvRemarks.visibility = View.VISIBLE
@@ -640,7 +640,7 @@ class ScheduleActivity : AppCompatActivity() {
     }
 
     private fun saveSyncRemarks(result: com.njfu.schedule.njfu.NjfuImporter.ImportResult) {
-        getSharedPreferences("njfu_login", android.content.Context.MODE_PRIVATE).edit()
+        com.njfu.schedule.utils.SecurePrefs.get(this).edit()
             .putString("remarks", result.remarks.joinToString("\n"))
             .apply()
     }
@@ -889,7 +889,7 @@ class ScheduleActivity : AppCompatActivity() {
     }
 
     private fun syncSchedule() {
-        val prefs = getSharedPreferences("njfu_login", android.content.Context.MODE_PRIVATE)
+        val prefs = com.njfu.schedule.utils.SecurePrefs.get(this)
         val studentId = prefs.getString("student_id", "") ?: ""
         val password = prefs.getString("password", "") ?: ""
 

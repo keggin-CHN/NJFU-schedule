@@ -7,6 +7,7 @@ import androidx.work.workDataOf
 import com.njfu.schedule.AppDatabase
 import com.njfu.schedule.bean.GlobalCourseEntity
 import com.njfu.schedule.njfu.NjfuImporter
+import com.njfu.schedule.utils.SecurePrefs
 
 class GlobalCacheWorker(
     appContext: Context,
@@ -14,7 +15,7 @@ class GlobalCacheWorker(
 ) : CoroutineWorker(appContext, params) {
 
     override suspend fun doWork(): Result {
-        val prefs = applicationContext.getSharedPreferences("njfu_login", Context.MODE_PRIVATE)
+        val prefs = SecurePrefs.get(applicationContext)
         val studentId = prefs.getString("student_id", "") ?: ""
         val password = prefs.getString("password", "") ?: ""
         if (studentId.isEmpty() || password.isEmpty()) return Result.failure()

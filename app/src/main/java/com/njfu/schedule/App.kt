@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import androidx.appcompat.app.AppCompatDelegate
 import com.njfu.schedule.bean.TimeNode
+import com.njfu.schedule.utils.SecurePrefs
 
 class App : Application() {
 
@@ -20,5 +21,6 @@ class App : Application() {
         val themeMode = getSharedPreferences("bg_settings", Context.MODE_PRIVATE).getInt("theme_mode", AppCompatDelegate.MODE_NIGHT_YES)
         AppCompatDelegate.setDefaultNightMode(themeMode)
         TimeNode.load(this)
+        SecurePrefs.migrateIfNeeded(this)
     }
 }

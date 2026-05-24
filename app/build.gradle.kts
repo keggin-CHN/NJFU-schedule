@@ -34,7 +34,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             if (!System.getenv("SIGNING_STORE_FILE").isNullOrBlank()) {
                 signingConfig = signingConfigs.getByName("release")
             }
@@ -83,4 +84,7 @@ dependencies {
 
     // Jsoup for HTML parsing
     implementation("org.jsoup:jsoup:1.17.2")
+
+    // Encrypted storage for credentials
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
 }
