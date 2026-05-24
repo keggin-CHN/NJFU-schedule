@@ -1,166 +1,192 @@
 package com.njfu.schedule.widget
 
+import android.app.AlarmManager
+import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.os.SystemClock
+import android.view.View
 import android.widget.RemoteViews
-import com.njfu.schedule.AppDatabase
 import com.njfu.schedule.R
-import com.njfu.schedule.bean.TimeNode
-import com.njfu.schedule.utils.WeekUtils
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
-import java.text.SimpleDateFormat
-import java.util.*
+import kotlinx.coroutines.launch
 
 class NextCourseWidget : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
         for (id in appWidgetIds) {
-            updateWidget(context, appWidgetManager, id)
+            try {
+                updateWidget(context, appWidgetManager, id)
+            } catch (_: Exception) {}
         }
     }
 
     override fun onReceive(context: Context, intent: Intent) {
-        super.onReceive(context, intent)
-        if (intent.action == Intent.ACTION_TIME_CHANGED ||
-            intent.action == Intent.ACTION_DATE_CHANGED ||
-            intent.action == "com.njfu.schedule.REFRESH_WIDGET") {
-            val manager = AppWidgetManager.getInstance(context)
-            val ids = manager.getAppWidgetIds(ComponentName(context, NextCourseWidget::class.java))
-            onUpdate(context, manager, ids)
+        val action = intent.action
+        if (action == AppWidgetManager.ACTION_APPWIDGET_UPDATE) {
+            super.onReceive(context, intent)
+            return
         }
+        if (action == Intent.ACTION_TIME_CHANGED ||
+            action == Intent.ACTION_DATE_CHANGED ||
+            action == Intent.ACTION_TIMEZONE_CHANGED ||
+            action == "com.njfu.schedule.REFRESH_WIDGET" ||
+            action == Intent.ACTION_BOOT_COMPLETED ||
+            action == Intent.ACTION_MY_PACKAGE_REPLACED) {
+            val pendingResult = goAsync()
+            CoroutineScope(Dispatchers.Main).launch {
+                try {
+                    val manager = AppWidgetManager.getInstance(context)
+                    val ids = manager.getAppWidgetIds(
+                        ComponentName(context, NextCourseWidget::class.java)
+                    )
+                    for (id in ids) {
+                        updateWidget(context, manager, id)
+                    }
+                } finally {
+                    pendingResult.finish()
+                }
+            }
+            return
+        }
+        super.onReceive(context, intent)
+    }
+
+    override fun onEnabled(context: Context) {
+        super.onEnabled(context)
+        schedulePeriodicRefresh(context)
+    }
+
+    override fun onDisabled(context: Context) {
+        super.onDisabled(context)
+        cancelPeriodicRefresh(context)
     }
 
     companion object {
+        private const val REFRESH_INTERVAL_MS = 30L * 60 * 1000
+
         fun refreshAll(context: Context) {
             val manager = AppWidgetManager.getInstance(context)
-            val ids = manager.getAppWidgetIds(ComponentName(context, NextCourseWidget::class.java))
-            val intent = Intent(context, NextCourseWidget::class.java)
-            intent.action = AppWidgetManager.ACTION_APPWIDGET_UPDATE
-            intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, ids)
-            context.sendBroadcast(intent)
+            val ids = manager.getAppWidgetIds(
+                ComponentName(context, NextCourseWidget::class.java)
+            )
+            ids.forEach { updateWidget(context, manager, it) }
         }
 
         private fun updateWidget(context: Context, manager: AppWidgetManager, widgetId: Int) {
-            val views = RemoteViews(context.packageName, R.layout.widget_next_course)
-            TimeNode.load(context)
+            try {
+                val views = RemoteViews(context.packageName, R.layout.widget_next_course)
+                val courses = WidgetDataHelper.loadUpcomingCourses(context)
 
-            val todayOfWeek = WeekUtils.getTodayOfWeek()
-            val dateText = SimpleDateFormat("M月d日 E", Locale.CHINA).format(Date())
+                views.setTextViewText(R.id.tv_widget2_title, WidgetDataHelper.todayText())
 
-            val calendar = Calendar.getInstance()
-            val nowTotalMin = calendar.get(Calendar.HOUR_OF_DAY) * 60 + calendar.get(Calendar.MINUTE)
+                bindCourse(views, 0, courses.getOrNull(0))
+                bindCourse(views, 1, courses.getOrNull(1))
+                bindCourse(views, 2, courses.getOrNull(2))
 
-            val todayCourses = runBlocking(Dispatchers.IO) {
+                views.setViewVisibility(
+                    R.id.tv_widget2_empty,
+                    if (courses.isEmpty()) View.VISIBLE else View.GONE
+                )
+
                 try {
-                    val db = AppDatabase.getDatabase(context)
-                    val dao = db.courseDao()
-                    val table = dao.getFirstTable() ?: return@runBlocking emptyList<WidgetCourseLine>()
-                    val currentWeek = WeekUtils.getCurrentWeek(table.startDate)
-
-                    val allDetails = dao.getCourseDetailsById_sync(table.id)
-                    val allBases = dao.getCourseBaseById_sync(table.id)
-                    val nameMap = allBases.associate { it.id to it.courseName }
-                    val colorMap = allBases.associate { it.id to it.color }
-                    val teacherMap = allDetails.associate { it.id to it.teacher }
-
-                    allDetails.filter { d ->
-                        d.day == todayOfWeek &&
-                        d.startWeek <= currentWeek && d.endWeek >= currentWeek &&
-                        (d.type == 0 || (d.type == 1 && currentWeek % 2 == 1) || (d.type == 2 && currentWeek % 2 == 0))
-                    }.filter { d ->
-                        val endTimeStr = d.customEndTime ?: TimeNode.getEndTime(d.startNode + d.step - 1)
-                        val endMin = parseMinutes(endTimeStr) ?: 0
-                        endMin > nowTotalMin 
-                    }.sortedWith(compareBy(
-                        { d -> parseMinutes(d.customStartTime ?: TimeNode.getStartTime(d.startNode)) ?: 0 },
-                        { d -> parseMinutes(d.customEndTime ?: TimeNode.getEndTime(d.startNode + d.step - 1)) ?: 0 },
-                        { d -> nameMap[d.id].orEmpty().lowercase(Locale.CHINA) }
-                    )).map { course ->
-                        val startTime = course.customStartTime ?: TimeNode.getStartTime(course.startNode)
-                        val endTime = course.customEndTime ?: TimeNode.getEndTime(course.startNode + course.step - 1)
-                        WidgetCourseLine(
-                            time = "$startTime-$endTime",
-                            name = nameMap[course.id].orEmpty(),
-                            room = course.room.orEmpty(),
-                            teacher = teacherMap[course.id].orEmpty(),
-                            color = colorMap[course.id].orEmpty()
+                    val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
+                    if (launchIntent != null) {
+                        val pi = PendingIntent.getActivity(
+                            context, 200, launchIntent,
+                            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                         )
+                        views.setOnClickPendingIntent(R.id.widget2_root, pi)
+                        views.setOnClickPendingIntent(R.id.tv_widget2_badge, pi)
+                        views.setOnClickPendingIntent(R.id.tv_widget2_title, pi)
                     }
-                } catch (_: Exception) {
-                    emptyList()
-                }
-            }
+                } catch (_: Exception) {}
 
-            views.setTextViewText(R.id.tv_widget2_title, dateText)
-            views.removeAllViews(R.id.ll_widget_courses)
-
-            if (todayCourses.isEmpty()) {
-                val emptyView = RemoteViews(context.packageName, R.layout.widget_empty_text)
-                views.addView(R.id.ll_widget_courses, emptyView)
-            } else {
-
-                val displayCourses = todayCourses.take(3)
-                for (course in displayCourses) {
-                    val itemView = RemoteViews(context.packageName, R.layout.item_widget_course)
-                    itemView.setTextViewText(R.id.tv_course_time, course.time)
-                    itemView.setTextViewText(R.id.tv_course_name, course.name)
-
-                    val info = buildString {
-                        if (course.room.isNotEmpty()) append(course.room)
-                        if (course.teacher.isNotEmpty()) {
-                            if (isNotEmpty()) append(" | ")
-                            append(course.teacher)
-                        }
-                    }
-                    itemView.setTextViewText(R.id.tv_course_info, info)
-                    if (info.isEmpty()) {
-                        itemView.setViewVisibility(R.id.tv_course_info, android.view.View.GONE)
-                    } else {
-                        itemView.setViewVisibility(R.id.tv_course_info, android.view.View.VISIBLE)
-                    }
-
-                    try {
-                        val parsedColor = android.graphics.Color.parseColor(course.color.ifEmpty { "#7986CB" })
-                        itemView.setInt(R.id.view_course_color, "setBackgroundColor", parsedColor)
-                    } catch (e: Exception) {
-                        itemView.setInt(R.id.view_course_color, "setBackgroundColor", android.graphics.Color.parseColor("#7986CB"))
-                    }
-
-                    views.addView(R.id.ll_widget_courses, itemView)
-                }
-            }
-
-            val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
-            if (launchIntent != null) {
-                val pi = android.app.PendingIntent.getActivity(context, 1, launchIntent,
-                    android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE)
-                views.setOnClickPendingIntent(R.id.widget2_root, pi)
-                views.setOnClickPendingIntent(R.id.tv_widget2_badge, pi)
-                views.setOnClickPendingIntent(R.id.tv_widget2_title, pi)
-                views.setOnClickPendingIntent(R.id.ll_widget_courses, pi)
-            }
-
-            manager.updateAppWidget(widgetId, views)
+                manager.updateAppWidget(widgetId, views)
+            } catch (_: Exception) {}
         }
 
-        private data class WidgetCourseLine(
-            val time: String,
-            val name: String,
-            val room: String,
-            val teacher: String,
-            val color: String
-        )
+        private fun bindCourse(views: RemoteViews, index: Int, course: WidgetCourse?) {
+            val containerIds = intArrayOf(
+                R.id.widget2_course_1, R.id.widget2_course_2, R.id.widget2_course_3
+            )
+            val colorIds = intArrayOf(
+                R.id.widget2_course_color_1, R.id.widget2_course_color_2, R.id.widget2_course_color_3
+            )
+            val timeIds = intArrayOf(
+                R.id.widget2_course_time_1, R.id.widget2_course_time_2, R.id.widget2_course_time_3
+            )
+            val nameIds = intArrayOf(
+                R.id.widget2_course_name_1, R.id.widget2_course_name_2, R.id.widget2_course_name_3
+            )
+            val infoIds = intArrayOf(
+                R.id.widget2_course_info_1, R.id.widget2_course_info_2, R.id.widget2_course_info_3
+            )
 
-        private fun parseMinutes(time: String): Int? {
-            val parts = time.split(":")
-            if (parts.size != 2) return null
-            val hour = parts[0].toIntOrNull() ?: return null
-            val minute = parts[1].toIntOrNull() ?: return null
-            return hour * 60 + minute
+            if (course == null) {
+                views.setViewVisibility(containerIds[index], View.GONE)
+                return
+            }
+            try {
+                views.setViewVisibility(containerIds[index], View.VISIBLE)
+                views.setTextViewText(timeIds[index], preventTimeWrap(course.time))
+                views.setTextViewText(nameIds[index], course.name.ifBlank { "未命名课程" })
+                
+                val info = buildString {
+                    if (course.room.isNotEmpty()) append(course.room)
+                    if (course.teacher.isNotEmpty()) {
+                        if (isNotEmpty()) append(" | ")
+                        append(course.teacher)
+                    }
+                }
+                views.setTextViewText(infoIds[index], info.ifBlank { "地点/教师待定" })
+                views.setViewVisibility(infoIds[index], if (info.isEmpty()) View.GONE else View.VISIBLE)
+
+                views.setInt(
+                    colorIds[index],
+                    "setBackgroundColor",
+                    WidgetDataHelper.parseColor(course.color, "#7986CB")
+                )
+            } catch (_: Exception) {}
+        }
+
+        private fun preventTimeWrap(time: String): String {
+            return time
+                .replace("-", "\u2060-\u2060")
+                .replace("~", "\u2060~\u2060")
+        }
+
+        private fun schedulePeriodicRefresh(context: Context) {
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
+            val intent = Intent(context, NextCourseWidget::class.java).apply {
+                action = "com.njfu.schedule.REFRESH_WIDGET"
+            }
+            val pi = PendingIntent.getBroadcast(
+                context, 200, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            alarmManager.setInexactRepeating(
+                AlarmManager.ELAPSED_REALTIME,
+                SystemClock.elapsedRealtime() + REFRESH_INTERVAL_MS,
+                REFRESH_INTERVAL_MS,
+                pi
+            )
+        }
+
+        private fun cancelPeriodicRefresh(context: Context) {
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
+            val intent = Intent(context, NextCourseWidget::class.java).apply {
+                action = "com.njfu.schedule.REFRESH_WIDGET"
+            }
+            val pi = PendingIntent.getBroadcast(
+                context, 200, intent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            alarmManager.cancel(pi)
         }
     }
 }

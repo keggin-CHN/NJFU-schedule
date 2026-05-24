@@ -9,6 +9,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:name=".App"
@@ -69,7 +70,7 @@
             android:name=".ui.schedule.EntityScheduleActivity"
             android:screenOrientation="portrait" />
 
-        <!-- 今日课程桌面小组件 (4x1) -->
+        <!-- 今日课程桌面小组件 (4x2) — 使用 ListView + RemoteViewsService -->
         <receiver
             android:name=".widget.TodayCourseWidget"
             android:exported="true"
@@ -78,6 +79,9 @@
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="android.intent.action.TIME_SET" />
                 <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
                 <action android:name="com.njfu.schedule.REFRESH_WIDGET" />
             </intent-filter>
             <meta-data
@@ -85,16 +89,14 @@
                 android:resource="@xml/widget_today_info" />
         </receiver>
 
-        <service
-            android:name=".widget.TodayCourseWidgetService"
-            android:permission="android.permission.BIND_REMOTEVIEWS" />
+
 
         <service
             android:name="androidx.work.impl.foreground.SystemForegroundService"
             android:foregroundServiceType="dataSync"
             tools:node="merge" />
 
-        <!-- 今日课程小组件 (2x2) -->
+        <!-- 今日课程小组件 (2x2) — 使用 addView 动态布局 -->
         <receiver
             android:name=".widget.NextCourseWidget"
             android:exported="true"
@@ -103,11 +105,26 @@
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="android.intent.action.TIME_SET" />
                 <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
                 <action android:name="com.njfu.schedule.REFRESH_WIDGET" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_next_course_info" />
+        </receiver>
+
+        <!-- 系统广播接收器 — 开机/时区/应用更新后刷新小组件（多厂商兼容） -->
+        <receiver
+            android:name=".widget.WidgetRefreshReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.LOCALE_CHANGED" />
+            </intent-filter>
         </receiver>
 
     </application>
