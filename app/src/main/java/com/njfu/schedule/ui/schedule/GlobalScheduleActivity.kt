@@ -94,6 +94,8 @@ class GlobalScheduleActivity : AppCompatActivity() {
         performSearch("")
     }
 
+    @Deprecated("Deprecated in Java")
+    @Suppress("DEPRECATION")
     override fun onBackPressed() {
         if (binding.rvResults.visibility == View.VISIBLE) {
             showInitialState()

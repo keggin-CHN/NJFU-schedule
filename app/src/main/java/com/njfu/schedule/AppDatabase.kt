@@ -28,22 +28,22 @@ abstract class AppDatabase : RoomDatabase() {
         private var INSTANCE: AppDatabase? = null
 
         private val MIGRATION_1_2 = object : Migration(1, 2) {
-            override fun migrate(database: SupportSQLiteDatabase) {
-                addColumnIfMissing(database, "CourseDetailBean", "customStartTime", "TEXT")
-                addColumnIfMissing(database, "CourseDetailBean", "customEndTime", "TEXT")
+            override fun migrate(db: SupportSQLiteDatabase) {
+                addColumnIfMissing(db, "CourseDetailBean", "customStartTime", "TEXT")
+                addColumnIfMissing(db, "CourseDetailBean", "customEndTime", "TEXT")
             }
         }
 
         private val MIGRATION_2_3 = object : Migration(2, 3) {
-            override fun migrate(database: SupportSQLiteDatabase) {
-                addColumnIfMissing(database, "CourseDetailBean", "customStartTime", "TEXT")
-                addColumnIfMissing(database, "CourseDetailBean", "customEndTime", "TEXT")
+            override fun migrate(db: SupportSQLiteDatabase) {
+                addColumnIfMissing(db, "CourseDetailBean", "customStartTime", "TEXT")
+                addColumnIfMissing(db, "CourseDetailBean", "customEndTime", "TEXT")
             }
         }
 
         private val MIGRATION_3_4 = object : Migration(3, 4) {
-            override fun migrate(database: SupportSQLiteDatabase) {
-                database.execSQL(
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
                     "CREATE TABLE IF NOT EXISTS `global_courses` (" +
                         "`uid` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
                         "`type` TEXT NOT NULL, " +

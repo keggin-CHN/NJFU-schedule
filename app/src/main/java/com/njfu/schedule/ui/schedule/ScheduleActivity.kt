@@ -189,12 +189,12 @@ class ScheduleActivity : AppCompatActivity() {
         val liveData = WorkManager.getInstance(this)
             .getWorkInfosForUniqueWorkLiveData(GlobalCacheWorker.WORK_NAME_ONESHOT)
         val observer = object : Observer<List<WorkInfo>> {
-            override fun onChanged(infos: List<WorkInfo>) {
-                val info = infos.firstOrNull {
+            override fun onChanged(value: List<WorkInfo>) {
+                val info = value.firstOrNull {
                     it.state == WorkInfo.State.RUNNING ||
                         it.state == WorkInfo.State.ENQUEUED ||
                         it.state == WorkInfo.State.BLOCKED
-                } ?: infos.firstOrNull() ?: return
+                } ?: value.firstOrNull() ?: return
                 when (info.state) {
                     WorkInfo.State.ENQUEUED,
                     WorkInfo.State.BLOCKED -> {

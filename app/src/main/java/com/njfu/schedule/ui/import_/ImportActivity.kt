@@ -67,7 +67,7 @@ class ImportActivity : AppCompatActivity() {
                 val importer = NjfuImporter()
 
                 updateStep("正在连接教务系统...")
-                val session = withContext(Dispatchers.IO) {
+                withContext(Dispatchers.IO) {
                     importer.prepareSession()
                 }
 

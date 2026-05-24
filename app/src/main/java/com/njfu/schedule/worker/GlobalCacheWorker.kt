@@ -32,7 +32,7 @@ class GlobalCacheWorker(
             for ((index, type) in types.withIndex()) {
                 setProgress(workDataOf(KEY_PROGRESS_TYPE to type, KEY_PROGRESS_INDEX to index + 1, KEY_PROGRESS_TOTAL to types.size, KEY_PROGRESS_MSG to "正在抓取 ${typeName(type)} 课表..."))
                 try {
-                    val courses = importer.fetchGlobalSchedule(type, "", "", emptyMap()) { msg ->
+                    val courses = importer.fetchGlobalSchedule(type, "", "", emptyMap()) { _ ->
                     }
                     val entities = courses.map {
                         GlobalCourseEntity(

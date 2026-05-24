@@ -39,7 +39,9 @@ class WebViewActivity : AppCompatActivity() {
             mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
             allowFileAccess = false
             allowContentAccess = false
+            @Suppress("DEPRECATION")
             allowFileAccessFromFileURLs = false
+            @Suppress("DEPRECATION")
             allowUniversalAccessFromFileURLs = false
         }
 
@@ -58,7 +60,6 @@ class WebViewActivity : AppCompatActivity() {
     private fun autoLogin(targetUrl: String) {
         val prefs = com.njfu.schedule.utils.SecurePrefs.get(this)
         val studentId = prefs.getString("student_id", "") ?: ""
-        val password = prefs.getString("password", "") ?: ""
 
         if (studentId.isEmpty()) {
 
@@ -85,6 +86,8 @@ class WebViewActivity : AppCompatActivity() {
         binding.webview.loadUrl("http://jwxt.njfu.edu.cn/sso.jsp")
     }
 
+    @Deprecated("Deprecated in Java")
+    @Suppress("DEPRECATION")
     override fun onBackPressed() {
         if (binding.webview.canGoBack()) {
             binding.webview.goBack()

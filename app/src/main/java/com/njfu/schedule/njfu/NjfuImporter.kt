@@ -234,10 +234,10 @@ class NjfuImporter {
                     if (lines.isEmpty()) continue
 
                     val courseName: String
-                    var className = ""
-                    var teacher = ""
-                    var weeksStr = ""
-                    var room = ""
+                    var className: String
+                    var teacher: String
+                    var weeksStr: String
+                    var room: String
 
                     when (queryType) {
                         "jg0101" -> { 
