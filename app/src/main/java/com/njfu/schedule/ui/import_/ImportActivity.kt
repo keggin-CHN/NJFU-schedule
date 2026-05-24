@@ -15,6 +15,7 @@ import com.njfu.schedule.databinding.ActivityImportBinding
 import com.njfu.schedule.njfu.NjfuImporter
 import com.njfu.schedule.widget.NextCourseWidget
 import com.njfu.schedule.widget.TodayCourseWidget
+import com.njfu.schedule.worker.GlobalCacheScheduler
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -119,6 +120,9 @@ class ImportActivity : AppCompatActivity() {
                 Toast.makeText(this@ImportActivity, "导入成功！", Toast.LENGTH_SHORT).show()
                 TodayCourseWidget.refreshAll(this@ImportActivity)
                 NextCourseWidget.refreshAll(this@ImportActivity)
+
+                GlobalCacheScheduler.scheduleOneShot(this@ImportActivity)
+                GlobalCacheScheduler.schedulePeriodic(this@ImportActivity)
 
                 binding.root.postDelayed({
                     setResult(RESULT_OK)
