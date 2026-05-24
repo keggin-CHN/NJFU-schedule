@@ -78,13 +78,14 @@
         </androidx.cardview.widget.CardView>
 
         <ImageView
-            android:id="@+id/btn_filter"
+            android:id="@+id/btn_sync_cache"
             android:layout_width="42dp"
             android:layout_height="42dp"
             android:layout_marginStart="8dp"
             android:padding="10dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_sort_by_size"
+            android:contentDescription="同步全校课表"
+            android:src="@drawable/ic_sync"
             app:tint="?attr/colorControlNormal"/>
     </LinearLayout>
 

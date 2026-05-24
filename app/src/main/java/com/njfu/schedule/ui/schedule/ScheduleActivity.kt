@@ -19,9 +19,12 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.setPadding
+import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
 import com.njfu.schedule.App
 import com.njfu.schedule.R
 import com.njfu.schedule.bean.CourseBaseBean
@@ -35,6 +38,8 @@ import com.njfu.schedule.ui.settings.ScheduleSettingsActivity
 import com.njfu.schedule.ui.settings.TimeSettingsActivity
 import com.njfu.schedule.ui.settings.BackgroundSettingsActivity
 import com.njfu.schedule.utils.WeekUtils
+import com.njfu.schedule.worker.GlobalCacheScheduler
+import com.njfu.schedule.worker.GlobalCacheWorker
 import com.njfu.schedule.widget.NextCourseWidget
 import com.njfu.schedule.widget.TodayCourseWidget
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -136,28 +141,98 @@ class ScheduleActivity : AppCompatActivity() {
             queryContainer = queryView
 
             queryView.findViewById<View>(R.id.card_teacher).setOnClickListener {
-                openQuery("https://jwxt.njfu.edu.cn/jsxsd/xskb/xskb_list_jg0101foroutside.do", "教师课表")
+                openQuery("教师课表")
             }
             queryView.findViewById<View>(R.id.card_room).setOnClickListener {
-                openQuery("https://jwxt.njfu.edu.cn/jsxsd/xskb/xskb_list_jx0601foroutside.do", "教室课表")
+                openQuery("教室课表")
             }
             queryView.findViewById<View>(R.id.card_course).setOnClickListener {
-                openQuery("https://jwxt.njfu.edu.cn/jsxsd/xskb/xskb_list_jg0101foroutside.do", "课程课表")
+                openQuery("课程课表")
             }
             queryView.findViewById<View>(R.id.card_class).setOnClickListener {
-                openQuery("https://jwxt.njfu.edu.cn/jsxsd/xskb/xskb_list_jg0101foroutside.do", "班级课表")
+                openQuery("班级课表")
             }
             queryView.findViewById<View>(R.id.card_empty_room).setOnClickListener {
                 startActivity(Intent(this, com.njfu.schedule.ui.schedule.EmptyRoomActivity::class.java))
+            }
+            queryView.findViewById<View>(R.id.card_global_sync).setOnClickListener {
+                syncGlobalCourseCache()
             }
         }
         queryContainer.visibility = View.VISIBLE
     }
 
-    private fun openQuery(url: String, title: String) {
+    private fun openQuery(title: String) {
         val intent = Intent(this, com.njfu.schedule.ui.schedule.GlobalScheduleActivity::class.java)
         intent.putExtra("title", title)
         startActivity(intent)
+    }
+
+    private fun syncGlobalCourseCache() {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_sync_progress, null)
+        val tvLog = dialogView.findViewById<TextView>(R.id.tv_log)
+        val progress = dialogView.findViewById<com.google.android.material.progressindicator.LinearProgressIndicator>(R.id.progress)
+
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setPositiveButton("后台同步", null)
+            .create()
+        dialog.show()
+
+        fun updateLog(msg: String) {
+            tvLog.text = msg
+        }
+
+        updateLog("正在启动全校课表同步...")
+        GlobalCacheScheduler.scheduleOneShot(this)
+
+        val liveData = WorkManager.getInstance(this)
+            .getWorkInfosForUniqueWorkLiveData(GlobalCacheWorker.WORK_NAME_ONESHOT)
+        val observer = object : Observer<List<WorkInfo>> {
+            override fun onChanged(infos: List<WorkInfo>) {
+                val info = infos.firstOrNull {
+                    it.state == WorkInfo.State.RUNNING ||
+                        it.state == WorkInfo.State.ENQUEUED ||
+                        it.state == WorkInfo.State.BLOCKED
+                } ?: infos.firstOrNull() ?: return
+                when (info.state) {
+                    WorkInfo.State.ENQUEUED,
+                    WorkInfo.State.BLOCKED -> {
+                        progress.isIndeterminate = true
+                        updateLog("等待网络任务启动...")
+                    }
+                    WorkInfo.State.RUNNING -> {
+                        val msg = info.progress.getString(GlobalCacheWorker.KEY_PROGRESS_MSG) ?: "同步中..."
+                        val current = info.progress.getInt(GlobalCacheWorker.KEY_PROGRESS_INDEX, 0)
+                        val total = info.progress.getInt(GlobalCacheWorker.KEY_PROGRESS_TOTAL, 4).coerceAtLeast(1)
+                        progress.isIndeterminate = false
+                        progress.progress = ((current * 100) / total).coerceIn(0, 100)
+                        updateLog("$msg ($current/$total)")
+                    }
+                    WorkInfo.State.SUCCEEDED -> {
+                        progress.isIndeterminate = false
+                        progress.progress = 100
+                        updateLog("同步完成")
+                        Toast.makeText(this@ScheduleActivity, "全校课表同步完成", Toast.LENGTH_SHORT).show()
+                        liveData.removeObserver(this)
+                    }
+                    WorkInfo.State.FAILED -> {
+                        progress.visibility = View.GONE
+                        updateLog("同步失败，请先在导入课表页保存登录信息")
+                        Toast.makeText(this@ScheduleActivity, "全校课表同步失败", Toast.LENGTH_SHORT).show()
+                        liveData.removeObserver(this)
+                    }
+                    WorkInfo.State.CANCELLED -> {
+                        progress.visibility = View.GONE
+                        updateLog("同步已取消")
+                        liveData.removeObserver(this)
+                    }
+                    else -> Unit
+                }
+            }
+        }
+        dialog.setOnDismissListener { liveData.removeObserver(observer) }
+        liveData.observe(this, observer)
     }
 
     private fun loadBackground() {
