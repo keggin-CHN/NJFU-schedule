@@ -34,8 +34,8 @@ class GlobalCacheWorker(
         return try {
             val importer = NjfuImporter()
             importer.prepareSession()
-            val params = importer.fetchLoginPage()
-            importer.doLogin(studentId, password, params)
+            val loginParams = importer.fetchLoginPage()
+            importer.doLogin(studentId, password, loginParams)
 
             val dao = AppDatabase.getDatabase(applicationContext).globalCourseDao()
             val types = listOf("jg0101", "jx0601", "bj0101", "kc0101")

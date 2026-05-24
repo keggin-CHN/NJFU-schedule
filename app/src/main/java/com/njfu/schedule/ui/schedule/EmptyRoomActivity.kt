@@ -56,7 +56,7 @@ class EmptyRoomActivity : AppCompatActivity() {
         val campusKey = listOf("", "1", "2", "3")[binding.spinnerXqid.selectedItemPosition]
         val campusName = when (campusKey) {
             "1" -> "新庄"
-            "2" -> "百马"
+            "2" -> "白马"
             "3" -> "淮安"
             else -> ""
         }
@@ -70,6 +70,13 @@ class EmptyRoomActivity : AppCompatActivity() {
         val selJc2Idx = binding.spinnerJc2.selectedItemPosition
         val selJc2 = if (selJc2Idx == 0) selJc1 else jc[selJc2Idx].toIntOrNull()
 
+        if (selZc == null || selXq == null || selJc1 == null) {
+            Toast.makeText(this, "请至少选择周次、星期和节次", Toast.LENGTH_SHORT).show()
+            return
+        }
+        val targetJcStart = selJc1
+        val targetJcEnd = (selJc2 ?: selJc1).coerceAtLeast(selJc1)
+
         binding.progress.visibility = View.VISIBLE
         binding.rvResults.visibility = View.GONE
         binding.tvEmpty.visibility = View.GONE
@@ -79,11 +86,7 @@ class EmptyRoomActivity : AppCompatActivity() {
                 val dao = AppDatabase.getDatabase(this@EmptyRoomActivity).globalCourseDao()
 
                 val (allRooms, occupied) = withContext(Dispatchers.IO) {
-                    val rooms = dao.getAllRooms()
-                    val courses = if (selZc != null || selXq != null || selJc1 != null) {
-                        dao.getByTypeSync("jx0601")
-                    } else emptyList()
-                    Pair(rooms, courses)
+                    Pair(dao.getAllRooms(), dao.getByTypeSync("jx0601"))
                 }
 
                 if (allRooms.isEmpty()) {
@@ -96,17 +99,16 @@ class EmptyRoomActivity : AppCompatActivity() {
                 val occupiedSet = withContext(Dispatchers.Default) {
                     val matched = mutableSetOf<String>()
                     for (c in occupied) {
-                        if (selXq != null && c.day != selXq) continue
-                        if (selJc1 != null) {
-                            val nums = Regex("\\d+").findAll(c.sectionsStr).map { it.value.toInt() }.toList()
-                            if (nums.isEmpty()) continue
-                            val cs = nums.first()
-                            val ce = nums.last()
-                            val target1 = selJc1
-                            val target2 = selJc2 ?: selJc1
-                            if (ce < target1 || cs > target2) continue
-                        }
-                        if (selZc != null && !weekIncluded(c.weeksStr, selZc)) continue
+                        if (c.room.isBlank()) continue
+                        if (c.day != selXq) continue
+
+                        val nums = Regex("\\d+").findAll(c.sectionsStr).map { it.value.toInt() }.toList()
+                        if (nums.isEmpty()) continue
+                        val cs = nums.first()
+                        val ce = nums.last()
+                        if (ce < targetJcStart || cs > targetJcEnd) continue
+
+                        if (!weekIncluded(c.weeksStr, selZc)) continue
                         matched.add(c.room)
                     }
                     matched
@@ -115,7 +117,7 @@ class EmptyRoomActivity : AppCompatActivity() {
                 val freeRooms = withContext(Dispatchers.Default) {
                     allRooms.filter {
                         it.isNotEmpty() &&
-                            (campusName.isEmpty() || it.contains(campusName) || (campusKey == "2" && it.contains("白马"))) &&
+                            (campusName.isEmpty() || it.contains(campusName)) &&
                             it !in occupiedSet
                     }
                 }

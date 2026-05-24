@@ -6,17 +6,14 @@ import android.text.TextWatcher
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
-import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.work.WorkInfo
-import androidx.work.WorkManager
 import com.njfu.schedule.AppDatabase
 import com.njfu.schedule.R
 import com.njfu.schedule.databinding.ActivityGlobalScheduleBinding
-import com.njfu.schedule.worker.GlobalCacheScheduler
-import com.njfu.schedule.worker.GlobalCacheWorker
+import com.njfu.schedule.utils.PinyinUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -26,6 +23,13 @@ class GlobalScheduleActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityGlobalScheduleBinding
     private var currentType = "jg0101"
+    private var allEntities: List<Pair<String, String>> = emptyList()
+    private var entityCounts: Map<String, Int> = emptyMap()
+
+    private var sortMode: SortMode = SortMode.PINYIN
+    private val activeFilters: MutableSet<String> = mutableSetOf()
+
+    enum class SortMode { PINYIN, COUNT }
 
     private val entityAdapter = EntityAdapter { name, _ ->
         val intent = android.content.Intent(this, EntityScheduleActivity::class.java)
@@ -43,7 +47,8 @@ class GlobalScheduleActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         binding.toolbar.setNavigationOnClickListener { finish() }
 
-        binding.rvEntities.layoutManager = LinearLayoutManager(this)
+        val layoutManager = LinearLayoutManager(this)
+        binding.rvEntities.layoutManager = layoutManager
         binding.rvEntities.adapter = entityAdapter
 
         val title = intent.getStringExtra("title") ?: "全校课表查询"
@@ -63,7 +68,7 @@ class GlobalScheduleActivity : AppCompatActivity() {
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 val q = s?.toString()?.trim().orEmpty()
                 binding.btnClear.visibility = if (q.isNotEmpty()) View.VISIBLE else View.GONE
-                entityAdapter.filter(q)
+                applyListUpdate(q)
             }
             override fun afterTextChanged(s: Editable?) {}
         })
@@ -74,10 +79,15 @@ class GlobalScheduleActivity : AppCompatActivity() {
 
         binding.btnRetry.setOnClickListener { loadEntities() }
         binding.fabBack.visibility = View.GONE
-        binding.btnSyncCache.setOnClickListener { triggerBackgroundSync() }
+        binding.btnSyncCache.visibility = View.GONE
+
+        binding.letterIndexBar.onLetterChanged = { letter ->
+            val pos = entityAdapter.getLetterPositions()[letter] ?: return@onLetterChanged
+            layoutManager.scrollToPositionWithOffset(pos, 0)
+            showLetterOverlay(letter)
+        }
 
         loadEntities()
-        observeSyncStatus()
     }
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
@@ -87,7 +97,7 @@ class GlobalScheduleActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
-            R.id.action_sync -> { triggerBackgroundSync(); true }
+            R.id.action_filter -> { showFilterDialog(); true }
             else -> super.onOptionsItemSelected(item)
         }
     }
@@ -99,7 +109,7 @@ class GlobalScheduleActivity : AppCompatActivity() {
                 val dao = AppDatabase.getDatabase(this@GlobalScheduleActivity).globalCourseDao()
                 val rows = withContext(Dispatchers.IO) { dao.getByType(currentType).first() }
 
-                val entities = withContext(Dispatchers.Default) {
+                val counts = withContext(Dispatchers.Default) {
                     val grouped = when (currentType) {
                         "jg0101" -> rows.groupingBy { it.teacher.ifEmpty { "(未知教师)" } }.eachCount()
                         "jx0601" -> rows.groupingBy { it.room.ifEmpty { "(未知教室)" } }.eachCount()
@@ -107,18 +117,17 @@ class GlobalScheduleActivity : AppCompatActivity() {
                         "kc0101" -> rows.groupingBy { it.courseName.ifEmpty { "(未知课程)" } }.eachCount()
                         else -> emptyMap()
                     }
-                    grouped.entries
-                        .filter { it.key.isNotBlank() }
-                        .sortedByDescending { it.value }
-                        .map { Pair(it.key, it.key) }
+                    grouped.entries.filter { it.key.isNotBlank() }.associate { it.key to it.value }
                 }
 
-                if (entities.isEmpty()) {
-                    showError("本地没有${currentTypeName()}数据，请点击右上角同步")
+                entityCounts = counts
+                allEntities = counts.keys.map { Pair(it, it) }
+
+                if (allEntities.isEmpty()) {
+                    showError("本地没有${currentTypeName()}数据，请到查询页点击同步")
                 } else {
-                    entityAdapter.setFullList(entities)
                     val q = binding.etFilter.text?.toString()?.trim().orEmpty()
-                    if (q.isNotEmpty()) entityAdapter.filter(q)
+                    applyListUpdate(q)
                     showEntities()
                 }
             } catch (e: Exception) {
@@ -127,26 +136,112 @@ class GlobalScheduleActivity : AppCompatActivity() {
         }
     }
 
-    private fun triggerBackgroundSync() {
-        Toast.makeText(this, "已开始后台同步，进度可在通知栏查看", Toast.LENGTH_SHORT).show()
-        GlobalCacheScheduler.scheduleOneShot(this)
+    private fun applyListUpdate(query: String) {
+        var list = allEntities
+        if (activeFilters.isNotEmpty()) {
+            list = list.filter { (name, _) -> activeFilters.any { f -> name.contains(f) } }
+        }
+        if (query.isNotEmpty()) {
+            list = list.filter { it.first.contains(query, ignoreCase = true) }
+        }
+        if (sortMode == SortMode.COUNT) {
+            list = list.sortedByDescending { entityCounts[it.first] ?: 0 }
+            entityAdapter.setFlatList(list)
+        } else {
+            entityAdapter.setFullList(list)
+        }
+        binding.letterIndexBar.visibility = if (sortMode == SortMode.PINYIN) View.VISIBLE else View.GONE
+        binding.letterIndexBar.setActiveLetters(entityAdapter.getActiveLetters())
     }
 
-    private fun observeSyncStatus() {
-        WorkManager.getInstance(this)
-            .getWorkInfosForUniqueWorkLiveData(GlobalCacheWorker.WORK_NAME_ONESHOT)
-            .observe(this) { infos ->
-                val info = infos.firstOrNull() ?: return@observe
-                if (info.state == WorkInfo.State.SUCCEEDED) {
-                    loadEntities()
-                }
+    private fun showFilterDialog() {
+        val sortLabels = arrayOf("按拼音首字母", "按课程数（多→少）")
+        val filterOptions = filterOptionsForType()
+
+        val dialogView = layoutInflater.inflate(R.layout.dialog_filter, null)
+        val rgSort = dialogView.findViewById<android.widget.RadioGroup>(R.id.rg_sort)
+        val cgFilter = dialogView.findViewById<com.google.android.material.chip.ChipGroup>(R.id.cg_filter)
+        val tvFilterTitle = dialogView.findViewById<android.widget.TextView>(R.id.tv_filter_title)
+
+        sortLabels.forEachIndexed { idx, label ->
+            val rb = android.widget.RadioButton(this).apply {
+                text = label
+                id = idx
+                isChecked = (idx == 0 && sortMode == SortMode.PINYIN) || (idx == 1 && sortMode == SortMode.COUNT)
             }
+            rgSort.addView(rb)
+        }
+
+        if (filterOptions.isEmpty()) {
+            tvFilterTitle.visibility = View.GONE
+            cgFilter.visibility = View.GONE
+        } else {
+            tvFilterTitle.text = filterTitleForType()
+            for (opt in filterOptions) {
+                val chip = com.google.android.material.chip.Chip(this).apply {
+                    text = opt
+                    isCheckable = true
+                    isChecked = opt in activeFilters
+                }
+                cgFilter.addView(chip)
+            }
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("筛选与排序")
+            .setView(dialogView)
+            .setPositiveButton("确定") { _, _ ->
+                sortMode = if (rgSort.checkedRadioButtonId == 1) SortMode.COUNT else SortMode.PINYIN
+                activeFilters.clear()
+                for (i in 0 until cgFilter.childCount) {
+                    val chip = cgFilter.getChildAt(i) as com.google.android.material.chip.Chip
+                    if (chip.isChecked) activeFilters.add(chip.text.toString())
+                }
+                applyListUpdate(binding.etFilter.text?.toString()?.trim().orEmpty())
+            }
+            .setNeutralButton("重置") { _, _ ->
+                sortMode = SortMode.PINYIN
+                activeFilters.clear()
+                applyListUpdate(binding.etFilter.text?.toString()?.trim().orEmpty())
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    private fun filterTitleForType(): String = when (currentType) {
+        "jx0601" -> "校区"
+        "bj0101" -> "年级"
+        else -> "筛选"
+    }
+
+    private fun filterOptionsForType(): List<String> {
+        return when (currentType) {
+            "jx0601" -> listOf("新庄", "白马", "淮安").filter { campus ->
+                allEntities.any { it.first.contains(campus) }
+            }
+            "bj0101" -> {
+                val years = allEntities.mapNotNull { e ->
+                    Regex("^(20\\d{2})").find(e.first)?.groupValues?.get(1)
+                }.distinct().sortedDescending()
+                years
+            }
+            else -> emptyList()
+        }
+    }
+
+    private val overlayHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val hideOverlay = Runnable { binding.tvLetterOverlay.visibility = View.GONE }
+    private fun showLetterOverlay(letter: String) {
+        binding.tvLetterOverlay.text = letter
+        binding.tvLetterOverlay.visibility = View.VISIBLE
+        overlayHandler.removeCallbacks(hideOverlay)
+        overlayHandler.postDelayed(hideOverlay, 700)
     }
 
     private fun showLoading(msg: String) {
         binding.layoutLoading.visibility = View.VISIBLE
         binding.tvLoadingText.text = msg
-        binding.rvEntities.visibility = View.GONE
+        binding.layoutEntityList.visibility = View.GONE
         binding.rvResults.visibility = View.GONE
         binding.layoutEmpty.visibility = View.GONE
         binding.fabBack.visibility = View.GONE
@@ -155,13 +250,13 @@ class GlobalScheduleActivity : AppCompatActivity() {
     private fun showEntities() {
         binding.layoutLoading.visibility = View.GONE
         binding.layoutEmpty.visibility = View.GONE
-        binding.rvEntities.visibility = View.VISIBLE
+        binding.layoutEntityList.visibility = View.VISIBLE
         binding.rvResults.visibility = View.GONE
     }
 
     private fun showError(msg: String) {
         binding.layoutLoading.visibility = View.GONE
-        binding.rvEntities.visibility = View.GONE
+        binding.layoutEntityList.visibility = View.GONE
         binding.rvResults.visibility = View.GONE
         binding.layoutEmpty.visibility = View.VISIBLE
         binding.tvEmpty.text = msg

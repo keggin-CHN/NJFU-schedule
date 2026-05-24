@@ -31,13 +31,12 @@ object GlobalCacheScheduler {
 
         val request = PeriodicWorkRequestBuilder<GlobalCacheWorker>(30, TimeUnit.DAYS)
             .setConstraints(constraints)
-            .setInitialDelay(30, TimeUnit.DAYS)
             .build()
 
         WorkManager.getInstance(context)
             .enqueueUniquePeriodicWork(
                 GlobalCacheWorker.WORK_NAME_PERIODIC,
-                ExistingPeriodicWorkPolicy.KEEP,
+                ExistingPeriodicWorkPolicy.UPDATE,
                 request
             )
     }

@@ -261,9 +261,12 @@ class NjfuImporter {
                             weeksStr = lines.getOrNull(2) ?: ""
                             room = lines.getOrNull(3) ?: ""
                         }
-                        else -> { 
+                        else -> {
                             courseName = lines.getOrNull(0) ?: ""
                             className = entityName
+                            teacher = ""
+                            weeksStr = ""
+                            room = ""
                             val line2 = lines.getOrNull(1) ?: ""
                             val weekMatch = Regex("(.+?)\\s*\\((.+?周)\\)").find(line2)
                             if (weekMatch != null) {

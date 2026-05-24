@@ -141,13 +141,39 @@
         android:layout_height="0dp"
         android:layout_weight="1">
 
-        <!-- Entity selection list (shown when no result yet) -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rv_entities"
+        <!-- Entity selection list with letter index -->
+        <FrameLayout
+            android:id="@+id/layout_entity_list"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:clipToPadding="false"
-            android:paddingBottom="8dp" />
+            android:layout_height="match_parent">
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_entities"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:clipToPadding="false"
+                android:paddingBottom="8dp"
+                android:paddingEnd="24dp" />
+
+            <com.njfu.schedule.ui.schedule.LetterIndexBar
+                android:id="@+id/letter_index_bar"
+                android:layout_width="24dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="end"
+                android:paddingVertical="8dp" />
+
+            <TextView
+                android:id="@+id/tv_letter_overlay"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_gravity="center"
+                android:gravity="center"
+                android:background="@drawable/bg_letter_overlay"
+                android:textColor="@android:color/white"
+                android:textSize="28sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
+        </FrameLayout>
 
         <!-- Course result list (shown after tap) -->
         <androidx.recyclerview.widget.RecyclerView
