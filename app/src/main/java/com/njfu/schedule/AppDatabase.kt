@@ -15,7 +15,7 @@ import com.njfu.schedule.dao.GlobalCourseDao
 
 @Database(
     entities = [CourseBaseBean::class, CourseDetailBean::class, TableBean::class, GlobalCourseEntity::class],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -58,6 +58,12 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                addColumnIfMissing(db, "global_courses", "collegeName", "TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
         private fun addColumnIfMissing(
             database: SupportSQLiteDatabase,
             tableName: String,
@@ -80,7 +86,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "njfu_schedule"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build()
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build()
                 INSTANCE = instance
                 instance
             }

@@ -143,17 +143,11 @@ class ScheduleActivity : AppCompatActivity() {
             queryView.findViewById<View>(R.id.card_teacher).setOnClickListener {
                 openQuery("教师课表")
             }
-            queryView.findViewById<View>(R.id.card_room).setOnClickListener {
-                openQuery("教室课表")
-            }
             queryView.findViewById<View>(R.id.card_course).setOnClickListener {
                 openQuery("课程课表")
             }
             queryView.findViewById<View>(R.id.card_class).setOnClickListener {
                 openQuery("班级课表")
-            }
-            queryView.findViewById<View>(R.id.card_empty_room).setOnClickListener {
-                startActivity(Intent(this, com.njfu.schedule.ui.schedule.EmptyRoomActivity::class.java))
             }
             queryView.findViewById<View>(R.id.btn_global_sync).setOnClickListener {
                 triggerBackgroundGlobalSync()

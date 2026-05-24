@@ -38,7 +38,7 @@ class GlobalCacheWorker(
             importer.doLogin(studentId, password, loginParams)
 
             val dao = AppDatabase.getDatabase(applicationContext).globalCourseDao()
-            val types = listOf("jg0101", "jx0601", "bj0101", "kc0101")
+            val types = listOf("jg0101", "bj0101", "kc0101")
 
             for ((index, type) in types.withIndex()) {
                 val msg = "正在抓取${typeName(type)}课表..."
@@ -61,7 +61,8 @@ class GlobalCacheWorker(
                             weeksStr = it.weeksStr,
                             day = it.day,
                             sectionsStr = it.sectionsStr,
-                            className = it.className
+                            className = it.className,
+                            collegeName = it.collegeName
                         )
                     }
                     dao.deleteByType(type)
@@ -131,7 +132,6 @@ class GlobalCacheWorker(
 
     private fun typeName(type: String) = when (type) {
         "jg0101" -> "教师"
-        "jx0601" -> "教室"
         "bj0101" -> "班级"
         "kc0101" -> "课程"
         else -> type

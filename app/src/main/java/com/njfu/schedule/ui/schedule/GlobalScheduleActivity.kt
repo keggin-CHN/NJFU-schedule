@@ -25,11 +25,12 @@ class GlobalScheduleActivity : AppCompatActivity() {
     private var currentType = "jg0101"
     private var allEntities: List<Pair<String, String>> = emptyList()
     private var entityCounts: Map<String, Int> = emptyMap()
+    private var entityCampuses: Map<String, Set<String>> = emptyMap()
 
     private var sortMode: SortMode = SortMode.PINYIN
     private val activeFilters: MutableSet<String> = mutableSetOf()
 
-    enum class SortMode { PINYIN, COUNT }
+    enum class SortMode { PINYIN, COUNT, COLLEGE }
 
     private val entityAdapter = EntityAdapter { name, _ ->
         val intent = android.content.Intent(this, EntityScheduleActivity::class.java)
@@ -81,8 +82,8 @@ class GlobalScheduleActivity : AppCompatActivity() {
         binding.fabBack.visibility = View.GONE
         binding.btnSyncCache.visibility = View.GONE
 
-        binding.letterIndexBar.onLetterChanged = { letter ->
-            val pos = entityAdapter.getLetterPositions()[letter] ?: return@onLetterChanged
+        binding.letterIndexBar.onLetterChanged = fun(letter: String) {
+            val pos = entityAdapter.getLetterPositions()[letter] ?: return
             layoutManager.scrollToPositionWithOffset(pos, 0)
             showLetterOverlay(letter)
         }
@@ -120,7 +121,29 @@ class GlobalScheduleActivity : AppCompatActivity() {
                     grouped.entries.filter { it.key.isNotBlank() }.associate { it.key to it.value }
                 }
 
+                val campusesMap = withContext(Dispatchers.Default) {
+                    val map = mutableMapOf<String, MutableSet<String>>()
+                    rows.forEach { row ->
+                        val entity = when (currentType) {
+                            "jg0101" -> row.teacher.ifEmpty { "(未知教师)" }
+                            "jx0601" -> row.room.ifEmpty { "(未知教室)" }
+                            "bj0101" -> row.className.ifEmpty { "(未知班级)" }
+                            "kc0101" -> row.courseName.ifEmpty { "(未知课程)" }
+                            else -> return@forEach
+                        }
+                        if (entity.isNotBlank()) {
+                            val campusList = listOf("新庄", "白马", "淮安").filter { row.room.contains(it) }
+                            map.getOrPut(entity) { mutableSetOf() }.addAll(campusList)
+                            if (currentType == "jg0101" && row.collegeName.isNotBlank()) {
+                                map.getOrPut(entity) { mutableSetOf() }.add(row.collegeName)
+                            }
+                        }
+                    }
+                    map
+                }
+
                 entityCounts = counts
+                entityCampuses = campusesMap
                 allEntities = counts.keys.map { Pair(it, it) }
 
                 if (allEntities.isEmpty()) {
@@ -139,13 +162,34 @@ class GlobalScheduleActivity : AppCompatActivity() {
     private fun applyListUpdate(query: String) {
         var list = allEntities
         if (activeFilters.isNotEmpty()) {
-            list = list.filter { (name, _) -> activeFilters.any { f -> name.contains(f) } }
+            list = list.filter { (name, _) ->
+                if (currentType == "jg0101" || currentType == "kc0101") {
+                    val campuses = entityCampuses[name] ?: emptySet()
+                    activeFilters.any { f -> campuses.contains(f) || name.contains(f) }
+                } else {
+                    activeFilters.any { f -> name.contains(f) }
+                }
+            }
         }
         if (query.isNotEmpty()) {
-            list = list.filter { it.first.contains(query, ignoreCase = true) }
+            list = list.filter {
+                if (currentType == "jg0101" || currentType == "kc0101") {
+                    val campuses = entityCampuses[it.first] ?: emptySet()
+                    it.first.contains(query, ignoreCase = true) || campuses.any { c -> c.contains(query, ignoreCase = true) }
+                } else {
+                    it.first.contains(query, ignoreCase = true)
+                }
+            }
         }
         if (sortMode == SortMode.COUNT) {
             list = list.sortedByDescending { entityCounts[it.first] ?: 0 }
+            entityAdapter.setFlatList(list)
+        } else if (sortMode == SortMode.COLLEGE) {
+            list = list.sortedBy { namePair ->
+                val colleges = entityCampuses[namePair.first]?.filter { it.endsWith("学院") || it.endsWith("系") || it.endsWith("部") || it.contains("中心") } ?: emptyList()
+                val collegeStr = if (colleges.isNotEmpty()) colleges.sorted().joinToString() else "ZZZ"
+                collegeStr + namePair.first
+            }
             entityAdapter.setFlatList(list)
         } else {
             entityAdapter.setFullList(list)
@@ -155,7 +199,7 @@ class GlobalScheduleActivity : AppCompatActivity() {
     }
 
     private fun showFilterDialog() {
-        val sortLabels = arrayOf("按拼音首字母", "按课程数（多→少）")
+        val sortLabels = if (currentType == "jg0101") arrayOf("按拼音首字母", "按课程数（多→少）", "按学院排序") else arrayOf("按拼音首字母", "按课程数（多→少）")
         val filterOptions = filterOptionsForType()
 
         val dialogView = layoutInflater.inflate(R.layout.dialog_filter, null)
@@ -167,7 +211,9 @@ class GlobalScheduleActivity : AppCompatActivity() {
             val rb = android.widget.RadioButton(this).apply {
                 text = label
                 id = idx
-                isChecked = (idx == 0 && sortMode == SortMode.PINYIN) || (idx == 1 && sortMode == SortMode.COUNT)
+                isChecked = (idx == 0 && sortMode == SortMode.PINYIN) || 
+                            (idx == 1 && sortMode == SortMode.COUNT) || 
+                            (idx == 2 && sortMode == SortMode.COLLEGE)
             }
             rgSort.addView(rb)
         }
@@ -182,20 +228,41 @@ class GlobalScheduleActivity : AppCompatActivity() {
                     text = opt
                     isCheckable = true
                     isChecked = opt in activeFilters
+                    
+                    val isCollege = text.endsWith("学院") || text.endsWith("系") || text.endsWith("部") || text.contains("中心")
+                    if (isCollege) {
+                        visibility = if (sortMode == SortMode.COLLEGE) View.VISIBLE else View.GONE
+                    }
                 }
                 cgFilter.addView(chip)
             }
         }
 
-        AlertDialog.Builder(this)
+        rgSort.setOnCheckedChangeListener { _, checkedId ->
+            for (i in 0 until cgFilter.childCount) {
+                val chip = cgFilter.getChildAt(i) as com.google.android.material.chip.Chip
+                val text = chip.text.toString()
+                val isCollege = text.endsWith("学院") || text.endsWith("系") || text.endsWith("部") || text.contains("中心")
+                if (isCollege) {
+                    chip.visibility = if (checkedId == 2) View.VISIBLE else View.GONE
+                    if (checkedId != 2) chip.isChecked = false
+                }
+            }
+        }
+
+        com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
             .setTitle("筛选与排序")
             .setView(dialogView)
             .setPositiveButton("确定") { _, _ ->
-                sortMode = if (rgSort.checkedRadioButtonId == 1) SortMode.COUNT else SortMode.PINYIN
+                sortMode = when (rgSort.checkedRadioButtonId) {
+                    1 -> SortMode.COUNT
+                    2 -> SortMode.COLLEGE
+                    else -> SortMode.PINYIN
+                }
                 activeFilters.clear()
                 for (i in 0 until cgFilter.childCount) {
                     val chip = cgFilter.getChildAt(i) as com.google.android.material.chip.Chip
-                    if (chip.isChecked) activeFilters.add(chip.text.toString())
+                    if (chip.isChecked && chip.visibility == View.VISIBLE) activeFilters.add(chip.text.toString())
                 }
                 applyListUpdate(binding.etFilter.text?.toString()?.trim().orEmpty())
             }
@@ -209,7 +276,8 @@ class GlobalScheduleActivity : AppCompatActivity() {
     }
 
     private fun filterTitleForType(): String = when (currentType) {
-        "jx0601" -> "校区"
+        "jx0601", "kc0101" -> "校区"
+        "jg0101" -> "校区与学院"
         "bj0101" -> "年级"
         else -> "筛选"
     }
@@ -218,6 +286,16 @@ class GlobalScheduleActivity : AppCompatActivity() {
         return when (currentType) {
             "jx0601" -> listOf("新庄", "白马", "淮安").filter { campus ->
                 allEntities.any { it.first.contains(campus) }
+            }
+            "kc0101" -> listOf("新庄", "白马", "淮安").filter { campus ->
+                entityCampuses.values.any { it.contains(campus) }
+            }
+            "jg0101" -> {
+                val campuses = listOf("新庄", "白马", "淮安").filter { campus ->
+                    entityCampuses.values.any { it.contains(campus) }
+                }
+                val colleges = entityCampuses.values.flatten().filter { it.endsWith("学院") || it.endsWith("系") || it.endsWith("部") || it.contains("中心") }.distinct().sorted()
+                campuses + colleges
             }
             "bj0101" -> {
                 val years = allEntities.mapNotNull { e ->

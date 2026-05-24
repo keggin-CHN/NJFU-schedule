@@ -7,5 +7,6 @@ data class GlobalCourseInfo(
     val weeksStr: String,
     val day: Int,          
     val sectionsStr: String,
-    val className: String  
+    val className: String,
+    var collegeName: String = ""
 )

@@ -14,5 +14,6 @@ data class GlobalCourseEntity(
     val weeksStr: String,
     val day: Int,
     val sectionsStr: String,
-    val className: String
+    val className: String,
+    val collegeName: String = ""
 )

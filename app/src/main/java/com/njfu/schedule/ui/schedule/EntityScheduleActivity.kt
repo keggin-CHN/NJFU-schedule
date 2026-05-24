@@ -337,16 +337,40 @@ class EntityScheduleActivity : AppCompatActivity() {
     }
 
     private fun showCourseDetail(c: GlobalCourseInfo) {
-        val msg = buildString {
-            append("课程：${c.courseName}\n")
-            if (c.teacher.isNotEmpty()) append("教师：${c.teacher}\n")
-            if (c.room.isNotEmpty()) append("教室：${c.room}\n")
-            if (c.className.isNotEmpty()) append("班级：${c.className}\n")
-            append("星期：${arrayOf("一","二","三","四","五","六","日")[c.day - 1]}\n")
-            append("节次：${c.sectionsStr}\n")
-            append("周次：${c.weeksStr}")
+        val dialogView = layoutInflater.inflate(R.layout.dialog_course_detail, null)
+        val tvName = dialogView.findViewById<TextView>(R.id.tv_course_name)
+        val tvTeacher = dialogView.findViewById<TextView>(R.id.tv_teacher)
+        val tvRoom = dialogView.findViewById<TextView>(R.id.tv_room)
+        val tvTime = dialogView.findViewById<TextView>(R.id.tv_time)
+        val tvWeeks = dialogView.findViewById<TextView>(R.id.tv_weeks)
+        val colorBar = dialogView.findViewById<View>(R.id.color_bar)
+        val btnClose = dialogView.findViewById<View>(R.id.btn_close)
+        val btnEdit = dialogView.findViewById<View>(R.id.btn_edit)
+
+        tvName.text = c.courseName
+        
+        var teacherText = c.teacher
+        if (c.className.isNotEmpty() && type != "bj0101") {
+            teacherText += if (teacherText.isNotEmpty()) "  |  ${c.className}" else c.className
         }
-        AlertDialog.Builder(this).setTitle("课程详情").setMessage(msg).setPositiveButton("关闭", null).show()
+        tvTeacher.text = teacherText.ifEmpty { "-" }
+        tvRoom.text = c.room.ifEmpty { "-" }
+        tvTime.text = "星期${arrayOf("一","二","三","四","五","六","日")[c.day - 1]}  第${c.sectionsStr}节"
+        tvWeeks.text = c.weeksStr
+        
+        val bgColor = try { Color.parseColor(nameToColor[c.courseName] ?: "#7986CB") } catch (_: Exception) { Color.parseColor("#7986CB") }
+        colorBar.setBackgroundColor(bgColor)
+
+        btnEdit.visibility = View.GONE
+        
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+            
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.show()
+            
+        btnClose.setOnClickListener { dialog.dismiss() }
     }
 
     private fun showFilterDialog() {
