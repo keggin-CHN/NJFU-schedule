@@ -30,4 +30,13 @@ interface GlobalCourseDao {
 
     @Query("SELECT COUNT(*) FROM global_courses")
     suspend fun countAll(): Int
+
+    @Query("SELECT DISTINCT room FROM global_courses WHERE type = 'jx0601' AND room != '' ORDER BY room")
+    suspend fun getAllRooms(): List<String>
+
+    @Query("SELECT * FROM global_courses WHERE type = :type")
+    suspend fun getByTypeSync(type: String): List<GlobalCourseEntity>
+
+    @Query("SELECT * FROM global_courses WHERE type = 'jx0601' AND room = :room")
+    suspend fun getCoursesByRoom(room: String): List<GlobalCourseEntity>
 }

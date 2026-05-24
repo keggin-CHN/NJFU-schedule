@@ -155,8 +155,8 @@ class ScheduleActivity : AppCompatActivity() {
             queryView.findViewById<View>(R.id.card_empty_room).setOnClickListener {
                 startActivity(Intent(this, com.njfu.schedule.ui.schedule.EmptyRoomActivity::class.java))
             }
-            queryView.findViewById<View>(R.id.card_global_sync).setOnClickListener {
-                syncGlobalCourseCache()
+            queryView.findViewById<View>(R.id.btn_global_sync).setOnClickListener {
+                triggerBackgroundGlobalSync()
             }
         }
         queryContainer.visibility = View.VISIBLE
@@ -166,6 +166,18 @@ class ScheduleActivity : AppCompatActivity() {
         val intent = Intent(this, com.njfu.schedule.ui.schedule.GlobalScheduleActivity::class.java)
         intent.putExtra("title", title)
         startActivity(intent)
+    }
+
+    private fun triggerBackgroundGlobalSync() {
+        val prefs = com.njfu.schedule.utils.SecurePrefs.get(this)
+        val sid = prefs.getString("student_id", "") ?: ""
+        val pwd = prefs.getString("password", "") ?: ""
+        if (sid.isEmpty() || pwd.isEmpty()) {
+            Toast.makeText(this, "请先在导入课表页保存账号密码", Toast.LENGTH_SHORT).show()
+            return
+        }
+        Toast.makeText(this, "已开始后台同步，进度可在通知栏查看", Toast.LENGTH_SHORT).show()
+        GlobalCacheScheduler.scheduleOneShot(this)
     }
 
     private fun syncGlobalCourseCache() {
