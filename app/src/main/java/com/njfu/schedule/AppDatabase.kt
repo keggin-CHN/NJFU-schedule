@@ -15,7 +15,7 @@ import com.njfu.schedule.dao.GlobalCourseDao
 
 @Database(
     entities = [CourseBaseBean::class, CourseDetailBean::class, TableBean::class, GlobalCourseEntity::class],
-    version = 5,
+    version = 7,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -64,6 +64,27 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                addColumnIfMissing(db, "global_courses", "typeLabel", "TEXT NOT NULL DEFAULT ''")
+                addColumnIfMissing(db, "global_courses", "term", "TEXT NOT NULL DEFAULT ''")
+                addColumnIfMissing(db, "global_courses", "entityName", "TEXT NOT NULL DEFAULT ''")
+                addColumnIfMissing(db, "global_courses", "sectionNumbers", "TEXT NOT NULL DEFAULT ''")
+                addColumnIfMissing(db, "global_courses", "slotIndex", "INTEGER NOT NULL DEFAULT 0")
+                addColumnIfMissing(db, "global_courses", "tableIndex", "INTEGER NOT NULL DEFAULT 0")
+                addColumnIfMissing(db, "global_courses", "rowIndex", "INTEGER NOT NULL DEFAULT 0")
+                addColumnIfMissing(db, "global_courses", "colIndex", "INTEGER NOT NULL DEFAULT 0")
+                addColumnIfMissing(db, "global_courses", "rawText", "TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
+        private val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                addColumnIfMissing(db, "global_courses", "rawHtml", "TEXT NOT NULL DEFAULT ''")
+                addColumnIfMissing(db, "global_courses", "rawLinesJson", "TEXT NOT NULL DEFAULT ''")
+            }
+        }
+
         private fun addColumnIfMissing(
             database: SupportSQLiteDatabase,
             tableName: String,
@@ -86,7 +107,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "njfu_schedule"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5).build()
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7).build()
                 INSTANCE = instance
                 instance
             }

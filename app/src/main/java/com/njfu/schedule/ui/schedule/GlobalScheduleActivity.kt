@@ -12,8 +12,8 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.njfu.schedule.AppDatabase
 import com.njfu.schedule.R
+import com.njfu.schedule.bean.GlobalCourseEntity
 import com.njfu.schedule.databinding.ActivityGlobalScheduleBinding
-import com.njfu.schedule.utils.PinyinUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -24,8 +24,10 @@ class GlobalScheduleActivity : AppCompatActivity() {
     private lateinit var binding: ActivityGlobalScheduleBinding
     private var currentType = "jg0101"
     private var allEntities: List<Pair<String, String>> = emptyList()
+    private var allRows: List<GlobalCourseEntity> = emptyList()
     private var entityCounts: Map<String, Int> = emptyMap()
     private var entityCampuses: Map<String, Set<String>> = emptyMap()
+    private var entitySearchText: Map<String, String> = emptyMap()
 
     private var sortMode: SortMode = SortMode.PINYIN
     private val activeFilters: MutableSet<String> = mutableSetOf()
@@ -63,7 +65,7 @@ class GlobalScheduleActivity : AppCompatActivity() {
         supportActionBar?.title = title
         binding.chipGroupType.visibility = View.GONE
 
-        binding.etFilter.hint = "搜索${currentTypeName()}名称..."
+        binding.etFilter.hint = "搜索${currentTypeName()}、学期、原文、节次..."
         binding.etFilter.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -99,6 +101,7 @@ class GlobalScheduleActivity : AppCompatActivity() {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
             R.id.action_filter -> { showFilterDialog(); true }
+            R.id.action_stats -> { showStatsDialog(); true }
             else -> super.onOptionsItemSelected(item)
         }
     }
@@ -111,14 +114,7 @@ class GlobalScheduleActivity : AppCompatActivity() {
                 val rows = withContext(Dispatchers.IO) { dao.getByType(currentType).first() }
 
                 val counts = withContext(Dispatchers.Default) {
-                    val grouped = when (currentType) {
-                        "jg0101" -> rows.groupingBy { it.teacher.ifEmpty { "(未知教师)" } }.eachCount()
-                        "jx0601" -> rows.groupingBy { it.room.ifEmpty { "(未知教室)" } }.eachCount()
-                        "bj0101" -> rows.groupingBy { it.className.ifEmpty { "(未知班级)" } }.eachCount()
-                        "kc0101" -> rows.groupingBy { it.courseName.ifEmpty { "(未知课程)" } }.eachCount()
-                        else -> emptyMap()
-                    }
-                    grouped.entries.filter { it.key.isNotBlank() }.associate { it.key to it.value }
+                    rows.groupingBy { entityNameOf(it) }.eachCount()
                 }
 
                 val campusesMap = withContext(Dispatchers.Default) {
@@ -144,6 +140,29 @@ class GlobalScheduleActivity : AppCompatActivity() {
 
                 entityCounts = counts
                 entityCampuses = campusesMap
+                allRows = rows
+                entitySearchText = withContext(Dispatchers.Default) {
+                    rows.groupBy { entityNameOf(it) }.mapValues { (_, entityRows) ->
+                        entityRows.joinToString("\n") { row ->
+                            listOf(
+                                row.courseName,
+                                row.teacher,
+                                row.room,
+                                row.weeksStr,
+                                row.sectionsStr,
+                                row.className,
+                                row.collegeName,
+                                row.typeLabel,
+                                row.term,
+                                row.entityName,
+                                row.sectionNumbers,
+                                row.rawText,
+                                row.rawHtml,
+                                row.rawLinesJson
+                            ).joinToString(" ")
+                        }
+                    }
+                }
                 allEntities = counts.keys.map { Pair(it, it) }
 
                 if (allEntities.isEmpty()) {
@@ -172,13 +191,12 @@ class GlobalScheduleActivity : AppCompatActivity() {
             }
         }
         if (query.isNotEmpty()) {
-            list = list.filter {
-                if (currentType == "jg0101" || currentType == "kc0101" || currentType == "bj0101") {
-                    val campuses = entityCampuses[it.first] ?: emptySet()
-                    it.first.contains(query, ignoreCase = true) || campuses.any { c -> c.contains(query, ignoreCase = true) }
-                } else {
-                    it.first.contains(query, ignoreCase = true)
-                }
+            list = list.filter { (name, _) ->
+                val campuses = entityCampuses[name] ?: emptySet()
+                val searchText = entitySearchText[name].orEmpty()
+                name.contains(query, ignoreCase = true) ||
+                    campuses.any { it.contains(query, ignoreCase = true) } ||
+                    searchText.contains(query, ignoreCase = true)
             }
         }
         if (sortMode == SortMode.COUNT) {
@@ -284,17 +302,84 @@ class GlobalScheduleActivity : AppCompatActivity() {
     private fun filterOptionsForType(): List<String> {
         return when (currentType) {
             "jx0601", "kc0101", "jg0101" -> listOf("新庄", "白马", "淮安").filter { campus ->
-                allEntities.any { it.first.contains(campus) }
+                entityCampuses.values.any { campuses -> campus in campuses }
             }
             "bj0101" -> {
                 val years = allEntities.mapNotNull { e ->
                     Regex("^(\\d{2})").find(e.first)?.groupValues?.get(1)
                 }.distinct().sortedDescending().map { "${it}级" }
-                val campuses = setOf("新庄", "白马", "淮安")
-                (campuses.toList() + years)
+                val campuses = listOf("新庄", "白马", "淮安").filter { campus ->
+                    entityCampuses.values.any { campuses -> campus in campuses }
+                }
+                campuses + years
             }
             else -> emptyList()
         }
+    }
+
+    private fun entityNameOf(row: GlobalCourseEntity): String {
+        val unknown = "(未知${currentTypeName()})"
+        return when (currentType) {
+            "jg0101" -> row.teacher
+            "jx0601" -> row.room
+            "bj0101" -> row.className
+            "kc0101" -> row.courseName
+            else -> row.entityName
+        }.ifEmpty { unknown }
+    }
+
+    private fun showStatsDialog() {
+        if (allRows.isEmpty()) {
+            AlertDialog.Builder(this)
+                .setTitle("${currentTypeName()}统计")
+                .setMessage("暂无本地缓存数据")
+                .setPositiveButton("关闭", null)
+                .show()
+            return
+        }
+
+        val termStats = allRows.groupingBy { it.term.ifBlank { "未知学期" } }.eachCount()
+        val dayLabels = arrayOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")
+        val dayStats = allRows.groupingBy { row -> dayLabels.getOrNull(row.day - 1) ?: "未知星期" }.eachCount()
+        val campusStats = allRows.flatMap { row ->
+            listOf("新庄", "白马", "淮安").filter { row.room.contains(it) }.ifEmpty { listOf("未知校区") }
+        }.groupingBy { it }.eachCount()
+        val collegeStats = allRows.groupingBy { it.collegeName.ifBlank { "未知学院" } }.eachCount()
+        val topEntities = entityCounts.entries.associate { it.key to it.value }
+
+        val message = buildString {
+            appendLine("记录数：${allRows.size}")
+            appendLine("${currentTypeName()}数：${allEntities.size}")
+            appendLine()
+            appendLine("学期分布")
+            appendLine(statsText(termStats))
+            appendLine()
+            appendLine("星期分布")
+            appendLine(statsText(dayStats))
+            appendLine()
+            appendLine("校区分布")
+            appendLine(statsText(campusStats))
+            appendLine()
+            appendLine("学院分布")
+            appendLine(statsText(collegeStats))
+            appendLine()
+            appendLine("课程数最多的${currentTypeName()}")
+            append(statsText(topEntities, 10))
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("${currentTypeName()}统计")
+            .setMessage(message)
+            .setPositiveButton("关闭", null)
+            .show()
+    }
+
+    private fun statsText(stats: Map<String, Int>, limit: Int = 8): String {
+        return stats.entries
+            .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
+            .take(limit)
+            .joinToString("\n") { "${it.key}: ${it.value}" }
+            .ifBlank { "-" }
     }
 
     private val overlayHandler = android.os.Handler(android.os.Looper.getMainLooper())

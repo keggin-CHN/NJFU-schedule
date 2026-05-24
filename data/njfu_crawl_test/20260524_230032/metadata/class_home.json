@@ -1,0 +1,13 @@
+{
+  "type_key": "class",
+  "stage": "home",
+  "url": "https://jwxt.njfu.edu.cn/jsxsd/kbcx/kbxx_xzb",
+  "method": "GET",
+  "status_code": 200,
+  "final_url": "https://jwxt.njfu.edu.cn/jsxsd/kbcx/kbxx_xzb",
+  "encoding": "UTF-8",
+  "elapsed_ms": 60,
+  "content_length": 19260,
+  "file": "raw/class_home.html",
+  "request_data": null
+}

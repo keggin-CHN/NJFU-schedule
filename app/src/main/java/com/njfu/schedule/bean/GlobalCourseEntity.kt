@@ -8,6 +8,9 @@ data class GlobalCourseEntity(
     @PrimaryKey(autoGenerate = true)
     val uid: Long = 0,
     val type: String,
+    val typeLabel: String = "",
+    val term: String = "",
+    val entityName: String = "",
     val courseName: String,
     val teacher: String,
     val room: String,
@@ -15,5 +18,13 @@ data class GlobalCourseEntity(
     val day: Int,
     val sectionsStr: String,
     val className: String,
-    val collegeName: String = ""
+    val collegeName: String = "",
+    val sectionNumbers: String = "",
+    val slotIndex: Int = 0,
+    val tableIndex: Int = 0,
+    val rowIndex: Int = 0,
+    val colIndex: Int = 0,
+    val rawText: String = "",
+    val rawHtml: String = "",
+    val rawLinesJson: String = ""
 )

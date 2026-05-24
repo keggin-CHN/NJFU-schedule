@@ -1,0 +1,2617 @@
+[
+  {
+    "action": "",
+    "method": "POST",
+    "attrs": {
+      "action": "",
+      "name": "FormPrint",
+      "id": "FormPrint",
+      "method": "post",
+      "target": "ifrmPrint"
+    },
+    "fields": []
+  },
+  {
+    "action": "/jsxsd/kbcx/kbxx_teacher_ifr",
+    "method": "POST",
+    "attrs": {
+      "action": "/jsxsd/kbcx/kbxx_teacher_ifr",
+      "name": "Form1",
+      "id": "Form1",
+      "method": "post",
+      "target": "fcenter"
+    },
+    "fields": [
+      {
+        "tag": "select",
+        "name": "xnxqh",
+        "id": "xnxqh",
+        "type": "",
+        "value": "",
+        "text": "2026-2027-1 2025-2026-2 2025-2026-1 2024-2025-2 2024-2025-1",
+        "attrs": {
+          "name": "xnxqh",
+          "id": "xnxqh",
+          "onchange": "initJc(this);sfxszc(this);"
+        },
+        "options": [
+          {
+            "value": "2026-2027-1",
+            "text": "2026-2027-1",
+            "selected": false
+          },
+          {
+            "value": "2025-2026-2",
+            "text": "2025-2026-2",
+            "selected": true
+          },
+          {
+            "value": "2025-2026-1",
+            "text": "2025-2026-1",
+            "selected": false
+          },
+          {
+            "value": "2024-2025-2",
+            "text": "2024-2025-2",
+            "selected": false
+          },
+          {
+            "value": "2024-2025-1",
+            "text": "2024-2025-1",
+            "selected": false
+          }
+        ],
+        "selected_value": "2025-2026-2"
+      },
+      {
+        "tag": "select",
+        "name": "kbjcmsid",
+        "id": "kbjcmsid",
+        "type": "",
+        "value": "",
+        "text": "默认节次模式",
+        "attrs": {
+          "name": "kbjcmsid",
+          "id": "kbjcmsid"
+        },
+        "options": [
+          {
+            "value": "933E103D1CA84D64A71CE6FC60BFE57B",
+            "text": "默认节次模式",
+            "selected": false
+          }
+        ],
+        "selected_value": ""
+      },
+      {
+        "tag": "select",
+        "name": "skyx",
+        "id": "skyx",
+        "type": "",
+        "value": "",
+        "text": "请选择上课院系 [00]教务处 [01]林草学院、水土保持学院 [02]化学工程学院 [03]机械电子工程学院 [04]材料科学与工程学院 [05]经济管理学院 [06]土木工程学院 [07]人文社会科学学院、生态文明传播学院 [08]信息科学技术学院、人工智能学院 [09]研究生院 [10]风景园林学院 [11]理学院 [12]外国语学院 [1201]英语系 [13]艺术设计学院 [14]家居与工业设计学院 [15]轻工与食品学院 [16]汽车与交通工程学院 [17]生态与环境学院 [171]生物与环境学院 [3801]植物科学系 [3802]生态科学系 [3803]环境科学系 [3804]环境工程系 [3805]湿地保护系 [3806]生物化学与分子生物学系 [3807]行政 [3808]竹类所 [18]生命科学学院 [19]南方学院(2009级以前) [20]国际教育学院 [21]研究生工作部 [22]军事教研室 [23]体育美育部 [24]图书馆 [25]学生工作部（处） [26]校医院 [27]团委 [28]其它 [29]现代分析测试中心 [31]马克思主义学院 [33]南方学院 [3301]军事 [3302]体育 [3303]淮工 [3304]淮师 [34]工培中心 [35]党委宣传部 [36]国际合作处 [37]白马校区 [38]校长办公室 [51]淮安校区（一） [52]淮安校区 [53]淮安校区（三） [54]淮安校区（二） [94]林木遗传育种全国重点实验室_木遗传与生物技术教育部重点实验 [99]管理部门 [999]其他 [D00]校领导 [D01]党委办公室 [D02]党委组织部—党校 [D04]纪检监察机构 [D06]保卫部(处) [D07]校工会 [D09]机关党委 [D10]党委统战部 [X03]科学技术处 [X05]人事处 [X06]财务处 [X07]实验室与基地建设管理处 [X09]基建处 [X10]后勤管理处_后勤服务总公司 [X11]离退休工作处 [X13]审计处 [X15]发展规划与学科建设处 [X18]网络安全和信息化办公室 [XZ14]人文社科处 [XZ16]国有资产管理处 [Y19]继续教育学院_应用技术学院 [Y22]竹类研究所 [Y23]机电产品包装生物质材料国家地方联合工程研究中心 [Z01]教学评估办公室_高等教育研究所 [Z03]期刊编辑部 [Z04]校友工作办公室_学校发展基金会秘书处 [Z05]资产经营公司 [Z09]博物馆_档案馆 [Z11]创新创业学院",
+        "attrs": {
+          "name": "skyx",
+          "lay-search": "",
+          "lay-filter": "multi",
+          "id": "skyx"
+        },
+        "options": [
+          {
+            "value": "",
+            "text": "请选择上课院系",
+            "selected": false
+          },
+          {
+            "value": "00",
+            "text": "[00]教务处",
+            "selected": false
+          },
+          {
+            "value": "01",
+            "text": "[01]林草学院、水土保持学院",
+            "selected": false
+          },
+          {
+            "value": "02",
+            "text": "[02]化学工程学院",
+            "selected": false
+          },
+          {
+            "value": "03",
+            "text": "[03]机械电子工程学院",
+            "selected": false
+          },
+          {
+            "value": "04",
+            "text": "[04]材料科学与工程学院",
+            "selected": false
+          },
+          {
+            "value": "05",
+            "text": "[05]经济管理学院",
+            "selected": false
+          },
+          {
+            "value": "06",
+            "text": "[06]土木工程学院",
+            "selected": false
+          },
+          {
+            "value": "07",
+            "text": "[07]人文社会科学学院、生态文明传播学院",
+            "selected": false
+          },
+          {
+            "value": "08",
+            "text": "[08]信息科学技术学院、人工智能学院",
+            "selected": false
+          },
+          {
+            "value": "37",
+            "text": "[09]研究生院",
+            "selected": false
+          },
+          {
+            "value": "10",
+            "text": "[10]风景园林学院",
+            "selected": false
+          },
+          {
+            "value": "11",
+            "text": "[11]理学院",
+            "selected": false
+          },
+          {
+            "value": "12",
+            "text": "[12]外国语学院",
+            "selected": false
+          },
+          {
+            "value": "1201",
+            "text": "[1201]英语系",
+            "selected": false
+          },
+          {
+            "value": "13",
+            "text": "[13]艺术设计学院",
+            "selected": false
+          },
+          {
+            "value": "14",
+            "text": "[14]家居与工业设计学院",
+            "selected": false
+          },
+          {
+            "value": "15",
+            "text": "[15]轻工与食品学院",
+            "selected": false
+          },
+          {
+            "value": "16",
+            "text": "[16]汽车与交通工程学院",
+            "selected": false
+          },
+          {
+            "value": "17x",
+            "text": "[17]生态与环境学院",
+            "selected": false
+          },
+          {
+            "value": "38",
+            "text": "[171]生物与环境学院",
+            "selected": false
+          },
+          {
+            "value": "3801",
+            "text": "[3801]植物科学系",
+            "selected": false
+          },
+          {
+            "value": "3802",
+            "text": "[3802]生态科学系",
+            "selected": false
+          },
+          {
+            "value": "3803",
+            "text": "[3803]环境科学系",
+            "selected": false
+          },
+          {
+            "value": "3804",
+            "text": "[3804]环境工程系",
+            "selected": false
+          },
+          {
+            "value": "3805",
+            "text": "[3805]湿地保护系",
+            "selected": false
+          },
+          {
+            "value": "3806",
+            "text": "[3806]生物化学与分子生物学系",
+            "selected": false
+          },
+          {
+            "value": "3807",
+            "text": "[3807]行政",
+            "selected": false
+          },
+          {
+            "value": "3808",
+            "text": "[3808]竹类所",
+            "selected": false
+          },
+          {
+            "value": "18x",
+            "text": "[18]生命科学学院",
+            "selected": false
+          },
+          {
+            "value": "19",
+            "text": "[19]南方学院(2009级以前)",
+            "selected": false
+          },
+          {
+            "value": "20",
+            "text": "[20]国际教育学院",
+            "selected": false
+          },
+          {
+            "value": "51",
+            "text": "[21]研究生工作部",
+            "selected": false
+          },
+          {
+            "value": "22",
+            "text": "[22]军事教研室",
+            "selected": false
+          },
+          {
+            "value": "23",
+            "text": "[23]体育美育部",
+            "selected": false
+          },
+          {
+            "value": "24",
+            "text": "[24]图书馆",
+            "selected": false
+          },
+          {
+            "value": "25",
+            "text": "[25]学生工作部（处）",
+            "selected": false
+          },
+          {
+            "value": "26",
+            "text": "[26]校医院",
+            "selected": false
+          },
+          {
+            "value": "27",
+            "text": "[27]团委",
+            "selected": false
+          },
+          {
+            "value": "28",
+            "text": "[28]其它",
+            "selected": false
+          },
+          {
+            "value": "39",
+            "text": "[29]现代分析测试中心",
+            "selected": false
+          },
+          {
+            "value": "36",
+            "text": "[31]马克思主义学院",
+            "selected": false
+          },
+          {
+            "value": "33",
+            "text": "[33]南方学院",
+            "selected": false
+          },
+          {
+            "value": "3301",
+            "text": "[3301]军事",
+            "selected": false
+          },
+          {
+            "value": "3302",
+            "text": "[3302]体育",
+            "selected": false
+          },
+          {
+            "value": "3303",
+            "text": "[3303]淮工",
+            "selected": false
+          },
+          {
+            "value": "3304",
+            "text": "[3304]淮师",
+            "selected": false
+          },
+          {
+            "value": "34",
+            "text": "[34]工培中心",
+            "selected": false
+          },
+          {
+            "value": "35",
+            "text": "[35]党委宣传部",
+            "selected": false
+          },
+          {
+            "value": "06DCD1CA9F1A4BF99EB2F1EC867CF9F4",
+            "text": "[36]国际合作处",
+            "selected": false
+          },
+          {
+            "value": "9ECE3C16F8874376ADCE75AE4B51819D",
+            "text": "[37]白马校区",
+            "selected": false
+          },
+          {
+            "value": "17",
+            "text": "[38]校长办公室",
+            "selected": false
+          },
+          {
+            "value": "45",
+            "text": "[51]淮安校区（一）",
+            "selected": false
+          },
+          {
+            "value": "44",
+            "text": "[52]淮安校区",
+            "selected": false
+          },
+          {
+            "value": "42",
+            "text": "[53]淮安校区（三）",
+            "selected": false
+          },
+          {
+            "value": "46",
+            "text": "[54]淮安校区（二）",
+            "selected": false
+          },
+          {
+            "value": "872870F7541F4E3293B483209777073E",
+            "text": "[94]林木遗传育种全国重点实验室_木遗传与生物技术教育部重点实验",
+            "selected": false
+          },
+          {
+            "value": "50",
+            "text": "[99]管理部门",
+            "selected": false
+          },
+          {
+            "value": "999",
+            "text": "[999]其他",
+            "selected": false
+          },
+          {
+            "value": "81A7BC9484FD4DA3BF33F3E5A0F9660C",
+            "text": "[D00]校领导",
+            "selected": false
+          },
+          {
+            "value": "AE09032641B14991BA9E0E33B42F8C05",
+            "text": "[D01]党委办公室",
+            "selected": false
+          },
+          {
+            "value": "88295D8832424CB5A84D72ED221E8D00",
+            "text": "[D02]党委组织部—党校",
+            "selected": false
+          },
+          {
+            "value": "A50F3122A40D4A83BC46B1146CEE2B1E",
+            "text": "[D04]纪检监察机构",
+            "selected": false
+          },
+          {
+            "value": "574DAE2D54AF456FAD485B04A6CEB6DB",
+            "text": "[D06]保卫部(处)",
+            "selected": false
+          },
+          {
+            "value": "5A08AF446C3E4EF2A05617D413923331",
+            "text": "[D07]校工会",
+            "selected": false
+          },
+          {
+            "value": "4117D79BEBED40268F63C823141D602B",
+            "text": "[D09]机关党委",
+            "selected": false
+          },
+          {
+            "value": "31B3E8C8509A4AFC9CEF12498624272B",
+            "text": "[D10]党委统战部",
+            "selected": false
+          },
+          {
+            "value": "X03",
+            "text": "[X03]科学技术处",
+            "selected": false
+          },
+          {
+            "value": "2146744B3D4F44B2836993D9044B1B85",
+            "text": "[X05]人事处",
+            "selected": false
+          },
+          {
+            "value": "679B96A4E37341E28238FA97C166D83F",
+            "text": "[X06]财务处",
+            "selected": false
+          },
+          {
+            "value": "3A43394B4F174EC8969EAC78C381B111",
+            "text": "[X07]实验室与基地建设管理处",
+            "selected": false
+          },
+          {
+            "value": "FA3D8578D1BE40CF836B9A0950EF017C",
+            "text": "[X09]基建处",
+            "selected": false
+          },
+          {
+            "value": "598CF89245D44B94B7352D6D6883F241",
+            "text": "[X10]后勤管理处_后勤服务总公司",
+            "selected": false
+          },
+          {
+            "value": "26856DA023E54201902D913A71D0E3E4",
+            "text": "[X11]离退休工作处",
+            "selected": false
+          },
+          {
+            "value": "A5C0E7A432124BC1AD457E0186B1148A",
+            "text": "[X13]审计处",
+            "selected": false
+          },
+          {
+            "value": "0E48248A90634732A0230D22571EA916",
+            "text": "[X15]发展规划与学科建设处",
+            "selected": false
+          },
+          {
+            "value": "7657B3A2740C406F97398FC5BB53DDE2",
+            "text": "[X18]网络安全和信息化办公室",
+            "selected": false
+          },
+          {
+            "value": "E7E921CEE4E44520AE567C34A0215596",
+            "text": "[XZ14]人文社科处",
+            "selected": false
+          },
+          {
+            "value": "2D25081EA50F41CA8A4D0214AD30FFC2",
+            "text": "[XZ16]国有资产管理处",
+            "selected": false
+          },
+          {
+            "value": "E5A3B681D59F41A18A8BEB68AF072774",
+            "text": "[Y19]继续教育学院_应用技术学院",
+            "selected": false
+          },
+          {
+            "value": "70D9CCE10E3D41038ED56205E82D7250",
+            "text": "[Y22]竹类研究所",
+            "selected": false
+          },
+          {
+            "value": "63B69331E31D4461AB1365B692643EA6",
+            "text": "[Y23]机电产品包装生物质材料国家地方联合工程研究中心",
+            "selected": false
+          },
+          {
+            "value": "25083303C10D40E29461F2AA9B7C601B",
+            "text": "[Z01]教学评估办公室_高等教育研究所",
+            "selected": false
+          },
+          {
+            "value": "F096DE226D314F9388BB6B53D0B986E4",
+            "text": "[Z03]期刊编辑部",
+            "selected": false
+          },
+          {
+            "value": "6FFDFE5417FE4E1D88EF621C08F83C8D",
+            "text": "[Z04]校友工作办公室_学校发展基金会秘书处",
+            "selected": false
+          },
+          {
+            "value": "CE32C3C57DD945D2B3B02DF072BA97A0",
+            "text": "[Z05]资产经营公司",
+            "selected": false
+          },
+          {
+            "value": "ABAE0B57DCA1439F80B00C36869F787E",
+            "text": "[Z09]博物馆_档案馆",
+            "selected": false
+          },
+          {
+            "value": "A56FB54D976F4CFAAB14A3C6A19BEBC8",
+            "text": "[Z11]创新创业学院",
+            "selected": false
+          }
+        ],
+        "selected_value": ""
+      },
+      {
+        "tag": "select",
+        "name": "jszc",
+        "id": "jszc",
+        "type": "",
+        "value": "",
+        "text": "-请选择- 高等学校教师 教授 副教授 讲师（高校） 助教（高校） 中等专业学校教师 高级讲师（中专） 讲师（中专） 助理讲师（中专） 教员（中专） 技工学校教师 高级讲师（技校） 讲师（技校） 助理讲师（技校） 教员（技校） 技工学校教师（实习指导 高级实习指导教师 一级实习指导教师 二级实习指导教师 三级实习指导教师 中学教师 高级教师（中学） 一级教师（中学） 二级教师（中学） 三级教师（中学） 实验技术人员 高级实验师 实验师 助理实验师 实验员 工程技术人员 高级工程师 工程师 助理工程师 技术员 农业技术人员（农艺） 农业技术推广研究员(农艺 高级农艺师 农艺师 助理农艺师 农业技术员 农业技术人员（兽医） 农业技术推广研究员(兽医 高级兽医师 兽医师 助理兽医师 兽医技术员 农业技术人员（畜牧） 农业技术推广研究员(畜牧 高级畜牧师 畜牧师 助理畜牧师 畜牧技术员 经济专业人员 高级经济师 经济师 助理经济师 经济员 会计专业人员 高级会计师 会计师 助理会计师 会计员 统计专业人员 高级统计师 统计师 助理统计师 统计员 出版专业人员（编审） 编审 副编审 编辑 助理编辑 出版专业人员（技术编辑 技术编辑 助理技术编辑 技术设计员 出版专业人员（校对） 一级校对 二级校对 三级校对 翻译人员 译审 副译审 翻译 助理翻译 新闻专业人员（记者） 高级记者 主任记者 记者 助理记者 新闻专业人员（编辑） 高级编辑 主任编辑 编辑 助理编辑 播音员 播音指导 主任播音员 一级播音员 二级播音员 三级播音员 卫生技术人员（医师） 主任医师 副主任医师 主治医师 医师 医士 卫生技术人员（药剂） 主任药师 副主任药师 主管药师 药师 药士 卫生技术人员（护理） 主任护师 副主任护师 主管护师 护师 护士 卫生技术人员（技师） 主任技师 副主任技师 主管技师 技师 技士 工艺美术人员 高级工艺美术师 工艺美术师 助理工艺美术师 工艺美术员 艺术人员（演员） 一级演员 二级演员 三级演员 四级演员 艺术人员（演奏员） 一级演奏员 二级演奏员 三级演奏员 四级演奏员 艺术人员（编剧） 一级编剧 二级编剧 三级编剧 四级编剧 艺术人员（导演） 一级导演 二级导演 三级导演 四级导演 艺术人员（指挥） 一级指挥 二级指挥 三级指挥 四级指挥 艺术人员（作曲） 一级作曲 二级作曲 三级作曲 四级作曲 艺术人员（美术） 一级美术师 二级美术师 三级美术师 美术员 艺术人员（舞美设计） 一级舞美设计师 二级舞美设计师 三级舞美设计师 舞美设计员 艺术人员（舞台技术） 主任舞台技师 舞台技师 舞台技术员 体育锻炼 国家级教练 高级教练 一级教练 二级教练 三级教练 律师 一级律师 二级律师 三级律师 四级律师 律师助理 公证员 一级公证员 二级公证员 三级公证员 四级公证员 公证助理员 小学教师 高级教师（小学） 一级教师（小学） 二级教师（小学） 三级教师（小学） 船舶技术人员（驾驶） 高级船长 船长（大副） 二副 三副 船舶技术人员（轮机） 高级轮机长 轮机长（大管轮） 二管轮 三管轮 船舶技术人员（电机） 高级电机员 通用电机员（一等电机员) 二等电机员 船舶技术人员（报务） 高级报务员 通用报务员 二等报务员 限用报务员 飞行技术人员（驾驶） 一级飞行员 二级飞行员 三级飞行员 四级飞行员 飞行技术人员（领航） 一级领航员 二级领航员 三级领航员 四级领航员 飞行技术人员（通信） 一级飞行通信员 二级飞行通信员 三级飞行通信员 四级飞行通信员 飞行技术人员（机械） 一级飞行机械员 二级飞行机械员 三级飞行机械员 四级飞行机械员 船舶技术人员（引航） 高级引航员 一、二级引航员 三、四级引航员 讲师 助教 高级讲师 教师 中教高级 中教二级 研究员 副研究员 助理研究员 研究馆员 副研究馆员 馆员 主管护士 自然科学研究人员 研究员（自然科学） 副研究员（自然科学） 助理研究员（自然科学） 研究实习员（自然科学） 社会科学研究人员 研究员（社会科学） 副研究员（社会科学） 助理研究员（社会科学） 研究实习员（社会科学） 图书、资料专业人员 研究馆员（图书） 副研究馆员（图书） 馆员（图书） 助理馆员（图书） 管理员（图书） 文博专业人员 研究馆员（文博） 副研究馆员（文博） 馆员（文博） 助理馆员（文博） 管理员（文博） 档案专业人员 研究馆员（档案） 副研究馆员（档案） 馆员（档案） 助理馆员（档案） 管理员（档案） 群众文化专业人员 研究馆员（群众文化） 副研究馆员（群众文化） 馆员（群众文化） 助理馆员（群众文化） 管理员（群众文化） 审计专业人员 高级审计师 审计师 助理审计师 审计员 法医专业人员 主任法医师 副主任法医师 主检法医师 法医师 法医士 思想政治工作人员 高级政工师 政工师 助理政工师 政工员 其他",
+        "attrs": {
+          "id": "jszc",
+          "name": "jszc",
+          "onchange": "onchangeYxOrKsnd(this)"
+        },
+        "options": [
+          {
+            "value": "",
+            "text": "-请选择-",
+            "selected": false
+          },
+          {
+            "value": "010",
+            "text": "高等学校教师",
+            "selected": false
+          },
+          {
+            "value": "011",
+            "text": "教授",
+            "selected": false
+          },
+          {
+            "value": "012",
+            "text": "副教授",
+            "selected": false
+          },
+          {
+            "value": "013",
+            "text": "讲师（高校）",
+            "selected": false
+          },
+          {
+            "value": "014",
+            "text": "助教（高校）",
+            "selected": false
+          },
+          {
+            "value": "020",
+            "text": "中等专业学校教师",
+            "selected": false
+          },
+          {
+            "value": "022",
+            "text": "高级讲师（中专）",
+            "selected": false
+          },
+          {
+            "value": "023",
+            "text": "讲师（中专）",
+            "selected": false
+          },
+          {
+            "value": "024",
+            "text": "助理讲师（中专）",
+            "selected": false
+          },
+          {
+            "value": "025",
+            "text": "教员（中专）",
+            "selected": false
+          },
+          {
+            "value": "030",
+            "text": "技工学校教师",
+            "selected": false
+          },
+          {
+            "value": "032",
+            "text": "高级讲师（技校）",
+            "selected": false
+          },
+          {
+            "value": "033",
+            "text": "讲师（技校）",
+            "selected": false
+          },
+          {
+            "value": "034",
+            "text": "助理讲师（技校）",
+            "selected": false
+          },
+          {
+            "value": "035",
+            "text": "教员（技校）",
+            "selected": false
+          },
+          {
+            "value": "040",
+            "text": "技工学校教师（实习指导",
+            "selected": false
+          },
+          {
+            "value": "042",
+            "text": "高级实习指导教师",
+            "selected": false
+          },
+          {
+            "value": "043",
+            "text": "一级实习指导教师",
+            "selected": false
+          },
+          {
+            "value": "044",
+            "text": "二级实习指导教师",
+            "selected": false
+          },
+          {
+            "value": "045",
+            "text": "三级实习指导教师",
+            "selected": false
+          },
+          {
+            "value": "050",
+            "text": "中学教师",
+            "selected": false
+          },
+          {
+            "value": "052",
+            "text": "高级教师（中学）",
+            "selected": false
+          },
+          {
+            "value": "053",
+            "text": "一级教师（中学）",
+            "selected": false
+          },
+          {
+            "value": "054",
+            "text": "二级教师（中学）",
+            "selected": false
+          },
+          {
+            "value": "055",
+            "text": "三级教师（中学）",
+            "selected": false
+          },
+          {
+            "value": "070",
+            "text": "实验技术人员",
+            "selected": false
+          },
+          {
+            "value": "072",
+            "text": "高级实验师",
+            "selected": false
+          },
+          {
+            "value": "073",
+            "text": "实验师",
+            "selected": false
+          },
+          {
+            "value": "074",
+            "text": "助理实验师",
+            "selected": false
+          },
+          {
+            "value": "075",
+            "text": "实验员",
+            "selected": false
+          },
+          {
+            "value": "080",
+            "text": "工程技术人员",
+            "selected": false
+          },
+          {
+            "value": "082",
+            "text": "高级工程师",
+            "selected": false
+          },
+          {
+            "value": "083",
+            "text": "工程师",
+            "selected": false
+          },
+          {
+            "value": "084",
+            "text": "助理工程师",
+            "selected": false
+          },
+          {
+            "value": "085",
+            "text": "技术员",
+            "selected": false
+          },
+          {
+            "value": "090",
+            "text": "农业技术人员（农艺）",
+            "selected": false
+          },
+          {
+            "value": "091",
+            "text": "农业技术推广研究员(农艺",
+            "selected": false
+          },
+          {
+            "value": "092",
+            "text": "高级农艺师",
+            "selected": false
+          },
+          {
+            "value": "093",
+            "text": "农艺师",
+            "selected": false
+          },
+          {
+            "value": "094",
+            "text": "助理农艺师",
+            "selected": false
+          },
+          {
+            "value": "095",
+            "text": "农业技术员",
+            "selected": false
+          },
+          {
+            "value": "100",
+            "text": "农业技术人员（兽医）",
+            "selected": false
+          },
+          {
+            "value": "101",
+            "text": "农业技术推广研究员(兽医",
+            "selected": false
+          },
+          {
+            "value": "102",
+            "text": "高级兽医师",
+            "selected": false
+          },
+          {
+            "value": "103",
+            "text": "兽医师",
+            "selected": false
+          },
+          {
+            "value": "104",
+            "text": "助理兽医师",
+            "selected": false
+          },
+          {
+            "value": "105",
+            "text": "兽医技术员",
+            "selected": false
+          },
+          {
+            "value": "110",
+            "text": "农业技术人员（畜牧）",
+            "selected": false
+          },
+          {
+            "value": "111",
+            "text": "农业技术推广研究员(畜牧",
+            "selected": false
+          },
+          {
+            "value": "112",
+            "text": "高级畜牧师",
+            "selected": false
+          },
+          {
+            "value": "113",
+            "text": "畜牧师",
+            "selected": false
+          },
+          {
+            "value": "114",
+            "text": "助理畜牧师",
+            "selected": false
+          },
+          {
+            "value": "115",
+            "text": "畜牧技术员",
+            "selected": false
+          },
+          {
+            "value": "120",
+            "text": "经济专业人员",
+            "selected": false
+          },
+          {
+            "value": "122",
+            "text": "高级经济师",
+            "selected": false
+          },
+          {
+            "value": "123",
+            "text": "经济师",
+            "selected": false
+          },
+          {
+            "value": "124",
+            "text": "助理经济师",
+            "selected": false
+          },
+          {
+            "value": "125",
+            "text": "经济员",
+            "selected": false
+          },
+          {
+            "value": "130",
+            "text": "会计专业人员",
+            "selected": false
+          },
+          {
+            "value": "132",
+            "text": "高级会计师",
+            "selected": false
+          },
+          {
+            "value": "133",
+            "text": "会计师",
+            "selected": false
+          },
+          {
+            "value": "134",
+            "text": "助理会计师",
+            "selected": false
+          },
+          {
+            "value": "135",
+            "text": "会计员",
+            "selected": false
+          },
+          {
+            "value": "140",
+            "text": "统计专业人员",
+            "selected": false
+          },
+          {
+            "value": "142",
+            "text": "高级统计师",
+            "selected": false
+          },
+          {
+            "value": "143",
+            "text": "统计师",
+            "selected": false
+          },
+          {
+            "value": "144",
+            "text": "助理统计师",
+            "selected": false
+          },
+          {
+            "value": "145",
+            "text": "统计员",
+            "selected": false
+          },
+          {
+            "value": "150",
+            "text": "出版专业人员（编审）",
+            "selected": false
+          },
+          {
+            "value": "151",
+            "text": "编审",
+            "selected": false
+          },
+          {
+            "value": "152",
+            "text": "副编审",
+            "selected": false
+          },
+          {
+            "value": "153",
+            "text": "编辑",
+            "selected": false
+          },
+          {
+            "value": "154",
+            "text": "助理编辑",
+            "selected": false
+          },
+          {
+            "value": "160",
+            "text": "出版专业人员（技术编辑",
+            "selected": false
+          },
+          {
+            "value": "163",
+            "text": "技术编辑",
+            "selected": false
+          },
+          {
+            "value": "164",
+            "text": "助理技术编辑",
+            "selected": false
+          },
+          {
+            "value": "165",
+            "text": "技术设计员",
+            "selected": false
+          },
+          {
+            "value": "170",
+            "text": "出版专业人员（校对）",
+            "selected": false
+          },
+          {
+            "value": "173",
+            "text": "一级校对",
+            "selected": false
+          },
+          {
+            "value": "174",
+            "text": "二级校对",
+            "selected": false
+          },
+          {
+            "value": "175",
+            "text": "三级校对",
+            "selected": false
+          },
+          {
+            "value": "180",
+            "text": "翻译人员",
+            "selected": false
+          },
+          {
+            "value": "181",
+            "text": "译审",
+            "selected": false
+          },
+          {
+            "value": "182",
+            "text": "副译审",
+            "selected": false
+          },
+          {
+            "value": "183",
+            "text": "翻译",
+            "selected": false
+          },
+          {
+            "value": "184",
+            "text": "助理翻译",
+            "selected": false
+          },
+          {
+            "value": "190",
+            "text": "新闻专业人员（记者）",
+            "selected": false
+          },
+          {
+            "value": "191",
+            "text": "高级记者",
+            "selected": false
+          },
+          {
+            "value": "192",
+            "text": "主任记者",
+            "selected": false
+          },
+          {
+            "value": "193",
+            "text": "记者",
+            "selected": false
+          },
+          {
+            "value": "194",
+            "text": "助理记者",
+            "selected": false
+          },
+          {
+            "value": "200",
+            "text": "新闻专业人员（编辑）",
+            "selected": false
+          },
+          {
+            "value": "201",
+            "text": "高级编辑",
+            "selected": false
+          },
+          {
+            "value": "202",
+            "text": "主任编辑",
+            "selected": false
+          },
+          {
+            "value": "203",
+            "text": "编辑",
+            "selected": false
+          },
+          {
+            "value": "204",
+            "text": "助理编辑",
+            "selected": false
+          },
+          {
+            "value": "220",
+            "text": "播音员",
+            "selected": false
+          },
+          {
+            "value": "221",
+            "text": "播音指导",
+            "selected": false
+          },
+          {
+            "value": "222",
+            "text": "主任播音员",
+            "selected": false
+          },
+          {
+            "value": "223",
+            "text": "一级播音员",
+            "selected": false
+          },
+          {
+            "value": "224",
+            "text": "二级播音员",
+            "selected": false
+          },
+          {
+            "value": "225",
+            "text": "三级播音员",
+            "selected": false
+          },
+          {
+            "value": "230",
+            "text": "卫生技术人员（医师）",
+            "selected": false
+          },
+          {
+            "value": "231",
+            "text": "主任医师",
+            "selected": false
+          },
+          {
+            "value": "232",
+            "text": "副主任医师",
+            "selected": false
+          },
+          {
+            "value": "233",
+            "text": "主治医师",
+            "selected": false
+          },
+          {
+            "value": "234",
+            "text": "医师",
+            "selected": false
+          },
+          {
+            "value": "235",
+            "text": "医士",
+            "selected": false
+          },
+          {
+            "value": "240",
+            "text": "卫生技术人员（药剂）",
+            "selected": false
+          },
+          {
+            "value": "241",
+            "text": "主任药师",
+            "selected": false
+          },
+          {
+            "value": "242",
+            "text": "副主任药师",
+            "selected": false
+          },
+          {
+            "value": "243",
+            "text": "主管药师",
+            "selected": false
+          },
+          {
+            "value": "244",
+            "text": "药师",
+            "selected": false
+          },
+          {
+            "value": "245",
+            "text": "药士",
+            "selected": false
+          },
+          {
+            "value": "250",
+            "text": "卫生技术人员（护理）",
+            "selected": false
+          },
+          {
+            "value": "251",
+            "text": "主任护师",
+            "selected": false
+          },
+          {
+            "value": "252",
+            "text": "副主任护师",
+            "selected": false
+          },
+          {
+            "value": "253",
+            "text": "主管护师",
+            "selected": false
+          },
+          {
+            "value": "254",
+            "text": "护师",
+            "selected": false
+          },
+          {
+            "value": "255",
+            "text": "护士",
+            "selected": false
+          },
+          {
+            "value": "260",
+            "text": "卫生技术人员（技师）",
+            "selected": false
+          },
+          {
+            "value": "261",
+            "text": "主任技师",
+            "selected": false
+          },
+          {
+            "value": "262",
+            "text": "副主任技师",
+            "selected": false
+          },
+          {
+            "value": "263",
+            "text": "主管技师",
+            "selected": false
+          },
+          {
+            "value": "264",
+            "text": "技师",
+            "selected": false
+          },
+          {
+            "value": "265",
+            "text": "技士",
+            "selected": false
+          },
+          {
+            "value": "270",
+            "text": "工艺美术人员",
+            "selected": false
+          },
+          {
+            "value": "272",
+            "text": "高级工艺美术师",
+            "selected": false
+          },
+          {
+            "value": "273",
+            "text": "工艺美术师",
+            "selected": false
+          },
+          {
+            "value": "274",
+            "text": "助理工艺美术师",
+            "selected": false
+          },
+          {
+            "value": "275",
+            "text": "工艺美术员",
+            "selected": false
+          },
+          {
+            "value": "280",
+            "text": "艺术人员（演员）",
+            "selected": false
+          },
+          {
+            "value": "281",
+            "text": "一级演员",
+            "selected": false
+          },
+          {
+            "value": "282",
+            "text": "二级演员",
+            "selected": false
+          },
+          {
+            "value": "283",
+            "text": "三级演员",
+            "selected": false
+          },
+          {
+            "value": "284",
+            "text": "四级演员",
+            "selected": false
+          },
+          {
+            "value": "290",
+            "text": "艺术人员（演奏员）",
+            "selected": false
+          },
+          {
+            "value": "291",
+            "text": "一级演奏员",
+            "selected": false
+          },
+          {
+            "value": "292",
+            "text": "二级演奏员",
+            "selected": false
+          },
+          {
+            "value": "293",
+            "text": "三级演奏员",
+            "selected": false
+          },
+          {
+            "value": "294",
+            "text": "四级演奏员",
+            "selected": false
+          },
+          {
+            "value": "300",
+            "text": "艺术人员（编剧）",
+            "selected": false
+          },
+          {
+            "value": "301",
+            "text": "一级编剧",
+            "selected": false
+          },
+          {
+            "value": "302",
+            "text": "二级编剧",
+            "selected": false
+          },
+          {
+            "value": "303",
+            "text": "三级编剧",
+            "selected": false
+          },
+          {
+            "value": "304",
+            "text": "四级编剧",
+            "selected": false
+          },
+          {
+            "value": "310",
+            "text": "艺术人员（导演）",
+            "selected": false
+          },
+          {
+            "value": "311",
+            "text": "一级导演",
+            "selected": false
+          },
+          {
+            "value": "312",
+            "text": "二级导演",
+            "selected": false
+          },
+          {
+            "value": "313",
+            "text": "三级导演",
+            "selected": false
+          },
+          {
+            "value": "314",
+            "text": "四级导演",
+            "selected": false
+          },
+          {
+            "value": "320",
+            "text": "艺术人员（指挥）",
+            "selected": false
+          },
+          {
+            "value": "321",
+            "text": "一级指挥",
+            "selected": false
+          },
+          {
+            "value": "322",
+            "text": "二级指挥",
+            "selected": false
+          },
+          {
+            "value": "323",
+            "text": "三级指挥",
+            "selected": false
+          },
+          {
+            "value": "324",
+            "text": "四级指挥",
+            "selected": false
+          },
+          {
+            "value": "330",
+            "text": "艺术人员（作曲）",
+            "selected": false
+          },
+          {
+            "value": "331",
+            "text": "一级作曲",
+            "selected": false
+          },
+          {
+            "value": "332",
+            "text": "二级作曲",
+            "selected": false
+          },
+          {
+            "value": "333",
+            "text": "三级作曲",
+            "selected": false
+          },
+          {
+            "value": "334",
+            "text": "四级作曲",
+            "selected": false
+          },
+          {
+            "value": "340",
+            "text": "艺术人员（美术）",
+            "selected": false
+          },
+          {
+            "value": "341",
+            "text": "一级美术师",
+            "selected": false
+          },
+          {
+            "value": "342",
+            "text": "二级美术师",
+            "selected": false
+          },
+          {
+            "value": "343",
+            "text": "三级美术师",
+            "selected": false
+          },
+          {
+            "value": "344",
+            "text": "美术员",
+            "selected": false
+          },
+          {
+            "value": "350",
+            "text": "艺术人员（舞美设计）",
+            "selected": false
+          },
+          {
+            "value": "351",
+            "text": "一级舞美设计师",
+            "selected": false
+          },
+          {
+            "value": "352",
+            "text": "二级舞美设计师",
+            "selected": false
+          },
+          {
+            "value": "353",
+            "text": "三级舞美设计师",
+            "selected": false
+          },
+          {
+            "value": "354",
+            "text": "舞美设计员",
+            "selected": false
+          },
+          {
+            "value": "360",
+            "text": "艺术人员（舞台技术）",
+            "selected": false
+          },
+          {
+            "value": "362",
+            "text": "主任舞台技师",
+            "selected": false
+          },
+          {
+            "value": "363",
+            "text": "舞台技师",
+            "selected": false
+          },
+          {
+            "value": "364",
+            "text": "舞台技术员",
+            "selected": false
+          },
+          {
+            "value": "370",
+            "text": "体育锻炼",
+            "selected": false
+          },
+          {
+            "value": "371",
+            "text": "国家级教练",
+            "selected": false
+          },
+          {
+            "value": "372",
+            "text": "高级教练",
+            "selected": false
+          },
+          {
+            "value": "373",
+            "text": "一级教练",
+            "selected": false
+          },
+          {
+            "value": "374",
+            "text": "二级教练",
+            "selected": false
+          },
+          {
+            "value": "375",
+            "text": "三级教练",
+            "selected": false
+          },
+          {
+            "value": "390",
+            "text": "律师",
+            "selected": false
+          },
+          {
+            "value": "391",
+            "text": "一级律师",
+            "selected": false
+          },
+          {
+            "value": "392",
+            "text": "二级律师",
+            "selected": false
+          },
+          {
+            "value": "393",
+            "text": "三级律师",
+            "selected": false
+          },
+          {
+            "value": "394",
+            "text": "四级律师",
+            "selected": false
+          },
+          {
+            "value": "395",
+            "text": "律师助理",
+            "selected": false
+          },
+          {
+            "value": "400",
+            "text": "公证员",
+            "selected": false
+          },
+          {
+            "value": "401",
+            "text": "一级公证员",
+            "selected": false
+          },
+          {
+            "value": "402",
+            "text": "二级公证员",
+            "selected": false
+          },
+          {
+            "value": "403",
+            "text": "三级公证员",
+            "selected": false
+          },
+          {
+            "value": "404",
+            "text": "四级公证员",
+            "selected": false
+          },
+          {
+            "value": "405",
+            "text": "公证助理员",
+            "selected": false
+          },
+          {
+            "value": "410",
+            "text": "小学教师",
+            "selected": false
+          },
+          {
+            "value": "413",
+            "text": "高级教师（小学）",
+            "selected": false
+          },
+          {
+            "value": "414",
+            "text": "一级教师（小学）",
+            "selected": false
+          },
+          {
+            "value": "415",
+            "text": "二级教师（小学）",
+            "selected": false
+          },
+          {
+            "value": "416",
+            "text": "三级教师（小学）",
+            "selected": false
+          },
+          {
+            "value": "420",
+            "text": "船舶技术人员（驾驶）",
+            "selected": false
+          },
+          {
+            "value": "422",
+            "text": "高级船长",
+            "selected": false
+          },
+          {
+            "value": "423",
+            "text": "船长（大副）",
+            "selected": false
+          },
+          {
+            "value": "424",
+            "text": "二副",
+            "selected": false
+          },
+          {
+            "value": "425",
+            "text": "三副",
+            "selected": false
+          },
+          {
+            "value": "430",
+            "text": "船舶技术人员（轮机）",
+            "selected": false
+          },
+          {
+            "value": "432",
+            "text": "高级轮机长",
+            "selected": false
+          },
+          {
+            "value": "433",
+            "text": "轮机长（大管轮）",
+            "selected": false
+          },
+          {
+            "value": "434",
+            "text": "二管轮",
+            "selected": false
+          },
+          {
+            "value": "435",
+            "text": "三管轮",
+            "selected": false
+          },
+          {
+            "value": "440",
+            "text": "船舶技术人员（电机）",
+            "selected": false
+          },
+          {
+            "value": "442",
+            "text": "高级电机员",
+            "selected": false
+          },
+          {
+            "value": "443",
+            "text": "通用电机员（一等电机员)",
+            "selected": false
+          },
+          {
+            "value": "444",
+            "text": "二等电机员",
+            "selected": false
+          },
+          {
+            "value": "450",
+            "text": "船舶技术人员（报务）",
+            "selected": false
+          },
+          {
+            "value": "452",
+            "text": "高级报务员",
+            "selected": false
+          },
+          {
+            "value": "453",
+            "text": "通用报务员",
+            "selected": false
+          },
+          {
+            "value": "454",
+            "text": "二等报务员",
+            "selected": false
+          },
+          {
+            "value": "455",
+            "text": "限用报务员",
+            "selected": false
+          },
+          {
+            "value": "460",
+            "text": "飞行技术人员（驾驶）",
+            "selected": false
+          },
+          {
+            "value": "462",
+            "text": "一级飞行员",
+            "selected": false
+          },
+          {
+            "value": "463",
+            "text": "二级飞行员",
+            "selected": false
+          },
+          {
+            "value": "464",
+            "text": "三级飞行员",
+            "selected": false
+          },
+          {
+            "value": "465",
+            "text": "四级飞行员",
+            "selected": false
+          },
+          {
+            "value": "470",
+            "text": "飞行技术人员（领航）",
+            "selected": false
+          },
+          {
+            "value": "472",
+            "text": "一级领航员",
+            "selected": false
+          },
+          {
+            "value": "473",
+            "text": "二级领航员",
+            "selected": false
+          },
+          {
+            "value": "474",
+            "text": "三级领航员",
+            "selected": false
+          },
+          {
+            "value": "475",
+            "text": "四级领航员",
+            "selected": false
+          },
+          {
+            "value": "480",
+            "text": "飞行技术人员（通信）",
+            "selected": false
+          },
+          {
+            "value": "482",
+            "text": "一级飞行通信员",
+            "selected": false
+          },
+          {
+            "value": "483",
+            "text": "二级飞行通信员",
+            "selected": false
+          },
+          {
+            "value": "484",
+            "text": "三级飞行通信员",
+            "selected": false
+          },
+          {
+            "value": "485",
+            "text": "四级飞行通信员",
+            "selected": false
+          },
+          {
+            "value": "490",
+            "text": "飞行技术人员（机械）",
+            "selected": false
+          },
+          {
+            "value": "492",
+            "text": "一级飞行机械员",
+            "selected": false
+          },
+          {
+            "value": "493",
+            "text": "二级飞行机械员",
+            "selected": false
+          },
+          {
+            "value": "494",
+            "text": "三级飞行机械员",
+            "selected": false
+          },
+          {
+            "value": "495",
+            "text": "四级飞行机械员",
+            "selected": false
+          },
+          {
+            "value": "500",
+            "text": "船舶技术人员（引航）",
+            "selected": false
+          },
+          {
+            "value": "502",
+            "text": "高级引航员",
+            "selected": false
+          },
+          {
+            "value": "503",
+            "text": "一、二级引航员",
+            "selected": false
+          },
+          {
+            "value": "504",
+            "text": "三、四级引航员",
+            "selected": false
+          },
+          {
+            "value": "510",
+            "text": "讲师",
+            "selected": false
+          },
+          {
+            "value": "511",
+            "text": "助教",
+            "selected": false
+          },
+          {
+            "value": "512",
+            "text": "高级讲师",
+            "selected": false
+          },
+          {
+            "value": "513",
+            "text": "教师",
+            "selected": false
+          },
+          {
+            "value": "514",
+            "text": "中教高级",
+            "selected": false
+          },
+          {
+            "value": "515",
+            "text": "中教二级",
+            "selected": false
+          },
+          {
+            "value": "516",
+            "text": "研究员",
+            "selected": false
+          },
+          {
+            "value": "517",
+            "text": "副研究员",
+            "selected": false
+          },
+          {
+            "value": "518",
+            "text": "助理研究员",
+            "selected": false
+          },
+          {
+            "value": "519",
+            "text": "研究馆员",
+            "selected": false
+          },
+          {
+            "value": "520",
+            "text": "副研究馆员",
+            "selected": false
+          },
+          {
+            "value": "521",
+            "text": "馆员",
+            "selected": false
+          },
+          {
+            "value": "522",
+            "text": "主管护士",
+            "selected": false
+          },
+          {
+            "value": "610",
+            "text": "自然科学研究人员",
+            "selected": false
+          },
+          {
+            "value": "611",
+            "text": "研究员（自然科学）",
+            "selected": false
+          },
+          {
+            "value": "612",
+            "text": "副研究员（自然科学）",
+            "selected": false
+          },
+          {
+            "value": "613",
+            "text": "助理研究员（自然科学）",
+            "selected": false
+          },
+          {
+            "value": "614",
+            "text": "研究实习员（自然科学）",
+            "selected": false
+          },
+          {
+            "value": "620",
+            "text": "社会科学研究人员",
+            "selected": false
+          },
+          {
+            "value": "621",
+            "text": "研究员（社会科学）",
+            "selected": false
+          },
+          {
+            "value": "622",
+            "text": "副研究员（社会科学）",
+            "selected": false
+          },
+          {
+            "value": "623",
+            "text": "助理研究员（社会科学）",
+            "selected": false
+          },
+          {
+            "value": "624",
+            "text": "研究实习员（社会科学）",
+            "selected": false
+          },
+          {
+            "value": "640",
+            "text": "图书、资料专业人员",
+            "selected": false
+          },
+          {
+            "value": "641",
+            "text": "研究馆员（图书）",
+            "selected": false
+          },
+          {
+            "value": "642",
+            "text": "副研究馆员（图书）",
+            "selected": false
+          },
+          {
+            "value": "643",
+            "text": "馆员（图书）",
+            "selected": false
+          },
+          {
+            "value": "644",
+            "text": "助理馆员（图书）",
+            "selected": false
+          },
+          {
+            "value": "645",
+            "text": "管理员（图书）",
+            "selected": false
+          },
+          {
+            "value": "650",
+            "text": "文博专业人员",
+            "selected": false
+          },
+          {
+            "value": "651",
+            "text": "研究馆员（文博）",
+            "selected": false
+          },
+          {
+            "value": "652",
+            "text": "副研究馆员（文博）",
+            "selected": false
+          },
+          {
+            "value": "653",
+            "text": "馆员（文博）",
+            "selected": false
+          },
+          {
+            "value": "654",
+            "text": "助理馆员（文博）",
+            "selected": false
+          },
+          {
+            "value": "655",
+            "text": "管理员（文博）",
+            "selected": false
+          },
+          {
+            "value": "660",
+            "text": "档案专业人员",
+            "selected": false
+          },
+          {
+            "value": "661",
+            "text": "研究馆员（档案）",
+            "selected": false
+          },
+          {
+            "value": "662",
+            "text": "副研究馆员（档案）",
+            "selected": false
+          },
+          {
+            "value": "663",
+            "text": "馆员（档案）",
+            "selected": false
+          },
+          {
+            "value": "664",
+            "text": "助理馆员（档案）",
+            "selected": false
+          },
+          {
+            "value": "665",
+            "text": "管理员（档案）",
+            "selected": false
+          },
+          {
+            "value": "670",
+            "text": "群众文化专业人员",
+            "selected": false
+          },
+          {
+            "value": "671",
+            "text": "研究馆员（群众文化）",
+            "selected": false
+          },
+          {
+            "value": "672",
+            "text": "副研究馆员（群众文化）",
+            "selected": false
+          },
+          {
+            "value": "673",
+            "text": "馆员（群众文化）",
+            "selected": false
+          },
+          {
+            "value": "674",
+            "text": "助理馆员（群众文化）",
+            "selected": false
+          },
+          {
+            "value": "675",
+            "text": "管理员（群众文化）",
+            "selected": false
+          },
+          {
+            "value": "680",
+            "text": "审计专业人员",
+            "selected": false
+          },
+          {
+            "value": "682",
+            "text": "高级审计师",
+            "selected": false
+          },
+          {
+            "value": "683",
+            "text": "审计师",
+            "selected": false
+          },
+          {
+            "value": "684",
+            "text": "助理审计师",
+            "selected": false
+          },
+          {
+            "value": "685",
+            "text": "审计员",
+            "selected": false
+          },
+          {
+            "value": "690",
+            "text": "法医专业人员",
+            "selected": false
+          },
+          {
+            "value": "691",
+            "text": "主任法医师",
+            "selected": false
+          },
+          {
+            "value": "692",
+            "text": "副主任法医师",
+            "selected": false
+          },
+          {
+            "value": "693",
+            "text": "主检法医师",
+            "selected": false
+          },
+          {
+            "value": "694",
+            "text": "法医师",
+            "selected": false
+          },
+          {
+            "value": "695",
+            "text": "法医士",
+            "selected": false
+          },
+          {
+            "value": "980",
+            "text": "思想政治工作人员",
+            "selected": false
+          },
+          {
+            "value": "982",
+            "text": "高级政工师",
+            "selected": false
+          },
+          {
+            "value": "983",
+            "text": "政工师",
+            "selected": false
+          },
+          {
+            "value": "984",
+            "text": "助理政工师",
+            "selected": false
+          },
+          {
+            "value": "985",
+            "text": "政工员",
+            "selected": false
+          },
+          {
+            "value": "999",
+            "text": "其他",
+            "selected": false
+          }
+        ],
+        "selected_value": ""
+      },
+      {
+        "tag": "input",
+        "name": "skjsid",
+        "id": "skjsid",
+        "type": "hidden",
+        "value": "",
+        "text": "",
+        "attrs": {
+          "name": "skjsid",
+          "id": "skjsid",
+          "type": "hidden"
+        }
+      },
+      {
+        "tag": "input",
+        "name": "skjs",
+        "id": "skjs",
+        "type": "text",
+        "value": "",
+        "text": "",
+        "attrs": {
+          "name": "skjs",
+          "id": "skjs",
+          "type": "text"
+        }
+      },
+      {
+        "tag": "select",
+        "name": "zc1",
+        "id": "zc1",
+        "type": "",
+        "value": "",
+        "text": "-请选择- 第1周 第2周 第3周 第4周 第5周 第6周 第7周 第8周 第9周 第10周 第11周 第12周 第13周 第14周 第15周 第16周 第17周 第18周 第19周 第20周 第21周 第22周 第23周 第24周 第25周 第26周 第27周 第28周 第29周 第30周",
+        "attrs": {
+          "name": "zc1",
+          "id": "zc1",
+          "size": "1",
+          "style": "width: 85px;"
+        },
+        "options": [
+          {
+            "value": "",
+            "text": "-请选择-",
+            "selected": false
+          },
+          {
+            "value": "1",
+            "text": "第1周",
+            "selected": false
+          },
+          {
+            "value": "2",
+            "text": "第2周",
+            "selected": false
+          },
+          {
+            "value": "3",
+            "text": "第3周",
+            "selected": false
+          },
+          {
+            "value": "4",
+            "text": "第4周",
+            "selected": false
+          },
+          {
+            "value": "5",
+            "text": "第5周",
+            "selected": false
+          },
+          {
+            "value": "6",
+            "text": "第6周",
+            "selected": false
+          },
+          {
+            "value": "7",
+            "text": "第7周",
+            "selected": false
+          },
+          {
+            "value": "8",
+            "text": "第8周",
+            "selected": false
+          },
+          {
+            "value": "9",
+            "text": "第9周",
+            "selected": false
+          },
+          {
+            "value": "10",
+            "text": "第10周",
+            "selected": false
+          },
+          {
+            "value": "11",
+            "text": "第11周",
+            "selected": false
+          },
+          {
+            "value": "12",
+            "text": "第12周",
+            "selected": false
+          },
+          {
+            "value": "13",
+            "text": "第13周",
+            "selected": false
+          },
+          {
+            "value": "14",
+            "text": "第14周",
+            "selected": false
+          },
+          {
+            "value": "15",
+            "text": "第15周",
+            "selected": false
+          },
+          {
+            "value": "16",
+            "text": "第16周",
+            "selected": false
+          },
+          {
+            "value": "17",
+            "text": "第17周",
+            "selected": false
+          },
+          {
+            "value": "18",
+            "text": "第18周",
+            "selected": false
+          },
+          {
+            "value": "19",
+            "text": "第19周",
+            "selected": false
+          },
+          {
+            "value": "20",
+            "text": "第20周",
+            "selected": false
+          },
+          {
+            "value": "21",
+            "text": "第21周",
+            "selected": false
+          },
+          {
+            "value": "22",
+            "text": "第22周",
+            "selected": false
+          },
+          {
+            "value": "23",
+            "text": "第23周",
+            "selected": false
+          },
+          {
+            "value": "24",
+            "text": "第24周",
+            "selected": false
+          },
+          {
+            "value": "25",
+            "text": "第25周",
+            "selected": false
+          },
+          {
+            "value": "26",
+            "text": "第26周",
+            "selected": false
+          },
+          {
+            "value": "27",
+            "text": "第27周",
+            "selected": false
+          },
+          {
+            "value": "28",
+            "text": "第28周",
+            "selected": false
+          },
+          {
+            "value": "29",
+            "text": "第29周",
+            "selected": false
+          },
+          {
+            "value": "30",
+            "text": "第30周",
+            "selected": false
+          }
+        ],
+        "selected_value": ""
+      },
+      {
+        "tag": "select",
+        "name": "zc2",
+        "id": "zc2",
+        "type": "",
+        "value": "",
+        "text": "-请选择- 第1周 第2周 第3周 第4周 第5周 第6周 第7周 第8周 第9周 第10周 第11周 第12周 第13周 第14周 第15周 第16周 第17周 第18周 第19周 第20周 第21周 第22周 第23周 第24周 第25周 第26周 第27周 第28周 第29周 第30周",
+        "attrs": {
+          "name": "zc2",
+          "id": "zc2",
+          "size": "1",
+          "style": "width: 85px;"
+        },
+        "options": [
+          {
+            "value": "",
+            "text": "-请选择-",
+            "selected": false
+          },
+          {
+            "value": "1",
+            "text": "第1周",
+            "selected": false
+          },
+          {
+            "value": "2",
+            "text": "第2周",
+            "selected": false
+          },
+          {
+            "value": "3",
+            "text": "第3周",
+            "selected": false
+          },
+          {
+            "value": "4",
+            "text": "第4周",
+            "selected": false
+          },
+          {
+            "value": "5",
+            "text": "第5周",
+            "selected": false
+          },
+          {
+            "value": "6",
+            "text": "第6周",
+            "selected": false
+          },
+          {
+            "value": "7",
+            "text": "第7周",
+            "selected": false
+          },
+          {
+            "value": "8",
+            "text": "第8周",
+            "selected": false
+          },
+          {
+            "value": "9",
+            "text": "第9周",
+            "selected": false
+          },
+          {
+            "value": "10",
+            "text": "第10周",
+            "selected": false
+          },
+          {
+            "value": "11",
+            "text": "第11周",
+            "selected": false
+          },
+          {
+            "value": "12",
+            "text": "第12周",
+            "selected": false
+          },
+          {
+            "value": "13",
+            "text": "第13周",
+            "selected": false
+          },
+          {
+            "value": "14",
+            "text": "第14周",
+            "selected": false
+          },
+          {
+            "value": "15",
+            "text": "第15周",
+            "selected": false
+          },
+          {
+            "value": "16",
+            "text": "第16周",
+            "selected": false
+          },
+          {
+            "value": "17",
+            "text": "第17周",
+            "selected": false
+          },
+          {
+            "value": "18",
+            "text": "第18周",
+            "selected": false
+          },
+          {
+            "value": "19",
+            "text": "第19周",
+            "selected": false
+          },
+          {
+            "value": "20",
+            "text": "第20周",
+            "selected": false
+          },
+          {
+            "value": "21",
+            "text": "第21周",
+            "selected": false
+          },
+          {
+            "value": "22",
+            "text": "第22周",
+            "selected": false
+          },
+          {
+            "value": "23",
+            "text": "第23周",
+            "selected": false
+          },
+          {
+            "value": "24",
+            "text": "第24周",
+            "selected": false
+          },
+          {
+            "value": "25",
+            "text": "第25周",
+            "selected": false
+          },
+          {
+            "value": "26",
+            "text": "第26周",
+            "selected": false
+          },
+          {
+            "value": "27",
+            "text": "第27周",
+            "selected": false
+          },
+          {
+            "value": "28",
+            "text": "第28周",
+            "selected": false
+          },
+          {
+            "value": "29",
+            "text": "第29周",
+            "selected": false
+          },
+          {
+            "value": "30",
+            "text": "第30周",
+            "selected": false
+          }
+        ],
+        "selected_value": ""
+      },
+      {
+        "tag": "select",
+        "name": "skxq1",
+        "id": "skxq1",
+        "type": "",
+        "value": "",
+        "text": "-请选择- 星期一 星期二 星期三 星期四 星期五 星期六 星期天",
+        "attrs": {
+          "name": "skxq1",
+          "id": "skxq1",
+          "style": "width: 85px;"
+        },
+        "options": [
+          {
+            "value": "",
+            "text": "-请选择-",
+            "selected": false
+          },
+          {
+            "value": "1",
+            "text": "星期一",
+            "selected": false
+          },
+          {
+            "value": "2",
+            "text": "星期二",
+            "selected": false
+          },
+          {
+            "value": "3",
+            "text": "星期三",
+            "selected": false
+          },
+          {
+            "value": "4",
+            "text": "星期四",
+            "selected": false
+          },
+          {
+            "value": "5",
+            "text": "星期五",
+            "selected": false
+          },
+          {
+            "value": "6",
+            "text": "星期六",
+            "selected": false
+          },
+          {
+            "value": "7",
+            "text": "星期天",
+            "selected": false
+          }
+        ],
+        "selected_value": ""
+      },
+      {
+        "tag": "select",
+        "name": "skxq2",
+        "id": "skxq2",
+        "type": "",
+        "value": "",
+        "text": "-请选择- 星期一 星期二 星期三 星期四 星期五 星期六 星期天",
+        "attrs": {
+          "name": "skxq2",
+          "id": "skxq2",
+          "style": "width:85px;"
+        },
+        "options": [
+          {
+            "value": "",
+            "text": "-请选择-",
+            "selected": false
+          },
+          {
+            "value": "1",
+            "text": "星期一",
+            "selected": false
+          },
+          {
+            "value": "2",
+            "text": "星期二",
+            "selected": false
+          },
+          {
+            "value": "3",
+            "text": "星期三",
+            "selected": false
+          },
+          {
+            "value": "4",
+            "text": "星期四",
+            "selected": false
+          },
+          {
+            "value": "5",
+            "text": "星期五",
+            "selected": false
+          },
+          {
+            "value": "6",
+            "text": "星期六",
+            "selected": false
+          },
+          {
+            "value": "7",
+            "text": "星期天",
+            "selected": false
+          }
+        ],
+        "selected_value": ""
+      },
+      {
+        "tag": "select",
+        "name": "jc1",
+        "id": "jc1",
+        "type": "",
+        "value": "",
+        "text": "-请选择-",
+        "attrs": {
+          "name": "jc1",
+          "size": "1",
+          "id": "jc1",
+          "style": "width: 85px;"
+        },
+        "options": [
+          {
+            "value": "",
+            "text": "-请选择-",
+            "selected": false
+          }
+        ],
+        "selected_value": ""
+      },
+      {
+        "tag": "select",
+        "name": "jc2",
+        "id": "jc2",
+        "type": "",
+        "value": "",
+        "text": "-请选择-",
+        "attrs": {
+          "name": "jc2",
+          "size": "1",
+          "id": "jc2",
+          "style": "width: 85px;"
+        },
+        "options": [
+          {
+            "value": "",
+            "text": "-请选择-",
+            "selected": false
+          }
+        ],
+        "selected_value": ""
+      }
+    ]
+  }
+]

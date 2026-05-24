@@ -15,7 +15,18 @@ class GlobalCourseAdapter(private val onItemClick: (GlobalCourseInfo) -> Unit) :
     companion object {
         val DIFF = object : DiffUtil.ItemCallback<GlobalCourseInfo>() {
             override fun areItemsTheSame(a: GlobalCourseInfo, b: GlobalCourseInfo) =
-                a.courseName == b.courseName && a.day == b.day && a.sectionsStr == b.sectionsStr
+                a.courseName == b.courseName &&
+                    a.day == b.day &&
+                    a.sectionsStr == b.sectionsStr &&
+                    a.room == b.room &&
+                    a.teacher == b.teacher &&
+                    a.className == b.className &&
+                    a.term == b.term &&
+                    a.entityName == b.entityName &&
+                    a.tableIndex == b.tableIndex &&
+                    a.rowIndex == b.rowIndex &&
+                    a.colIndex == b.colIndex &&
+                    a.slotIndex == b.slotIndex
             override fun areContentsTheSame(a: GlobalCourseInfo, b: GlobalCourseInfo) = a == b
         }
         private val DAY_NAMES = arrayOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")

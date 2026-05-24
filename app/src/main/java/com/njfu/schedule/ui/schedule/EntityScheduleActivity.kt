@@ -21,6 +21,7 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.njfu.schedule.AppDatabase
 import com.njfu.schedule.R
+import com.njfu.schedule.bean.GlobalCourseEntity
 import com.njfu.schedule.bean.GlobalCourseInfo
 import com.njfu.schedule.bean.TimeNode
 import com.njfu.schedule.databinding.ActivityEntityScheduleBinding
@@ -49,7 +50,7 @@ class EntityScheduleActivity : AppCompatActivity() {
     )
     private var nameToColor: Map<String, String> = emptyMap()
 
-    private val listAdapter = GlobalCourseAdapter { /* no-op */ }
+    private val listAdapter = GlobalCourseAdapter { showCourseDetail(it) }
 
     enum class ViewMode { GRID, LIST }
 
@@ -128,15 +129,7 @@ class EntityScheduleActivity : AppCompatActivity() {
                 val all = withContext(Dispatchers.IO) { dao.getByType(type).first() }
 
                 val filtered = withContext(Dispatchers.Default) {
-                    all.filter { row ->
-                        when (type) {
-                            "jg0101" -> row.teacher == entityName
-                            "jx0601" -> row.room == entityName
-                            "bj0101" -> row.className == entityName
-                            "kc0101" -> row.courseName == entityName
-                            else -> false
-                        }
-                    }.map {
+                    all.filter { rowEntityName(it) == entityName }.map {
                         GlobalCourseInfo(
                             courseName = it.courseName,
                             teacher = it.teacher,
@@ -144,7 +137,20 @@ class EntityScheduleActivity : AppCompatActivity() {
                             weeksStr = it.weeksStr,
                             day = it.day,
                             sectionsStr = it.sectionsStr,
-                            className = it.className
+                            className = it.className,
+                            collegeName = it.collegeName,
+                            type = it.type,
+                            typeLabel = it.typeLabel,
+                            term = it.term,
+                            entityName = it.entityName,
+                            sectionNumbers = it.sectionNumbers,
+                            slotIndex = it.slotIndex,
+                            tableIndex = it.tableIndex,
+                            rowIndex = it.rowIndex,
+                            colIndex = it.colIndex,
+                            rawText = it.rawText,
+                            rawHtml = it.rawHtml,
+                            rawLinesJson = it.rawLinesJson
                         )
                     }
                 }
@@ -342,40 +348,42 @@ class EntityScheduleActivity : AppCompatActivity() {
     }
 
     private fun showCourseDetail(c: GlobalCourseInfo) {
-        val dialogView = layoutInflater.inflate(R.layout.dialog_course_detail, null)
-        val tvName = dialogView.findViewById<TextView>(R.id.tv_course_name)
-        val tvTeacher = dialogView.findViewById<TextView>(R.id.tv_teacher)
-        val tvRoom = dialogView.findViewById<TextView>(R.id.tv_room)
-        val tvTime = dialogView.findViewById<TextView>(R.id.tv_time)
-        val tvWeeks = dialogView.findViewById<TextView>(R.id.tv_weeks)
-        val colorBar = dialogView.findViewById<View>(R.id.color_bar)
-        val btnClose = dialogView.findViewById<View>(R.id.btn_close)
-        val btnEdit = dialogView.findViewById<View>(R.id.btn_edit)
+        val dialogView = layoutInflater.inflate(R.layout.dialog_global_course_detail, null)
+        dialogView.findViewById<TextView>(R.id.tv_detail_course_name).text = c.courseName
+        dialogView.findViewById<TextView>(R.id.tv_detail_class_name).text =
+            c.className.ifBlank { c.entityName.ifBlank { "-" } }
+        dialogView.findViewById<TextView>(R.id.tv_detail_type).text =
+            listOf(c.typeLabel, c.type).filter { it.isNotBlank() }.joinToString(" / ")
+        dialogView.findViewById<TextView>(R.id.tv_detail_term).text = c.term.ifBlank { "-" }
+        dialogView.findViewById<TextView>(R.id.tv_detail_entity).text = c.entityName.ifBlank { "-" }
+        dialogView.findViewById<TextView>(R.id.tv_detail_teacher).text = c.teacher.ifBlank { "-" }
+        dialogView.findViewById<TextView>(R.id.tv_detail_room).text = c.room.ifBlank { "-" }
+        dialogView.findViewById<TextView>(R.id.tv_detail_time).text =
+            "${dayLabel(c.day)} ${c.sectionsStr.ifBlank { "-" }}"
+        dialogView.findViewById<TextView>(R.id.tv_detail_weeks).text = c.weeksStr.ifBlank { "-" }
+        dialogView.findViewById<TextView>(R.id.tv_detail_section).text =
+            listOf(
+                c.sectionNumbers.ifBlank { "" },
+                "slot=${c.slotIndex}",
+                "table=${c.tableIndex}",
+                "row=${c.rowIndex}",
+                "col=${c.colIndex}"
+            ).filter { it.isNotBlank() }.joinToString(" | ")
+        dialogView.findViewById<TextView>(R.id.tv_detail_position).text =
+            "day=${c.day}, entity=${c.entityName.ifBlank { "-" }}"
+        dialogView.findViewById<TextView>(R.id.tv_detail_raw).text = c.rawText.ifBlank { "-" }
+        dialogView.findViewById<TextView>(R.id.tv_detail_raw_lines).text = c.rawLinesJson.ifBlank { "-" }
+        dialogView.findViewById<TextView>(R.id.tv_detail_raw_html).text = c.rawHtml.ifBlank { "-" }
 
-        tvName.text = c.courseName
-        
-        var teacherText = c.teacher
-        if (c.className.isNotEmpty() && type != "bj0101") {
-            teacherText += if (teacherText.isNotEmpty()) "  |  ${c.className}" else c.className
-        }
-        tvTeacher.text = teacherText.ifEmpty { "-" }
-        tvRoom.text = c.room.ifEmpty { "-" }
-        tvTime.text = "星期${arrayOf("一","二","三","四","五","六","日")[c.day - 1]}  第${c.sectionsStr}节"
-        tvWeeks.text = c.weeksStr
-        
         val bgColor = try { Color.parseColor(nameToColor[c.courseName] ?: "#7986CB") } catch (_: Exception) { Color.parseColor("#7986CB") }
-        colorBar.setBackgroundColor(bgColor)
+        dialogView.findViewById<View>(R.id.color_bar).setBackgroundColor(bgColor)
 
-        btnEdit.visibility = View.GONE
-        
         val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
             .setView(dialogView)
             .create()
-            
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
         dialog.show()
-            
-        btnClose.setOnClickListener { dialog.dismiss() }
+        dialogView.findViewById<View>(R.id.btn_detail_close).setOnClickListener { dialog.dismiss() }
     }
 
     private fun showFilterDialog() {
@@ -449,6 +457,22 @@ class EntityScheduleActivity : AppCompatActivity() {
         val start = nums.first()
         val end = nums.last()
         return Pair(start, (end - start + 1).coerceAtLeast(1))
+    }
+
+    private fun rowEntityName(row: GlobalCourseEntity): String {
+        val unknown = "(未知${typeLabel(type)})"
+        return when (type) {
+            "jg0101" -> row.teacher
+            "jx0601" -> row.room
+            "bj0101" -> row.className
+            "kc0101" -> row.courseName
+            else -> row.entityName
+        }.ifEmpty { unknown }
+    }
+
+    private fun dayLabel(day: Int): String {
+        val labels = arrayOf("星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日")
+        return labels.getOrNull(day - 1) ?: "未知星期"
     }
 
     private fun typeLabel(t: String) = when (t) {

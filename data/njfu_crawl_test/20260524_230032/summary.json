@@ -1,0 +1,33 @@
+{
+  "run_id": "20260524_230032",
+  "started_at": "2026-05-24T23:00:32",
+  "student_id": "2410403132",
+  "term_arg": "",
+  "types": [
+    "teacher",
+    "classroom",
+    "class",
+    "course"
+  ],
+  "output_dir": "data\\njfu_crawl_test\\20260524_230032",
+  "results": [],
+  "errors": [
+    {
+      "type_key": "teacher",
+      "message": "get_form_defaults() got an unexpected keyword argument 'include_default_selects'"
+    },
+    {
+      "type_key": "classroom",
+      "message": "get_form_defaults() got an unexpected keyword argument 'include_default_selects'"
+    },
+    {
+      "type_key": "class",
+      "message": "get_form_defaults() got an unexpected keyword argument 'include_default_selects'"
+    },
+    {
+      "type_key": "course",
+      "message": "get_form_defaults() got an unexpected keyword argument 'include_default_selects'"
+    }
+  ],
+  "finished_at": "2026-05-24T23:00:34"
+}

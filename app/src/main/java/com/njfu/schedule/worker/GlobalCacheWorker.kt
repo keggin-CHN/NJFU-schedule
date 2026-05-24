@@ -55,6 +55,9 @@ class GlobalCacheWorker(
                     val entities = courses.map {
                         GlobalCourseEntity(
                             type = type,
+                            typeLabel = it.typeLabel,
+                            term = it.term,
+                            entityName = it.entityName,
                             courseName = it.courseName,
                             teacher = it.teacher,
                             room = it.room,
@@ -62,7 +65,15 @@ class GlobalCacheWorker(
                             day = it.day,
                             sectionsStr = it.sectionsStr,
                             className = it.className,
-                            collegeName = it.collegeName
+                            collegeName = it.collegeName,
+                            sectionNumbers = it.sectionNumbers,
+                            slotIndex = it.slotIndex,
+                            tableIndex = it.tableIndex,
+                            rowIndex = it.rowIndex,
+                            colIndex = it.colIndex,
+                            rawText = it.rawText,
+                            rawHtml = it.rawHtml,
+                            rawLinesJson = it.rawLinesJson
                         )
                     }
                     dao.deleteByType(type)
@@ -131,6 +142,7 @@ class GlobalCacheWorker(
 
     private fun typeName(type: String) = when (type) {
         "jg0101" -> "教师"
+        "jx0601" -> "教室"
         "bj0101" -> "班级"
         "kc0101" -> "课程"
         else -> type

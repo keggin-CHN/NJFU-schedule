@@ -7,6 +7,7 @@ import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
 import android.util.Base64
+import org.json.JSONArray
 
 class NjfuImporter {
 
@@ -24,7 +25,18 @@ class NjfuImporter {
         val day: Int,           
         val startNode: Int,
         val endNode: Int,
-        val weeks: List<Int>
+        val weeks: List<Int>,
+        val type: String = "",
+        val typeLabel: String = "",
+        val term: String = "",
+        val entityName: String = "",
+        val className: String = "",
+        val sectionNumbers: String = "",
+        val slotIndex: Int = 0,
+        val tableIndex: Int = 0,
+        val rowIndex: Int = 0,
+        val colIndex: Int = 0,
+        val rawText: String = ""
     )
 
     companion object {
@@ -186,12 +198,13 @@ class NjfuImporter {
         val dataHtml = dataResp.body?.string() ?: ""
 
         onProgress?.invoke("数据获取成功，大小: ${dataHtml.length / 1024} KB。正在解析排课数据...")
-        return parseNewGlobalSchedule(dataHtml, type, onProgress)
+        return parseNewGlobalSchedule(dataHtml, type, finalTerm, onProgress)
     }
 
-    private fun parseNewGlobalSchedule(html: String, queryType: String, onProgress: ((String) -> Unit)? = null): List<com.njfu.schedule.bean.GlobalCourseInfo> {
+    private fun parseNewGlobalSchedule(html: String, queryType: String, term: String, onProgress: ((String) -> Unit)? = null): List<com.njfu.schedule.bean.GlobalCourseInfo> {
         val doc = Jsoup.parse(html)
         val table = doc.selectFirst("table#timetable") ?: return emptyList()
+        val tableIndex = doc.select("table").indexOf(table).coerceAtLeast(0)
 
         val courses = mutableListOf<com.njfu.schedule.bean.GlobalCourseInfo>()
         val rows = table.select("tr")
@@ -226,10 +239,11 @@ class NjfuImporter {
                 val divs = td.select("div.kbcontent1, div.kbcontent")
                 for (div in divs) {
 
+                    val rawHtml = div.html()
                     div.select("font.kchConfig").remove()
 
-                    val rawHtml = div.html()
-                    val lines = rawHtml.split(Regex("<br\\s*/?>", RegexOption.IGNORE_CASE))
+                    val contentHtml = div.html()
+                    val lines = contentHtml.split(Regex("<br\\s*/?>", RegexOption.IGNORE_CASE))
                         .map { Jsoup.parse(it).text().trim() }
                         .filter { it.isNotEmpty() }
 
@@ -292,6 +306,13 @@ class NjfuImporter {
                     }
 
                     val finalClassName = className
+                    val typeLabel = when (queryType) {
+                        "jg0101" -> "教师课表"
+                        "jx0601" -> "教室课表"
+                        "bj0101" -> "班级课表"
+                        "kc0101" -> "课程课表"
+                        else -> queryType
+                    }
                     courses.add(com.njfu.schedule.bean.GlobalCourseInfo(
                         courseName = courseName,
                         teacher = teacher,
@@ -299,7 +320,19 @@ class NjfuImporter {
                         weeksStr = weeksStr,
                         day = day,
                         sectionsStr = "第${sectionsStr}节",
-                        className = finalClassName
+                        className = finalClassName,
+                        type = queryType,
+                        typeLabel = typeLabel,
+                        term = term,
+                        entityName = entityName,
+                        sectionNumbers = sectionsStr,
+                        slotIndex = sectionIdx,
+                        tableIndex = tableIndex,
+                        rowIndex = i,
+                        colIndex = colIdx,
+                        rawText = lines.joinToString(" | "),
+                        rawHtml = rawHtml,
+                        rawLinesJson = JSONArray(lines).toString()
                     ))
                 }
             }

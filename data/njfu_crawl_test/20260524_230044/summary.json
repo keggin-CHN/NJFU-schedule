@@ -1,0 +1,81 @@
+{
+  "run_id": "20260524_230044",
+  "started_at": "2026-05-24T23:00:44",
+  "student_id": "2410403132",
+  "term_arg": "",
+  "types": [
+    "teacher",
+    "classroom",
+    "class",
+    "course"
+  ],
+  "output_dir": "data\\njfu_crawl_test\\20260524_230044",
+  "results": [
+    {
+      "type_key": "teacher",
+      "type_code": "jg0101",
+      "type_label": "教师课表",
+      "term": "2025-2026-2",
+      "home_url": "https://jwxt.njfu.edu.cn/jsxsd/kbcx/kbxx_teacher",
+      "data_url": "https://jwxt.njfu.edu.cn/jsxsd/kbcx/kbxx_teacher_ifr",
+      "request_data": {
+        "xnxqh": "2025-2026-2",
+        "kbjcmsid": "933E103D1CA84D64A71CE6FC60BFE57B",
+        "skjs": ""
+      },
+      "table_count": 1,
+      "table_cell_count": 64462,
+      "course_record_count": 10916
+    },
+    {
+      "type_key": "classroom",
+      "type_code": "jx0601",
+      "type_label": "教室课表",
+      "term": "2025-2026-2",
+      "home_url": "https://jwxt.njfu.edu.cn/jsxsd/kbcx/kbxx_classroom",
+      "data_url": "https://jwxt.njfu.edu.cn/jsxsd/kbcx/kbxx_classroom_ifr",
+      "request_data": {
+        "xnxqh": "2025-2026-2",
+        "kbjcmsid": "933E103D1CA84D64A71CE6FC60BFE57B",
+        "jxcdmc": ""
+      },
+      "table_count": 1,
+      "table_cell_count": 14804,
+      "course_record_count": 8767
+    },
+    {
+      "type_key": "class",
+      "type_code": "bj0101",
+      "type_label": "班级课表",
+      "term": "2025-2026-2",
+      "home_url": "https://jwxt.njfu.edu.cn/jsxsd/kbcx/kbxx_xzb",
+      "data_url": "https://jwxt.njfu.edu.cn/jsxsd/kbcx/kbxx_xzb_ifr",
+      "request_data": {
+        "xnxqh": "2025-2026-2",
+        "kbjcmsid": "933E103D1CA84D64A71CE6FC60BFE57B",
+        "skbj": ""
+      },
+      "table_count": 1,
+      "table_cell_count": 28683,
+      "course_record_count": 26203
+    },
+    {
+      "type_key": "course",
+      "type_code": "kc0101",
+      "type_label": "课程课表",
+      "term": "2025-2026-2",
+      "home_url": "https://jwxt.njfu.edu.cn/jsxsd/kbcx/kbxx_kc",
+      "data_url": "https://jwxt.njfu.edu.cn/jsxsd/kbcx/kbxx_kc_ifr",
+      "request_data": {
+        "xnxqh": "2025-2026-2",
+        "kbjcmsid": "933E103D1CA84D64A71CE6FC60BFE57B",
+        "kcmc": ""
+      },
+      "table_count": 1,
+      "table_cell_count": 42020,
+      "course_record_count": 8770
+    }
+  ],
+  "errors": [],
+  "finished_at": "2026-05-24T23:05:10"
+}

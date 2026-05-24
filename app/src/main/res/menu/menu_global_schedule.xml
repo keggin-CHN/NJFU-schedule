@@ -6,4 +6,9 @@
         android:icon="@drawable/ic_filter"
         android:title="筛选"
         app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_stats"
+        android:icon="@android:drawable/ic_menu_info_details"
+        android:title="统计"
+        app:showAsAction="ifRoom" />
 </menu>

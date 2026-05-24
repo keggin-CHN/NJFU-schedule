@@ -1,0 +1,17 @@
+{
+  "type_key": "class",
+  "stage": "data",
+  "url": "https://jwxt.njfu.edu.cn/jsxsd/kbcx/kbxx_xzb_ifr",
+  "method": "POST",
+  "status_code": 200,
+  "final_url": "https://jwxt.njfu.edu.cn/jsxsd/kbcx/kbxx_xzb_ifr",
+  "encoding": "UTF-8",
+  "elapsed_ms": 20728,
+  "content_length": 8130088,
+  "file": "raw/class_data.html",
+  "request_data": {
+    "xnxqh": "2025-2026-2",
+    "kbjcmsid": "933E103D1CA84D64A71CE6FC60BFE57B",
+    "skbj": ""
+  }
+}
