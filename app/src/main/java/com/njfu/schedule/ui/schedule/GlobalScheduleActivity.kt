@@ -134,7 +134,7 @@ class GlobalScheduleActivity : AppCompatActivity() {
                         if (entity.isNotBlank()) {
                             val campusList = listOf("新庄", "白马", "淮安").filter { row.room.contains(it) }
                             map.getOrPut(entity) { mutableSetOf() }.addAll(campusList)
-                            if (currentType == "jg0101" && row.collegeName.isNotBlank()) {
+                            if ((currentType == "kc0101" || currentType == "jg0101" || currentType == "bj0101") && row.collegeName.isNotBlank()) {
                                 map.getOrPut(entity) { mutableSetOf() }.add(row.collegeName)
                             }
                         }
@@ -163,7 +163,7 @@ class GlobalScheduleActivity : AppCompatActivity() {
         var list = allEntities
         if (activeFilters.isNotEmpty()) {
             list = list.filter { (name, _) ->
-                if (currentType == "jg0101" || currentType == "kc0101") {
+                if (currentType == "jg0101" || currentType == "kc0101" || currentType == "bj0101") {
                     val campuses = entityCampuses[name] ?: emptySet()
                     activeFilters.any { f -> campuses.contains(f) || name.contains(f) }
                 } else {
@@ -173,7 +173,7 @@ class GlobalScheduleActivity : AppCompatActivity() {
         }
         if (query.isNotEmpty()) {
             list = list.filter {
-                if (currentType == "jg0101" || currentType == "kc0101") {
+                if (currentType == "jg0101" || currentType == "kc0101" || currentType == "bj0101") {
                     val campuses = entityCampuses[it.first] ?: emptySet()
                     it.first.contains(query, ignoreCase = true) || campuses.any { c -> c.contains(query, ignoreCase = true) }
                 } else {
@@ -199,7 +199,7 @@ class GlobalScheduleActivity : AppCompatActivity() {
     }
 
     private fun showFilterDialog() {
-        val sortLabels = if (currentType == "jg0101") arrayOf("按拼音首字母", "按课程数（多→少）", "按学院排序") else arrayOf("按拼音首字母", "按课程数（多→少）")
+        val sortLabels = if (currentType == "jg0101" || currentType == "kc0101" || currentType == "bj0101") arrayOf("按拼音首字母", "按课程数（多→少）", "按学院排序") else arrayOf("按拼音首字母", "按课程数（多→少）")
         val filterOptions = filterOptionsForType()
 
         val dialogView = layoutInflater.inflate(R.layout.dialog_filter, null)
@@ -276,32 +276,22 @@ class GlobalScheduleActivity : AppCompatActivity() {
     }
 
     private fun filterTitleForType(): String = when (currentType) {
-        "jx0601", "kc0101" -> "校区"
-        "jg0101" -> "校区与学院"
-        "bj0101" -> "年级"
+        "jx0601", "kc0101", "jg0101" -> "校区"
+        "bj0101" -> "校区与年级"
         else -> "筛选"
     }
 
     private fun filterOptionsForType(): List<String> {
         return when (currentType) {
-            "jx0601" -> listOf("新庄", "白马", "淮安").filter { campus ->
+            "jx0601", "kc0101", "jg0101" -> listOf("新庄", "白马", "淮安").filter { campus ->
                 allEntities.any { it.first.contains(campus) }
-            }
-            "kc0101" -> listOf("新庄", "白马", "淮安").filter { campus ->
-                entityCampuses.values.any { it.contains(campus) }
-            }
-            "jg0101" -> {
-                val campuses = listOf("新庄", "白马", "淮安").filter { campus ->
-                    entityCampuses.values.any { it.contains(campus) }
-                }
-                val colleges = entityCampuses.values.flatten().filter { it.endsWith("学院") || it.endsWith("系") || it.endsWith("部") || it.contains("中心") }.distinct().sorted()
-                campuses + colleges
             }
             "bj0101" -> {
                 val years = allEntities.mapNotNull { e ->
-                    Regex("^(20\\d{2})").find(e.first)?.groupValues?.get(1)
-                }.distinct().sortedDescending()
-                years
+                    Regex("^(\\d{2})").find(e.first)?.groupValues?.get(1)
+                }.distinct().sortedDescending().map { "${it}级" }
+                val campuses = setOf("新庄", "白马", "淮安")
+                (campuses.toList() + years)
             }
             else -> emptyList()
         }
@@ -346,6 +336,6 @@ class GlobalScheduleActivity : AppCompatActivity() {
         "jx0601" -> "教室"
         "bj0101" -> "班级"
         "kc0101" -> "课程"
-        else -> "列表"
+        else -> "未知"
     }
 }

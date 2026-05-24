@@ -1,11 +1,16 @@
 package com.njfu.schedule.njfu
 
 import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.jsoup.Jsoup
 import java.net.URLEncoder
+import java.security.SecureRandom
+import java.security.cert.X509Certificate
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
+import javax.net.ssl.*
 import android.util.Base64
 
 class NjfuImporter {
@@ -35,7 +40,17 @@ class NjfuImporter {
     }
 
     private val client: OkHttpClient by lazy {
+        val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {
+            override fun checkClientTrusted(chain: Array<X509Certificate>, authType: String) {}
+            override fun checkServerTrusted(chain: Array<X509Certificate>, authType: String) {}
+            override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
+        })
+        val sslContext = SSLContext.getInstance("TLS").apply {
+            init(null, trustAllCerts, SecureRandom())
+        }
         OkHttpClient.Builder()
+            .sslSocketFactory(sslContext.socketFactory, trustAllCerts[0] as X509TrustManager)
+            .hostnameVerifier { _, _ -> true }
             .followRedirects(true)
             .cookieJar(SimpleCookieJar())
             .addInterceptor { chain ->
@@ -102,8 +117,6 @@ class NjfuImporter {
             val errorDoc = Jsoup.parse(loginResp.body?.string() ?: "")
             val errorMsg = errorDoc.select("span#msg").text()
             throw Exception(if (errorMsg.isNotEmpty()) errorMsg else "账号或密码错误")
-        } else {
-            loginResp.close()
         }
     }
 
@@ -257,13 +270,11 @@ class NjfuImporter {
                             weeksStr = lines.getOrNull(3) ?: ""
                         }
                         "kc0101" -> { 
-                            val cName = entityName
-                            val dataLines = if (lines.getOrNull(0) == cName) lines.drop(1) else lines
-                            courseName = cName
-                            className = dataLines.getOrNull(0) ?: ""
-                            teacher = dataLines.getOrNull(1) ?: ""
-                            weeksStr = dataLines.getOrNull(2) ?: ""
-                            room = dataLines.getOrNull(3) ?: ""
+                            courseName = entityName
+                            className = lines.getOrNull(0) ?: ""
+                            teacher = lines.getOrNull(1) ?: ""
+                            weeksStr = lines.getOrNull(2) ?: ""
+                            room = lines.getOrNull(3) ?: ""
                         }
                         else -> { 
                             courseName = lines.getOrNull(0) ?: ""
@@ -440,6 +451,43 @@ class NjfuImporter {
         }
 
         return courses.distinctBy { Triple(it.name, it.day, it.startNode) to it.weeks }
+    }
+
+    fun fetchEmptyRooms(xnxqh: String, xqid: String, zc: String, xq: String, jc1: String, jc2: String): List<String> {
+        val url = "https://jwxt.njfu.edu.cn/jsxsd/kbcx/kjscx_ifr"
+        val formBuilder = FormBody.Builder()
+            .add("xnxqh", xnxqh)
+            .add("xqid", xqid)
+            .add("zc1", zc)
+            .add("zc2", zc)
+            .add("skxq1", xq)
+            .add("skxq2", xq)
+            .add("jc1", jc1)
+            .add("jc2", jc2)
+
+        val req = Request.Builder().url(url).post(formBuilder.build()).build()
+        val resp = client.newCall(req).execute()
+        val html = resp.body?.string() ?: ""
+
+        val doc = Jsoup.parse(html)
+        val rooms = mutableListOf<String>()
+        val table = doc.selectFirst("table#dataList") ?: doc.selectFirst("table") ?: return emptyList()
+        val rows = table.select("tr")
+        for (i in 1 until rows.size) { 
+            val tds = rows[i].select("td")
+            if (tds.isNotEmpty()) {
+                val roomName = tds[0].text().trim()
+                val seatCount = if (tds.size > 1) tds[1].text().trim() else ""
+                if (roomName.isNotEmpty() && !roomName.contains("教室名称")) {
+                    if (seatCount.isNotEmpty() && seatCount.toIntOrNull() != null) {
+                        rooms.add("$roomName (座位数: $seatCount)")
+                    } else {
+                        rooms.add(roomName)
+                    }
+                }
+            }
+        }
+        return rooms
     }
 
     private fun parseWeeks(weekStr: String): List<Int> {

@@ -149,6 +149,9 @@ class ScheduleActivity : AppCompatActivity() {
             queryView.findViewById<View>(R.id.card_class).setOnClickListener {
                 openQuery("班级课表")
             }
+            queryView.findViewById<View>(R.id.card_classroom).setOnClickListener {
+                openQuery("教室课表")
+            }
             queryView.findViewById<View>(R.id.btn_global_sync).setOnClickListener {
                 triggerBackgroundGlobalSync()
             }

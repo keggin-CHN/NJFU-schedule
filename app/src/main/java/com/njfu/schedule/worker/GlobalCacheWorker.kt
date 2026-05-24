@@ -38,7 +38,7 @@ class GlobalCacheWorker(
             importer.doLogin(studentId, password, loginParams)
 
             val dao = AppDatabase.getDatabase(applicationContext).globalCourseDao()
-            val types = listOf("jg0101", "bj0101", "kc0101")
+            val types = listOf("jg0101", "jx0601", "bj0101", "kc0101")
 
             for ((index, type) in types.withIndex()) {
                 val msg = "正在抓取${typeName(type)}课表..."
@@ -72,7 +72,6 @@ class GlobalCacheWorker(
             }
 
             prefs.edit().putLong("global_cache_last_sync", System.currentTimeMillis()).apply()
-            setProgress(workDataOf(KEY_PROGRESS_MSG to "同步完成", KEY_PROGRESS_INDEX to types.size, KEY_PROGRESS_TOTAL to types.size))
             postFinalNotification("全校课表同步完成", "已更新本地缓存")
             Result.success()
         } catch (e: Exception) {

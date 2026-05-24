@@ -305,14 +305,24 @@ class EntityScheduleActivity : AppCompatActivity() {
     }
 
     private fun buildCard(c: GlobalCourseInfo, span: Int, cellHeight: Int, bgColor: String): View {
-        val tv = TextView(this).apply {
+        val container = com.google.android.material.card.MaterialCardView(this).apply {
             val verticalMargin = dpToPx(2)
             val margin = dpToPx(3)
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 (cellHeight * span - verticalMargin * 2).coerceAtLeast(cellHeight / 2)
             ).apply { setMargins(margin, verticalMargin, margin, verticalMargin) }
+            radius = dpToPx(10).toFloat()
+            cardElevation = dpToPx(2).toFloat()
+            setCardBackgroundColor(try { Color.parseColor(bgColor) } catch (_: Exception) { Color.parseColor("#7986CB") })
+            strokeWidth = 0
+            isClickable = true
+            isFocusable = true
+            setOnClickListener { showCourseDetail(c) }
+        }
 
+        val tv = TextView(this).apply {
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.MATCH_PARENT)
             gravity = Gravity.CENTER
             val info = buildString {
                 append(c.courseName)
@@ -326,14 +336,9 @@ class EntityScheduleActivity : AppCompatActivity() {
             setPadding(dpToPx(4), dpToPx(5), dpToPx(4), dpToPx(5))
             includeFontPadding = false
             typeface = Typeface.DEFAULT_BOLD
-            background = GradientDrawable().apply {
-                val parsed = try { Color.parseColor(bgColor) } catch (_: Exception) { Color.parseColor("#7986CB") }
-                setColor(parsed)
-                cornerRadius = dpToPx(9).toFloat()
-            }
         }
-        tv.setOnClickListener { showCourseDetail(c) }
-        return tv
+        container.addView(tv)
+        return container
     }
 
     private fun showCourseDetail(c: GlobalCourseInfo) {

@@ -50,6 +50,7 @@
         android:textSize="12sp"
         android:visibility="gone" />
 
+
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/card_teacher"
         android:layout_width="match_parent"
@@ -75,7 +76,6 @@
             android:textSize="15sp"
             android:textStyle="bold" />
     </com.google.android.material.card.MaterialCardView>
-
 
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/card_course"
@@ -125,6 +125,29 @@
             android:text="班级课表"
             android:textColor="@color/text_primary"
             android:textSize="15sp"
+            android:textStyle="bold" />
+    </com.google.android.material.card.MaterialCardView>
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/card_classroom"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="12dp"
+        app:cardBackgroundColor="@color/surface_container"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="0dp"
+        app:strokeColor="@color/divider"
+        app:strokeWidth="1dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:drawableEnd="@drawable/ic_arrow_right"
+            android:paddingHorizontal="20dp"
+            android:paddingVertical="16dp"
+            android:text="教室课表"
+            android:textColor="@color/text_primary"
+            android:textSize="16sp"
             android:textStyle="bold" />
     </com.google.android.material.card.MaterialCardView>
 
