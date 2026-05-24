@@ -26,11 +26,16 @@ class EntityAdapter(
 
     sealed class ListItem(val key: String) {
         data class Header(val letter: String) : ListItem("header_$letter")
-        data class Entity(val name: String, val id: String) : ListItem("entity_$id")
+        data class Entity(val name: String, val id: String, val meta: String) : ListItem("entity_$id")
     }
 
     private var fullList: List<Pair<String, String>> = emptyList()
+    private var metadata: Map<String, String> = emptyMap()
     private var letterPositions: Map<String, Int> = emptyMap()
+
+    fun setMetadata(metadata: Map<String, String>) {
+        this.metadata = metadata
+    }
 
     fun setFullList(list: List<Pair<String, String>>) {
         fullList = list
@@ -49,7 +54,7 @@ class EntityAdapter(
 
     fun setFlatList(list: List<Pair<String, String>>) {
         letterPositions = emptyMap()
-        submitList(list.map { ListItem.Entity(it.first, it.second) })
+        submitList(list.map { ListItem.Entity(it.first, it.second, metadata[it.first].orEmpty()) })
     }
 
     private fun buildAndSubmit(items: List<Pair<String, String>>) {
@@ -65,7 +70,7 @@ class EntityAdapter(
                 positions[letter] = result.size
                 result.add(ListItem.Header(letter))
             }
-            result.add(ListItem.Entity(item.first, item.second))
+            result.add(ListItem.Entity(item.first, item.second, metadata[item.first].orEmpty()))
         }
         letterPositions = positions
         submitList(result)
@@ -84,9 +89,12 @@ class EntityAdapter(
 
     inner class EntityVH(view: View) : RecyclerView.ViewHolder(view) {
         val tvName: TextView = view.findViewById(R.id.tv_name)
+        val tvMeta: TextView = view.findViewById(R.id.tv_meta)
         init {
             view.setOnClickListener {
-                val item = getItem(adapterPosition)
+                val position = bindingAdapterPosition
+                if (position == RecyclerView.NO_POSITION) return@setOnClickListener
+                val item = getItem(position)
                 if (item is ListItem.Entity) onClick(item.name, item.id)
             }
         }
@@ -105,7 +113,16 @@ class EntityAdapter(
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         when (val item = getItem(position)) {
             is ListItem.Header -> (holder as HeaderVH).tvLetter.text = item.letter
-            is ListItem.Entity -> (holder as EntityVH).tvName.text = item.name
+            is ListItem.Entity -> {
+                val vh = holder as EntityVH
+                vh.tvName.text = item.name
+                if (item.meta.isBlank()) {
+                    vh.tvMeta.visibility = View.GONE
+                } else {
+                    vh.tvMeta.visibility = View.VISIBLE
+                    vh.tvMeta.text = item.meta
+                }
+            }
         }
     }
 }

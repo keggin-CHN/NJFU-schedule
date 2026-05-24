@@ -80,8 +80,41 @@ abstract class AppDatabase : RoomDatabase() {
 
         private val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                addColumnIfMissing(db, "global_courses", "rawHtml", "TEXT NOT NULL DEFAULT ''")
-                addColumnIfMissing(db, "global_courses", "rawLinesJson", "TEXT NOT NULL DEFAULT ''")
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `global_courses_new` (" +
+                        "`uid` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`type` TEXT NOT NULL, " +
+                        "`typeLabel` TEXT NOT NULL DEFAULT '', " +
+                        "`term` TEXT NOT NULL DEFAULT '', " +
+                        "`entityName` TEXT NOT NULL DEFAULT '', " +
+                        "`courseName` TEXT NOT NULL, " +
+                        "`teacher` TEXT NOT NULL, " +
+                        "`room` TEXT NOT NULL, " +
+                        "`weeksStr` TEXT NOT NULL, " +
+                        "`day` INTEGER NOT NULL, " +
+                        "`sectionsStr` TEXT NOT NULL, " +
+                        "`className` TEXT NOT NULL, " +
+                        "`collegeName` TEXT NOT NULL DEFAULT '', " +
+                        "`sectionNumbers` TEXT NOT NULL DEFAULT '', " +
+                        "`slotIndex` INTEGER NOT NULL DEFAULT 0, " +
+                        "`tableIndex` INTEGER NOT NULL DEFAULT 0, " +
+                        "`rowIndex` INTEGER NOT NULL DEFAULT 0, " +
+                        "`colIndex` INTEGER NOT NULL DEFAULT 0, " +
+                        "`rawText` TEXT NOT NULL DEFAULT '', " +
+                        "`rawHtml` TEXT NOT NULL DEFAULT '', " +
+                        "`rawLinesJson` TEXT NOT NULL DEFAULT '')"
+                )
+                db.execSQL(
+                    "INSERT INTO `global_courses_new` (" +
+                        "`uid`, `type`, `typeLabel`, `term`, `entityName`, `courseName`, `teacher`, `room`, " +
+                        "`weeksStr`, `day`, `sectionsStr`, `className`, `collegeName`, `sectionNumbers`, " +
+                        "`slotIndex`, `tableIndex`, `rowIndex`, `colIndex`, `rawText`, `rawHtml`, `rawLinesJson`) " +
+                        "SELECT `uid`, `type`, `typeLabel`, `term`, `entityName`, `courseName`, `teacher`, `room`, " +
+                        "`weeksStr`, `day`, `sectionsStr`, `className`, `collegeName`, `sectionNumbers`, " +
+                        "`slotIndex`, `tableIndex`, `rowIndex`, `colIndex`, `rawText`, '', '' FROM `global_courses`"
+                )
+                db.execSQL("DROP TABLE `global_courses`")
+                db.execSQL("ALTER TABLE `global_courses_new` RENAME TO `global_courses`")
             }
         }
 

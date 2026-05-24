@@ -76,66 +76,18 @@
                     app:tint="?attr/colorControlNormal"/>
             </LinearLayout>
         </androidx.cardview.widget.CardView>
-
-        <ImageView
-            android:id="@+id/btn_sync_cache"
-            android:layout_width="42dp"
-            android:layout_height="42dp"
-            android:layout_marginStart="8dp"
-            android:padding="10dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="同步全校课表"
-            android:src="@drawable/ic_sync"
-            app:tint="?attr/colorControlNormal"/>
     </LinearLayout>
-
-    <!-- Type tabs -->
-    <HorizontalScrollView
+    <TextView
+        android:id="@+id/tv_state_summary"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:scrollbars="none"
-        android:paddingHorizontal="12dp"
-        android:paddingBottom="4dp">
+        android:paddingHorizontal="16dp"
+        android:paddingBottom="8dp"
+        android:text="正在读取本地缓存..."
+        android:textColor="?attr/colorControlNormal"
+        android:textSize="12sp" />
 
-        <com.google.android.material.chip.ChipGroup
-            android:id="@+id/chip_group_type"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:singleSelection="true"
-            app:selectionRequired="true">
-
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_teacher"
-                style="@style/Widget.NJFU.ChoiceChip"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="教师"
-                android:checked="true" />
-
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_room"
-                style="@style/Widget.NJFU.ChoiceChip"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="教室" />
-
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_class"
-                style="@style/Widget.NJFU.ChoiceChip"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="班级" />
-
-            <com.google.android.material.chip.Chip
-                android:id="@+id/chip_course"
-                style="@style/Widget.NJFU.ChoiceChip"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="课程" />
-        </com.google.android.material.chip.ChipGroup>
-    </HorizontalScrollView>
-
-    <!-- Entity list / Results / Loading -->
+    <!-- Entity list / Loading -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -174,16 +126,6 @@
                 android:textStyle="bold"
                 android:visibility="gone" />
         </FrameLayout>
-
-        <!-- Course result list (shown after tap) -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rv_results"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:clipToPadding="false"
-            android:paddingHorizontal="12dp"
-            android:paddingVertical="8dp"
-            android:visibility="gone" />
 
         <!-- Loading state -->
         <LinearLayout
@@ -235,16 +177,5 @@
                 android:text="重试"
                 app:cornerRadius="18dp" />
         </LinearLayout>
-
-        <!-- Back button when viewing results -->
-        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
-            android:id="@+id/fab_back"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom|end"
-            android:layout_margin="16dp"
-            android:text="返回列表"
-            app:icon="@android:drawable/ic_media_previous"
-            android:visibility="gone" />
     </FrameLayout>
 </LinearLayout>

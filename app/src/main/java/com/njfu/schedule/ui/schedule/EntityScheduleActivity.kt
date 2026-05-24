@@ -2,7 +2,6 @@ package com.njfu.schedule.ui.schedule
 
 import android.graphics.Color
 import android.graphics.Typeface
-import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.util.TypedValue
 import android.view.Gravity
@@ -199,7 +198,7 @@ class EntityScheduleActivity : AppCompatActivity() {
             binding.weekHeader.visibility = View.GONE
             binding.rvList.visibility = View.VISIBLE
             val sorted = filteredCourses().sortedWith(compareBy({ it.day }, {
-                it.sectionsStr.replace(Regex("\\D"), "").take(2).toIntOrNull() ?: 0
+                parseSection(it.sectionsStr)?.first ?: 0
             }))
             listAdapter.submitList(sorted)
         }
@@ -362,18 +361,7 @@ class EntityScheduleActivity : AppCompatActivity() {
             "${dayLabel(c.day)} ${c.sectionsStr.ifBlank { "-" }}"
         dialogView.findViewById<TextView>(R.id.tv_detail_weeks).text = c.weeksStr.ifBlank { "-" }
         dialogView.findViewById<TextView>(R.id.tv_detail_section).text =
-            listOf(
-                c.sectionNumbers.ifBlank { "" },
-                "slot=${c.slotIndex}",
-                "table=${c.tableIndex}",
-                "row=${c.rowIndex}",
-                "col=${c.colIndex}"
-            ).filter { it.isNotBlank() }.joinToString(" | ")
-        dialogView.findViewById<TextView>(R.id.tv_detail_position).text =
-            "day=${c.day}, entity=${c.entityName.ifBlank { "-" }}"
-        dialogView.findViewById<TextView>(R.id.tv_detail_raw).text = c.rawText.ifBlank { "-" }
-        dialogView.findViewById<TextView>(R.id.tv_detail_raw_lines).text = c.rawLinesJson.ifBlank { "-" }
-        dialogView.findViewById<TextView>(R.id.tv_detail_raw_html).text = c.rawHtml.ifBlank { "-" }
+            c.sectionNumbers.ifBlank { c.sectionsStr.ifBlank { "-" } }
 
         val bgColor = try { Color.parseColor(nameToColor[c.courseName] ?: "#7986CB") } catch (_: Exception) { Color.parseColor("#7986CB") }
         dialogView.findViewById<View>(R.id.color_bar).setBackgroundColor(bgColor)

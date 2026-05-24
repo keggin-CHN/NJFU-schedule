@@ -55,7 +55,7 @@
             <TextView
                 android:layout_width="70dp"
                 android:layout_height="wrap_content"
-                android:text="来源类型"
+                android:text="课表来源"
                 android:textColor="?attr/colorControlNormal" />
 
             <TextView
@@ -95,7 +95,7 @@
             <TextView
                 android:layout_width="70dp"
                 android:layout_height="wrap_content"
-                android:text="实体"
+                android:text="查询对象"
                 android:textColor="?attr/colorControlNormal" />
 
             <TextView
@@ -203,85 +203,6 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:textColor="?attr/colorOnSurface" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="10dp"
-            android:orientation="vertical">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="定位信息"
-                android:textColor="?attr/colorControlNormal" />
-
-            <TextView
-                android:id="@+id/tv_detail_position"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textColor="?attr/colorOnSurface" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="10dp"
-            android:orientation="vertical">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="原始文本"
-                android:textColor="?attr/colorControlNormal" />
-
-            <TextView
-                android:id="@+id/tv_detail_raw"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textColor="?attr/colorOnSurface"
-                android:textIsSelectable="true" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="10dp"
-            android:orientation="vertical">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="原始行"
-                android:textColor="?attr/colorControlNormal" />
-
-            <TextView
-                android:id="@+id/tv_detail_raw_lines"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textColor="?attr/colorOnSurface"
-                android:textIsSelectable="true" />
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="10dp"
-            android:orientation="vertical">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="原始 HTML"
-                android:textColor="?attr/colorControlNormal" />
-
-            <TextView
-                android:id="@+id/tv_detail_raw_html"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textColor="?attr/colorOnSurface"
-                android:textIsSelectable="true" />
         </LinearLayout>
 
         <Button
