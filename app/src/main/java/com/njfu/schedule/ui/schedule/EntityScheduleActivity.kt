@@ -401,14 +401,25 @@ class EntityScheduleActivity : AppCompatActivity() {
     private fun showCourseDetail(c: GlobalCourseInfo) {
         val dialogView = layoutInflater.inflate(R.layout.dialog_global_course_detail, null)
         dialogView.findViewById<TextView>(R.id.tv_detail_course_name).text = c.courseName
-        dialogView.findViewById<TextView>(R.id.tv_detail_class_name).text =
-            c.className.ifBlank { c.entityName.ifBlank { "-" } }
+        // 班级字段：jg0101 教师课表的 entityName 是教师名，不能当作班级名显示
+        val classNameDisplay = when {
+            c.className.isNotBlank() -> c.className
+            type == "jg0101" -> "-"  // 教师课表无班级概念
+            c.entityName.isNotBlank() -> c.entityName
+            else -> "-"
+        }
+        dialogView.findViewById<TextView>(R.id.tv_detail_class_name).text = classNameDisplay
         dialogView.findViewById<TextView>(R.id.tv_detail_type).text =
             listOf(c.typeLabel, c.type).filter { it.isNotBlank() }.joinToString(" / ")
         dialogView.findViewById<TextView>(R.id.tv_detail_term).text = c.term.ifBlank { "-" }
         dialogView.findViewById<TextView>(R.id.tv_detail_entity).text = c.entityName.ifBlank { "-" }
-        dialogView.findViewById<TextView>(R.id.tv_detail_teacher).text =
+        // 教师字段：jg0101 的 teacher == entityName（教师自身），不应被 looksLikeClassCode 过滤掉
+        val teacherDisplay = if (type == "jg0101") {
+            c.teacher.ifBlank { "-" }
+        } else {
             c.teacher.ifBlank { "-" }.let { if (looksLikeClassCode(it)) "-" else it }
+        }
+        dialogView.findViewById<TextView>(R.id.tv_detail_teacher).text = teacherDisplay
         dialogView.findViewById<TextView>(R.id.tv_detail_room).text = c.room.ifBlank { "-" }
         dialogView.findViewById<TextView>(R.id.tv_detail_time).text =
             "${dayLabel(c.day)} ${c.sectionsStr.ifBlank { "-" }}"

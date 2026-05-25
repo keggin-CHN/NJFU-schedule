@@ -217,9 +217,12 @@ class FreeRoomActivity : AppCompatActivity() {
 
                 binding.layoutLoading.visibility = View.GONE
 
+                val sectionLabel = SECTION_OPTIONS.firstOrNull { it.first == selectedSection }?.second ?: "第${selectedSection}节"
+                val weekLabel = "第${selectedWeek}周"
+
                 if (freeRooms.isEmpty()) {
                     binding.layoutEmpty.visibility = View.VISIBLE
-                    binding.tvEmpty.text = "${DAY_LABELS[selectedDay - 1]} ${sectionStr} ${weekStr} 没有空闲教室"
+                    binding.tvEmpty.text = "${DAY_LABELS[selectedDay - 1]} ${sectionLabel} ${weekLabel} 没有空闲教室"
                 } else {
                     binding.rvResults.visibility = View.VISIBLE
                     binding.rvResults.layoutManager = LinearLayoutManager(this@FreeRoomActivity)
@@ -228,7 +231,7 @@ class FreeRoomActivity : AppCompatActivity() {
 
                     binding.tvResultSummary.visibility = View.VISIBLE
                     val totalOccupied = occupiedRooms.size
-                    binding.tvResultSummary.text = "${DAY_LABELS[selectedDay - 1]} ${sectionStr} ${weekStr} · " +
+                    binding.tvResultSummary.text = "${DAY_LABELS[selectedDay - 1]} ${sectionLabel} ${weekLabel} · " +
                             "共 ${allRooms.size} 间教室，空闲 ${freeRooms.size} 间，占用 ${totalOccupied} 间"
                 }
 
@@ -297,14 +300,8 @@ class FreeRoomActivity : AppCompatActivity() {
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
             val inflater = LayoutInflater.from(parent.context)
             return when (viewType) {
-                TYPE_HEADER -> {
-                    val view = inflater.inflate(android.R.layout.simple_list_item_1, parent, false)
-                    HeaderVH(view)
-                }
-                else -> {
-                    val view = inflater.inflate(android.R.layout.simple_list_item_1, parent, false)
-                    RoomVH(view)
-                }
+                TYPE_HEADER -> HeaderVH(inflater.inflate(R.layout.item_free_room_header, parent, false))
+                else -> RoomVH(inflater.inflate(R.layout.item_free_room, parent, false))
             }
         }
 
@@ -318,22 +315,18 @@ class FreeRoomActivity : AppCompatActivity() {
         override fun getItemCount() = items.size
 
         class HeaderVH(view: View) : RecyclerView.ViewHolder(view) {
+            private val tvCampus: TextView = view.findViewById(R.id.tv_campus)
+            private val tvCount: TextView = view.findViewById(R.id.tv_count)
             fun bind(item: Item.Header) {
-                val tv = itemView.findViewById<TextView>(android.R.id.text1)
-                tv.text = "${item.campus}（${item.count}间）"
-                tv.textSize = 14f
-                tv.setTextColor(tv.context.getColor(com.njfu.schedule.R.color.text_secondary))
-                tv.setPadding(0, 24, 0, 8)
+                tvCampus.text = item.campus
+                tvCount.text = "${item.count}间"
             }
         }
 
         class RoomVH(view: View) : RecyclerView.ViewHolder(view) {
+            private val tvRoomName: TextView = view.findViewById(R.id.tv_room_name)
             fun bind(item: Item.Room) {
-                val tv = itemView.findViewById<TextView>(android.R.id.text1)
-                tv.text = item.name
-                tv.textSize = 15f
-                tv.setTextColor(tv.context.getColor(com.njfu.schedule.R.color.text_primary))
-                tv.setPadding(24, 12, 24, 12)
+                tvRoomName.text = item.name
             }
         }
     }

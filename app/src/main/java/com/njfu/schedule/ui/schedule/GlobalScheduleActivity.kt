@@ -75,7 +75,9 @@ class GlobalScheduleActivity : AppCompatActivity() {
         }
         supportActionBar?.title = title
 
-        binding.etFilter.hint = "搜索${currentTypeName()}、拼音首字母..."
+        // 班级课表和教室课表不需要拼音搜索
+        val usePinyin = currentType == "jg0101" || currentType == "kc0101"
+        binding.etFilter.hint = if (usePinyin) "搜索${currentTypeName()}、拼音首字母..." else "搜索${currentTypeName()}..."
         binding.etFilter.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -214,6 +216,8 @@ class GlobalScheduleActivity : AppCompatActivity() {
         if (query.isNotEmpty()) {
             val queryLower = query.lowercase()
             val isPinyinOnly = queryLower.all { it in 'a'..'z' || it in '0'..'9' }
+            // 班级课表和教室课表不需要拼音搜索
+            val usePinyin = currentType == "jg0101" || currentType == "kc0101"
 
             list = list.filter { (name, _) ->
                 val campuses = entityCampuses[name] ?: emptySet()
@@ -226,8 +230,8 @@ class GlobalScheduleActivity : AppCompatActivity() {
 
                 if (directMatch) return@filter true
 
-                // 2. 拼音匹配
-                if (isPinyinOnly && queryLower.length >= 1) {
+                // 2. 拼音匹配（仅教师课表和课程课表）
+                if (usePinyin && isPinyinOnly && queryLower.length >= 1) {
                     val namePinyin = entityPinyin[name].orEmpty()
                     val searchTextPinyin = entitySearchPinyin[name].orEmpty()
 
@@ -258,7 +262,9 @@ class GlobalScheduleActivity : AppCompatActivity() {
         } else {
             entityAdapter.setFullList(list)
         }
-        binding.letterIndexBar.visibility = if (sortMode == SortMode.PINYIN && list.isNotEmpty()) View.VISIBLE else View.GONE
+        // 班级课表和教室课表不显示字母索引栏
+        val usePinyin = currentType == "jg0101" || currentType == "kc0101"
+        binding.letterIndexBar.visibility = if (usePinyin && sortMode == SortMode.PINYIN && list.isNotEmpty()) View.VISIBLE else View.GONE
         binding.letterIndexBar.setActiveLetters(entityAdapter.getActiveLetters())
 
         if (list.isEmpty()) {
