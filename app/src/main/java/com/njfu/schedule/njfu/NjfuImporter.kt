@@ -256,52 +256,79 @@ class NjfuImporter {
                     var room = ""
 
                     when (queryType) {
-                        "jg0101" -> { 
+                        "jg0101" -> {
+                            // 教师课表：entityName=教师名, lines=[课程名, 班级, 周次, 教室]
                             courseName = lines.getOrNull(0) ?: ""
                             teacher = entityName
                             className = lines.getOrNull(1) ?: ""
                             weeksStr = lines.getOrNull(2) ?: ""
                             room = lines.getOrNull(3) ?: ""
                         }
-                        "jx0601" -> { 
+                        "jx0601" -> {
+                            // 教室课表：entityName=教室名, lines=[课程名, 教师(周次)?, 班级, 周次?]
                             courseName = lines.getOrNull(0) ?: ""
                             room = entityName
-                            teacher = lines.getOrNull(1) ?: ""
+                            val line1 = lines.getOrNull(1) ?: ""
+                            val (t1, w1) = splitTeacherWeeks(line1)
+                            teacher = t1
                             className = lines.getOrNull(2) ?: ""
-                            weeksStr = lines.getOrNull(3) ?: ""
+                            weeksStr = w1.ifEmpty { lines.getOrNull(3) ?: "" }
                         }
-                        "kc0101" -> { 
+                        "kc0101" -> {
+                            // 课程课表：entityName=课程名
+                            // lines 可能是 [课程名(重复), 班级, 教师(周次), 教室] 或 [班级, 教师(周次), 教室]
                             val cName = entityName
                             val dataLines = if (lines.getOrNull(0) == cName) lines.drop(1) else lines
                             courseName = cName
                             className = dataLines.getOrNull(0) ?: ""
-                            teacher = dataLines.getOrNull(1) ?: ""
-                            weeksStr = dataLines.getOrNull(2) ?: ""
+                            // lines[1] 通常是 "教师 (周次)" 格式，需要拆分
+                            val teacherWeeksLine = dataLines.getOrNull(1) ?: ""
+                            val (t, w) = splitTeacherWeeks(teacherWeeksLine)
+                            teacher = t
+                            weeksStr = w.ifEmpty { dataLines.getOrNull(2) ?: "" }
                             room = dataLines.getOrNull(3) ?: ""
+                            if (room.isEmpty() && dataLines.size == 3 && !dataLines[2].contains("周")) {
+                                room = dataLines[2]
+                            }
                         }
-                        else -> { 
+                        else -> {
+                            // 班级课表：entityName=班级名
+                            // lines=[课程名, 班级代码(冗余), 教师(周次), 教室]
                             courseName = lines.getOrNull(0) ?: ""
                             className = entityName
                             val line2 = lines.getOrNull(1) ?: ""
-                            val weekMatch = Regex("(.+?)\\s*\\((.+?周)\\)").find(line2)
-                            if (weekMatch != null) {
-                                teacher = weekMatch.groupValues[1].trim()
-                                weeksStr = weekMatch.groupValues[2].trim()
-                            } else if (line2.contains("周")) {
-                                weeksStr = line2
+                            // 判断 line2 是否是教师名还是班级代码
+                            val line2IsClassCode = line2 == entityName || line2.all { it.isDigit() }
+                            val teacherWeeksSource = if (line2IsClassCode) {
+                                // line2 是班级代码（冗余），真正的教师+周次在 line3
+                                lines.getOrNull(2) ?: ""
                             } else {
-                                teacher = line2
+                                line2
                             }
-                            if (weeksStr.isEmpty()) weeksStr = lines.getOrNull(2) ?: ""
+                            val (t, w) = splitTeacherWeeks(teacherWeeksSource)
+                            teacher = t
+                            weeksStr = w
+                            if (weeksStr.isEmpty()) {
+                                val candidateLine = if (line2IsClassCode) lines.getOrNull(3) else lines.getOrNull(2)
+                                weeksStr = candidateLine ?: ""
+                                // 候选行也可能包含教师名+周次
+                                if (weeksStr.contains("(") && weeksStr.contains("周")) {
+                                    val (t2, w2) = splitTeacherWeeks(weeksStr)
+                                    if (teacher.isEmpty()) teacher = t2
+                                    weeksStr = w2
+                                }
+                            }
                             room = lines.getOrNull(3) ?: ""
-                            if (room.isEmpty() && lines.size == 3 && !lines[2].contains("周")) {
-                                room = lines[2]
+                            if (line2IsClassCode && room.isEmpty()) {
+                                // 尝试从最后一行取教室
+                                room = lines.lastOrNull { it.isNotEmpty() && !it.contains("周") && it != courseName && it != teacher && it != className } ?: ""
                             }
                         }
                     }
 
-                    if (weeksStr.contains("(")) {
-                        val m = Regex("\\((.+?周)\\)").find(weeksStr)
+                    // 最终清理：如果 weeksStr 还包含 "(X周)" 格式，提取纯周次
+                    if (weeksStr.contains("(") && weeksStr.contains("周")) {
+                        val m = Regex("\\((.+?周[单双]?)\\)").find(weeksStr)
                         if (m != null) weeksStr = m.groupValues[1]
                     }
 
@@ -339,6 +366,28 @@ class NjfuImporter {
         }
 
         return courses.distinct()
+    }
+
+    /**
+     * 从 "教师名 (X周)" 或 "教师名 (X,Y周)" 格式的字符串中拆分教师名和周次。
+     * 支持格式：
+     *   - "张三 (1-16周)" → ("张三", "1-16周")
+     *   - "张三 (1-16周单)" → ("张三", "1-16周单")
+     *   - "张三" → ("张三", "")
+     *   - "(1-16周)" → ("", "1-16周")
+     *   - "" → ("", "")
+     */
+    private fun splitTeacherWeeks(text: String): Pair<String, String> {
+        if (text.isBlank()) return Pair("", "")
+        val m = Regex("^(.+?)\\s*\\((.+?周[单双]?)\\)$").find(text.trim())
+        if (m != null) {
+            return Pair(m.groupValues[1].trim(), m.groupValues[2].trim())
+        }
+        // 没有括号周次格式，判断是否纯周次
+        if (text.contains("周")) {
+            return Pair("", text.trim())
+        }
+        return Pair(text.trim(), "")
     }
 
     private fun parseRemarks(html: String): List<String> {

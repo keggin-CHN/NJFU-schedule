@@ -14,6 +14,7 @@ import com.njfu.schedule.AppDatabase
 import com.njfu.schedule.R
 import com.njfu.schedule.bean.GlobalCourseEntity
 import com.njfu.schedule.databinding.ActivityGlobalScheduleBinding
+import com.njfu.schedule.utils.PinyinUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -29,6 +30,11 @@ class GlobalScheduleActivity : AppCompatActivity() {
     private var entityCampuses: Map<String, Set<String>> = emptyMap()
     private var entityMetadata: Map<String, String> = emptyMap()
     private var entitySearchText: Map<String, String> = emptyMap()
+
+    /** 每个实体名称对应的拼音全拼（用于拼音搜索） */
+    private var entityPinyin: Map<String, String> = emptyMap()
+    /** 每个实体搜索文本对应的拼音全拼 */
+    private var entitySearchPinyin: Map<String, String> = emptyMap()
 
     private var sortMode: SortMode = SortMode.PINYIN
     private val activeFilters: MutableSet<String> = mutableSetOf()
@@ -69,7 +75,7 @@ class GlobalScheduleActivity : AppCompatActivity() {
         }
         supportActionBar?.title = title
 
-        binding.etFilter.hint = "搜索${currentTypeName()}、学期、原文、节次..."
+        binding.etFilter.hint = "搜索${currentTypeName()}、拼音首字母..."
         binding.etFilter.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
@@ -139,9 +145,15 @@ class GlobalScheduleActivity : AppCompatActivity() {
                 entityMetadata = buildEntityMetadata(counts, campusesMap)
                 entityAdapter.setMetadata(entityMetadata)
                 allRows = rows
-                entitySearchText = withContext(Dispatchers.Default) {
-                    rows.groupBy { entityNameOf(it) }.mapValues { (_, entityRows) ->
-                        entityRows.joinToString("\n") { row ->
+
+                // 构建搜索文本和拼音索引
+                val searchTextMap = mutableMapOf<String, String>()
+                val searchPinyinMap = mutableMapOf<String, String>()
+                val entityPinyinMap = mutableMapOf<String, String>()
+
+                withContext(Dispatchers.Default) {
+                    rows.groupBy { entityNameOf(it) }.forEach { (entityName, entityRows) ->
+                        val text = entityRows.joinToString("\n") { row ->
                             listOf(
                                 row.courseName,
                                 row.teacher,
@@ -159,8 +171,15 @@ class GlobalScheduleActivity : AppCompatActivity() {
                                 row.rawLinesJson
                             ).joinToString(" ")
                         }
+                        searchTextMap[entityName] = text
+                        searchPinyinMap[entityName] = PinyinUtils.toPinyin(text)
+                        entityPinyinMap[entityName] = PinyinUtils.toPinyin(entityName)
                     }
                 }
+
+                entitySearchText = searchTextMap
+                entitySearchPinyin = searchPinyinMap
+                entityPinyin = entityPinyinMap
                 allEntities = counts.keys.map { Pair(it, it) }
 
                 if (allEntities.isEmpty()) {
@@ -175,6 +194,15 @@ class GlobalScheduleActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * 搜索过滤：同时支持中文匹配和拼音匹配。
+     *
+     * 匹配策略：
+     * 1. 中文/英文直接匹配：name.contains(query)
+     * 2. 校区/学院匹配
+     * 3. 搜索文本 contains 匹配
+     * 4. 拼音匹配：对实体名和搜索文本的拼音进行前缀/包含匹配
+     */
     private fun applyListUpdate(query: String) {
         var list = allEntities
         if (activeFilters.isNotEmpty()) {
@@ -184,12 +212,37 @@ class GlobalScheduleActivity : AppCompatActivity() {
             }
         }
         if (query.isNotEmpty()) {
+            val queryLower = query.lowercase()
+            val isPinyinOnly = queryLower.all { it in 'a'..'z' || it in '0'..'9' }
+
             list = list.filter { (name, _) ->
                 val campuses = entityCampuses[name] ?: emptySet()
                 val searchText = entitySearchText[name].orEmpty()
-                name.contains(query, ignoreCase = true) ||
+
+                // 1. 直接中文/英文匹配
+                val directMatch = name.contains(query, ignoreCase = true) ||
                     campuses.any { it.contains(query, ignoreCase = true) } ||
                     searchText.contains(query, ignoreCase = true)
+
+                if (directMatch) return@filter true
+
+                // 2. 拼音匹配
+                if (isPinyinOnly && queryLower.length >= 1) {
+                    val namePinyin = entityPinyin[name].orEmpty()
+                    val searchTextPinyin = entitySearchPinyin[name].orEmpty()
+
+                    // 拼音全拼包含匹配（如 "jisuanji" 匹配 "计算机"）
+                    if (namePinyin.contains(queryLower) || searchTextPinyin.contains(queryLower)) {
+                        return@filter true
+                    }
+
+                    // 拼音首字母匹配（如 "jsj" 匹配 "计算机"）
+                    if (matchesPinyinInitials(name, queryLower) || matchesPinyinInitials(searchText, queryLower)) {
+                        return@filter true
+                    }
+                }
+
+                false
             }
         }
         if (sortMode == SortMode.COUNT) {
@@ -214,6 +267,27 @@ class GlobalScheduleActivity : AppCompatActivity() {
             showEntities()
             binding.tvStateSummary.text = buildStateSummary(list.size, query)
         }
+    }
+
+    /**
+     * 拼音首字母匹配：检查文本的每个中文字符的拼音首字母是否匹配 query。
+     * 例如 "计算机科学" 的首字母为 "jsjkx"，query="jsj" 会匹配。
+     */
+    private fun matchesPinyinInitials(text: String, queryLower: String): Boolean {
+        if (text.isEmpty() || queryLower.isEmpty()) return false
+        val sb = StringBuilder()
+        for (ch in text) {
+            if (ch.code in 0x4E00..0x9FFF) {
+                // 中文字符：取拼音首字母
+                val py = PinyinUtils.toPinyin(ch.toString())
+                val initial = py.firstOrNull { it in 'a'..'z' || it in 'A'..'Z' }
+                if (initial != null) sb.append(initial.lowercaseChar())
+            } else if (ch in 'a'..'z' || ch in 'A'..'Z' || ch in '0'..'9') {
+                sb.append(ch.lowercaseChar())
+            }
+            // 其他字符（空格、标点等）跳过
+        }
+        return sb.contains(queryLower)
     }
 
     private fun showFilterDialog() {

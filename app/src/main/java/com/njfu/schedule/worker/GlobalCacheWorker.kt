@@ -75,10 +75,16 @@ class GlobalCacheWorker(
                             rawLinesJson = it.rawLinesJson
                         )
                     }
-                    dao.deleteByType(type)
-                    if (entities.isNotEmpty()) dao.insertAll(entities)
+                    // 使用事务性替换：deleteByType + insertAll 在同一事务中执行
+                    dao.replaceByType(type, entities)
                 } catch (_: Exception) {
                 }
+            }
+
+            // 自动清理旧学期数据，仅保留最近 2 个学期
+            try {
+                cleanupOldTerms(dao)
+            } catch (_: Exception) {
             }
 
             prefs.edit().putLong("global_cache_last_sync", System.currentTimeMillis()).apply()
@@ -87,6 +93,18 @@ class GlobalCacheWorker(
         } catch (e: Exception) {
             postFinalNotification("全校课表同步失败", e.message ?: "请稍后重试")
             Result.retry()
+        }
+    }
+
+    /**
+     * 自动清理旧学期数据，仅保留最近 [KEEP_TERM_COUNT] 个学期。
+     * 多学期累积会导致 global_courses 表膨胀，定期清理释放存储空间。
+     */
+    private suspend fun cleanupOldTerms(dao: com.njfu.schedule.dao.GlobalCourseDao) {
+        val terms = dao.getAllTerms()
+        if (terms.size > KEEP_TERM_COUNT) {
+            val keepTerms = terms.take(KEEP_TERM_COUNT)
+            dao.deleteOldTerms(keepTerms)
         }
     }
 
@@ -155,5 +173,8 @@ class GlobalCacheWorker(
         const val KEY_PROGRESS_INDEX = "index"
         const val KEY_PROGRESS_TOTAL = "total"
         const val NOTIFICATION_ID = 7001
+
+        /** 保留最近的学期数量，超出的旧学期数据将被自动清理 */
+        const val KEEP_TERM_COUNT = 2
     }
 }

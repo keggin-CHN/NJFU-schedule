@@ -2,9 +2,22 @@ package com.njfu.schedule.bean
 
 import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "global_courses")
+@Entity(
+    tableName = "global_courses",
+    indices = [
+        Index(value = ["type"], name = "idx_gc_type"),
+        Index(value = ["type", "entityName"], name = "idx_gc_type_entity"),
+        Index(value = ["type", "courseName"], name = "idx_gc_type_course"),
+        Index(value = ["type", "teacher"], name = "idx_gc_type_teacher"),
+        Index(value = ["type", "room"], name = "idx_gc_type_room"),
+        Index(value = ["type", "className"], name = "idx_gc_type_class"),
+        Index(value = ["type", "day"], name = "idx_gc_type_day"),
+        Index(value = ["term"], name = "idx_gc_term")
+    ]
+)
 data class GlobalCourseEntity(
     @PrimaryKey(autoGenerate = true)
     val uid: Long = 0,

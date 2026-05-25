@@ -70,6 +70,10 @@
             android:name=".ui.schedule.EntityScheduleActivity"
             android:screenOrientation="portrait" />
 
+        <activity
+            android:name=".ui.schedule.FreeRoomActivity"
+            android:screenOrientation="portrait" />
+
         <!-- 今日课程桌面小组件 (4x2) — 使用 ListView + RemoteViewsService -->
         <receiver
             android:name=".widget.TodayCourseWidget"

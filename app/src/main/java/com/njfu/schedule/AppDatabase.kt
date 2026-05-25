@@ -9,13 +9,14 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import com.njfu.schedule.bean.CourseBaseBean
 import com.njfu.schedule.bean.CourseDetailBean
 import com.njfu.schedule.bean.GlobalCourseEntity
+import com.njfu.schedule.bean.GlobalCourseFts
 import com.njfu.schedule.bean.TableBean
 import com.njfu.schedule.dao.CourseDao
 import com.njfu.schedule.dao.GlobalCourseDao
 
 @Database(
-    entities = [CourseBaseBean::class, CourseDetailBean::class, TableBean::class, GlobalCourseEntity::class],
-    version = 7,
+    entities = [CourseBaseBean::class, CourseDetailBean::class, TableBean::class, GlobalCourseEntity::class, GlobalCourseFts::class],
+    version = 8,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -118,6 +119,36 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v7 → v8: 添加索引 + FTS4 全文搜索表
+         */
+        private val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // 创建索引（IF NOT EXISTS 避免重复）
+                db.execSQL("CREATE INDEX IF NOT EXISTS `idx_gc_type` ON `global_courses` (`type`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `idx_gc_type_entity` ON `global_courses` (`type`, `entityName`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `idx_gc_type_course` ON `global_courses` (`type`, `courseName`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `idx_gc_type_teacher` ON `global_courses` (`type`, `teacher`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `idx_gc_type_room` ON `global_courses` (`type`, `room`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `idx_gc_type_class` ON `global_courses` (`type`, `className`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `idx_gc_type_day` ON `global_courses` (`type`, `day`)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `idx_gc_term` ON `global_courses` (`term`)")
+
+                // 创建 FTS4 虚拟表（使用 content= 关联主表）
+                db.execSQL(
+                    "CREATE VIRTUAL TABLE IF NOT EXISTS `global_courses_fts` USING fts4(" +
+                        "`entityName`, `courseName`, `teacher`, `room`, `className`, `collegeName`, `typeLabel`, `rawText`, " +
+                        "content=`global_courses`)"
+                )
+
+                // 填充 FTS 索引
+                db.execSQL(
+                    "INSERT INTO `global_courses_fts`(`rowid`, `entityName`, `courseName`, `teacher`, `room`, `className`, `collegeName`, `typeLabel`, `rawText`) " +
+                        "SELECT `uid`, `entityName`, `courseName`, `teacher`, `room`, `className`, `collegeName`, `typeLabel`, `rawText` FROM `global_courses`"
+                )
+            }
+        }
+
         private fun addColumnIfMissing(
             database: SupportSQLiteDatabase,
             tableName: String,
@@ -140,7 +171,11 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "njfu_schedule"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7).build()
+                ).addMigrations(
+                    MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
+                    MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
+                    MIGRATION_7_8
+                ).build()
                 INSTANCE = instance
                 instance
             }

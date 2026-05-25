@@ -57,7 +57,8 @@ class GlobalCourseAdapter(private val onItemClick: (GlobalCourseInfo) -> Unit) :
         holder.tvSections.text = sectionNum.ifEmpty { "-" }
         holder.tvCourseName.text = item.courseName
         holder.tvRoom.text = item.room.ifEmpty { "未知教室" }
-        holder.tvTeacher.text = item.teacher.ifEmpty { "未知教师" }
+        // 如果 teacher 看起来像班级代码（纯数字），显示"未知教师"
+        holder.tvTeacher.text = if (item.teacher.isEmpty() || item.teacher.all { it.isDigit() }) "未知教师" else item.teacher
         holder.tvWeeks.text = item.weeksStr.ifEmpty { "未知周次" }
         if (item.className.isNotEmpty()) {
             holder.tvClassName.visibility = View.VISIBLE

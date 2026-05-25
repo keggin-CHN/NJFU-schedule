@@ -154,7 +154,16 @@ class EntityScheduleActivity : AppCompatActivity() {
                     }
                 }
 
-                courses = filtered
+                // 跨类型数据耦合：对缺少教师信息的课程，从教师课表(jg0101)中查找
+                val enrichedCourses = if (type != "jg0101") {
+                    withContext(Dispatchers.IO) {
+                        enrichTeacherInfo(dao, filtered)
+                    }
+                } else {
+                    filtered
+                }
+
+                courses = enrichedCourses
                 nameToColor = courses.map { it.courseName }.distinct()
                     .mapIndexed { idx, name -> name to courseColors[idx % courseColors.size] }.toMap()
 
@@ -174,6 +183,46 @@ class EntityScheduleActivity : AppCompatActivity() {
                 binding.tvEmpty.text = "加载失败: ${e.message ?: ""}"
             }
         }
+    }
+
+    /**
+     * 跨类型数据耦合：用教师课表(jg0101)的数据补充缺失的教师信息。
+     *
+     * 策略：
+     * 1. 先尝试按 (courseName, className) 精确匹配
+     * 2. 回退到按 (courseName, day, sectionNumbers) 匹配
+     */
+    private suspend fun enrichTeacherInfo(
+        dao: com.njfu.schedule.dao.GlobalCourseDao,
+        courses: List<GlobalCourseInfo>
+    ): List<GlobalCourseInfo> {
+        return courses.map { c ->
+            if (c.teacher.isNotBlank() && !looksLikeClassCode(c.teacher)) {
+                // 教师信息看起来有效，不需要补充
+                c
+            } else {
+                // 尝试从教师课表查找
+                val foundTeacher = if (c.className.isNotBlank()) {
+                    dao.findTeacherForCourseClass(c.courseName, c.className)
+                } else {
+                    null
+                } ?: dao.findTeacherForCourse(c.courseName, c.day, c.sectionNumbers)
+
+                if (foundTeacher != null) {
+                    c.copy(teacher = foundTeacher)
+                } else {
+                    c
+                }
+            }
+        }
+    }
+
+    /**
+     * 判断字符串是否看起来像班级代码（纯数字或与 entityName 相同）。
+     * 班级课表解析中有时会把班级代码误放到 teacher 字段。
+     */
+    private fun looksLikeClassCode(s: String): Boolean {
+        return s.all { it.isDigit() } || s == entityName
     }
 
     private suspend fun computeCurrentWeek(): Int {
@@ -332,7 +381,10 @@ class EntityScheduleActivity : AppCompatActivity() {
             val info = buildString {
                 append(c.courseName)
                 if (span >= 2 && c.room.isNotEmpty()) append("\n@").append(c.room)
-                if (span >= 2 && type != "jg0101" && c.teacher.isNotEmpty()) append("\n").append(c.teacher)
+                // 显示教师信息：教师课表本身不需要显示教师名，其他类型显示
+                if (span >= 2 && type != "jg0101" && c.teacher.isNotBlank() && !looksLikeClassCode(c.teacher)) {
+                    append("\n").append(c.teacher)
+                }
                 if (span >= 2 && c.weeksStr.isNotEmpty()) append("\n").append(c.weeksStr)
             }
             text = info
@@ -355,7 +407,8 @@ class EntityScheduleActivity : AppCompatActivity() {
             listOf(c.typeLabel, c.type).filter { it.isNotBlank() }.joinToString(" / ")
         dialogView.findViewById<TextView>(R.id.tv_detail_term).text = c.term.ifBlank { "-" }
         dialogView.findViewById<TextView>(R.id.tv_detail_entity).text = c.entityName.ifBlank { "-" }
-        dialogView.findViewById<TextView>(R.id.tv_detail_teacher).text = c.teacher.ifBlank { "-" }
+        dialogView.findViewById<TextView>(R.id.tv_detail_teacher).text =
+            c.teacher.ifBlank { "-" }.let { if (looksLikeClassCode(it)) "-" else it }
         dialogView.findViewById<TextView>(R.id.tv_detail_room).text = c.room.ifBlank { "-" }
         dialogView.findViewById<TextView>(R.id.tv_detail_time).text =
             "${dayLabel(c.day)} ${c.sectionsStr.ifBlank { "-" }}"

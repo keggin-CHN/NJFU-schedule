@@ -131,6 +131,32 @@
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/card_classroom"
         android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:layout_marginBottom="10dp"
+        android:clickable="true"
+        android:focusable="true"
+        app:cardBackgroundColor="@color/surface_container"
+        app:cardCornerRadius="12dp"
+        app:cardElevation="0dp"
+        app:strokeColor="@color/divider"
+        app:strokeWidth="1dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:drawableEnd="@drawable/ic_arrow_right"
+            android:gravity="center_vertical"
+            android:paddingStart="20dp"
+            android:paddingEnd="16dp"
+            android:text="教室课表"
+            android:textColor="@color/text_primary"
+            android:textSize="15sp"
+            android:textStyle="bold" />
+    </com.google.android.material.card.MaterialCardView>
+
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/card_free_room"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="12dp"
         app:cardBackgroundColor="@color/surface_container"
@@ -145,7 +171,7 @@
             android:drawableEnd="@drawable/ic_arrow_right"
             android:paddingHorizontal="20dp"
             android:paddingVertical="16dp"
-            android:text="教室课表"
+            android:text="🔍 空闲教室查询"
             android:textColor="@color/text_primary"
             android:textSize="16sp"
             android:textStyle="bold" />
