@@ -476,8 +476,10 @@ class AddCourseActivity : AppCompatActivity() {
     }
 
     private fun refreshWidgets() {
-        TodayCourseWidget.refreshAll(this)
-        NextCourseWidget.refreshAll(this)
+        lifecycleScope.launch {
+            TodayCourseWidget.refreshAll(this@AddCourseActivity)
+            NextCourseWidget.refreshAll(this@AddCourseActivity)
+        }
     }
 
     private fun inferNodeByTime(time: String): Int {

@@ -18,10 +18,15 @@ import kotlinx.coroutines.launch
 class TodayCourseWidget : AppWidgetProvider() {
 
     override fun onUpdate(context: Context, appWidgetManager: AppWidgetManager, appWidgetIds: IntArray) {
-        for (id in appWidgetIds) {
+        val pendingResult = goAsync()
+        CoroutineScope(Dispatchers.IO).launch {
             try {
-                updateWidget(context, appWidgetManager, id)
-            } catch (_: Exception) {}
+                for (id in appWidgetIds) {
+                    updateWidget(context, appWidgetManager, id)
+                }
+            } finally {
+                pendingResult.finish()
+            }
         }
     }
 
@@ -38,7 +43,7 @@ class TodayCourseWidget : AppWidgetProvider() {
             action == Intent.ACTION_BOOT_COMPLETED ||
             action == Intent.ACTION_MY_PACKAGE_REPLACED) {
             val pendingResult = goAsync()
-            CoroutineScope(Dispatchers.Main).launch {
+            CoroutineScope(Dispatchers.IO).launch {
                 try {
                     val manager = AppWidgetManager.getInstance(context)
                     val ids = manager.getAppWidgetIds(
@@ -69,15 +74,17 @@ class TodayCourseWidget : AppWidgetProvider() {
     companion object {
         private const val REFRESH_INTERVAL_MS = 30L * 60 * 1000
 
-        fun refreshAll(context: Context) {
+        suspend fun refreshAll(context: Context) {
             val manager = AppWidgetManager.getInstance(context)
             val ids = manager.getAppWidgetIds(
                 ComponentName(context, TodayCourseWidget::class.java)
             )
-            ids.forEach { updateWidget(context, manager, it) }
+            for (id in ids) {
+                updateWidget(context, manager, id)
+            }
         }
 
-        private fun updateWidget(context: Context, manager: AppWidgetManager, widgetId: Int) {
+        private suspend fun updateWidget(context: Context, manager: AppWidgetManager, widgetId: Int) {
             try {
                 val views = RemoteViews(context.packageName, R.layout.widget_today_courses)
                 val courses = WidgetDataHelper.loadTodayCourses(context)
@@ -144,7 +151,7 @@ class TodayCourseWidget : AppWidgetProvider() {
                 views.setViewVisibility(containerIds[index], View.VISIBLE)
                 views.setTextViewText(timeIds[index], preventTimeWrap(course.time))
                 views.setTextViewText(nameIds[index], course.name.ifBlank { "未命名课程" })
-                
+
                 val info = buildString {
                     if (course.room.isNotEmpty()) append(course.room)
                     if (course.teacher.isNotEmpty()) {
@@ -154,7 +161,7 @@ class TodayCourseWidget : AppWidgetProvider() {
                 }
                 views.setTextViewText(infoIds[index], info.ifBlank { "地点/教师待定" })
                 views.setViewVisibility(infoIds[index], if (info.isEmpty()) View.GONE else View.VISIBLE)
-                
+
                 views.setInt(
                     colorIds[index],
                     "setBackgroundColor",

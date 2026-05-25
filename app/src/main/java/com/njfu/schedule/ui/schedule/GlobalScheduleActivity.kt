@@ -35,6 +35,10 @@ class GlobalScheduleActivity : AppCompatActivity() {
     private var entityPinyin: Map<String, String> = emptyMap()
     /** 每个实体搜索文本对应的拼音全拼 */
     private var entitySearchPinyin: Map<String, String> = emptyMap()
+    /** 每个实体名称对应的拼音首字母（预计算，避免运行时逐字转换） */
+    private var entityNameInitials: Map<String, String> = emptyMap()
+    /** 每个实体搜索文本对应的拼音首字母 */
+    private var entitySearchInitials: Map<String, String> = emptyMap()
 
     private var sortMode: SortMode = SortMode.PINYIN
     private val activeFilters: MutableSet<String> = mutableSetOf()
@@ -148,40 +152,32 @@ class GlobalScheduleActivity : AppCompatActivity() {
                 entityAdapter.setMetadata(entityMetadata)
                 allRows = rows
 
-                // 构建搜索文本和拼音索引
+                // 快速构建搜索文本（纯字符串拼接，与 b7ae6e0 一样快）
                 val searchTextMap = mutableMapOf<String, String>()
-                val searchPinyinMap = mutableMapOf<String, String>()
-                val entityPinyinMap = mutableMapOf<String, String>()
-
-                withContext(Dispatchers.Default) {
-                    rows.groupBy { entityNameOf(it) }.forEach { (entityName, entityRows) ->
-                        val text = entityRows.joinToString("\n") { row ->
-                            listOf(
-                                row.courseName,
-                                row.teacher,
-                                row.room,
-                                row.weeksStr,
-                                row.sectionsStr,
-                                row.className,
-                                row.collegeName,
-                                row.typeLabel,
-                                row.term,
-                                row.entityName,
-                                row.sectionNumbers,
-                                row.rawText,
-                                row.rawHtml,
-                                row.rawLinesJson
-                            ).joinToString(" ")
-                        }
-                        searchTextMap[entityName] = text
-                        searchPinyinMap[entityName] = PinyinUtils.toPinyin(text)
-                        entityPinyinMap[entityName] = PinyinUtils.toPinyin(entityName)
+                val groupedRows = withContext(Dispatchers.Default) {
+                    rows.groupBy { entityNameOf(it) }
+                }
+                groupedRows.forEach { (entityName, entityRows) ->
+                    searchTextMap[entityName] = entityRows.joinToString("\n") { row ->
+                        listOf(
+                            row.courseName,
+                            row.teacher,
+                            row.room,
+                            row.weeksStr,
+                            row.sectionsStr,
+                            row.className,
+                            row.collegeName,
+                            row.typeLabel,
+                            row.term,
+                            row.entityName,
+                            row.sectionNumbers,
+                            row.rawText,
+                            row.rawHtml,
+                            row.rawLinesJson
+                        ).joinToString(" ")
                     }
                 }
-
                 entitySearchText = searchTextMap
-                entitySearchPinyin = searchPinyinMap
-                entityPinyin = entityPinyinMap
                 allEntities = counts.keys.map { Pair(it, it) }
 
                 if (allEntities.isEmpty()) {
@@ -189,6 +185,28 @@ class GlobalScheduleActivity : AppCompatActivity() {
                 } else {
                     val q = binding.etFilter.text?.toString()?.trim().orEmpty()
                     applyListUpdate(q)
+                }
+
+                // 后台异步计算拼音索引（不阻塞 UI 显示）
+                launch {
+                    val searchPinyinMap = mutableMapOf<String, String>()
+                    val entityPinyinMap = mutableMapOf<String, String>()
+                    val nameInitialsMap = mutableMapOf<String, String>()
+                    val searchInitialsMap = mutableMapOf<String, String>()
+
+                    withContext(Dispatchers.Default) {
+                        searchTextMap.forEach { (entityName, text) ->
+                            searchPinyinMap[entityName] = PinyinUtils.toPinyin(text)
+                            entityPinyinMap[entityName] = PinyinUtils.toPinyin(entityName)
+                            nameInitialsMap[entityName] = extractInitials(entityName)
+                            searchInitialsMap[entityName] = extractInitials(text)
+                        }
+                    }
+
+                    entitySearchPinyin = searchPinyinMap
+                    entityPinyin = entityPinyinMap
+                    entityNameInitials = nameInitialsMap
+                    entitySearchInitials = searchInitialsMap
                 }
             } catch (e: Exception) {
                 showError("读取本地缓存失败: ${e.message ?: "未知错误"}")
@@ -240,8 +258,10 @@ class GlobalScheduleActivity : AppCompatActivity() {
                         return@filter true
                     }
 
-                    // 拼音首字母匹配（如 "jsj" 匹配 "计算机"）
-                    if (matchesPinyinInitials(name, queryLower) || matchesPinyinInitials(searchText, queryLower)) {
+                    // 拼音首字母匹配（如 "jsj" 匹配 "计算机"）— 使用预计算结果
+                    val nameInitials = entityNameInitials[name].orEmpty()
+                    val searchInitials = entitySearchInitials[name].orEmpty()
+                    if (nameInitials.contains(queryLower) || searchInitials.contains(queryLower)) {
                         return@filter true
                     }
                 }
@@ -276,24 +296,22 @@ class GlobalScheduleActivity : AppCompatActivity() {
     }
 
     /**
-     * 拼音首字母匹配：检查文本的每个中文字符的拼音首字母是否匹配 query。
-     * 例如 "计算机科学" 的首字母为 "jsjkx"，query="jsj" 会匹配。
+     * 提取文本的拼音首字母序列（用于预计算，不在搜索时调用）。
+     * 例如 "计算机科学" → "jsjkx"
      */
-    private fun matchesPinyinInitials(text: String, queryLower: String): Boolean {
-        if (text.isEmpty() || queryLower.isEmpty()) return false
+    private fun extractInitials(text: String): String {
+        if (text.isEmpty()) return ""
         val sb = StringBuilder()
         for (ch in text) {
             if (ch.code in 0x4E00..0x9FFF) {
-                // 中文字符：取拼音首字母
                 val py = PinyinUtils.toPinyin(ch.toString())
                 val initial = py.firstOrNull { it in 'a'..'z' || it in 'A'..'Z' }
                 if (initial != null) sb.append(initial.lowercaseChar())
             } else if (ch in 'a'..'z' || ch in 'A'..'Z' || ch in '0'..'9') {
                 sb.append(ch.lowercaseChar())
             }
-            // 其他字符（空格、标点等）跳过
         }
-        return sb.contains(queryLower)
+        return sb.toString()
     }
 
     private fun showFilterDialog() {

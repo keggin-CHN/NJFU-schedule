@@ -92,7 +92,7 @@ class EntityAdapter(
         val tvMeta: TextView = view.findViewById(R.id.tv_meta)
         init {
             view.setOnClickListener {
-                val position = bindingAdapterPosition
+                val position = adapterPosition
                 if (position == RecyclerView.NO_POSITION) return@setOnClickListener
                 val item = getItem(position)
                 if (item is ListItem.Entity) onClick(item.name, item.id)

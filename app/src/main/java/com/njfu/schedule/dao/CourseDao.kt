@@ -59,4 +59,8 @@ interface CourseDao {
 
     @Query("SELECT * FROM CourseBaseBean WHERE tableId = :tableId")
     fun getCourseBaseById_sync(tableId: Int): List<CourseBaseBean>
+
+    /** 只查当天的 CourseDetail，减少数据传输 */
+    @Query("SELECT * FROM CourseDetailBean WHERE tableId = :tableId AND day = :day")
+    fun getCourseDetailsByDay(tableId: Int, day: Int): List<CourseDetailBean>
 }

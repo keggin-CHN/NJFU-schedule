@@ -647,8 +647,10 @@ class ScheduleActivity : AppCompatActivity() {
     }
 
     private fun refreshWidgets() {
-        TodayCourseWidget.refreshAll(this)
-        NextCourseWidget.refreshAll(this)
+        lifecycleScope.launch {
+            TodayCourseWidget.refreshAll(this@ScheduleActivity)
+            NextCourseWidget.refreshAll(this@ScheduleActivity)
+        }
     }
 
     private fun saveSyncRemarks(result: com.njfu.schedule.njfu.NjfuImporter.ImportResult) {
