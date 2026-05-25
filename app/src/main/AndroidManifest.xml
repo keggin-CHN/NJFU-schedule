@@ -1,24 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <application
         android:name=".App"
         android:allowBackup="true"
+        android:usesCleartextTraffic="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.NJFUSchedule"
-        android:usesCleartextTraffic="true">
+        android:theme="@style/Theme.NJFUSchedule">
 
         <activity
             android:name=".ui.schedule.ScheduleActivity"
@@ -61,20 +55,7 @@
             android:screenOrientation="portrait"
             android:configChanges="orientation|screenSize" />
 
-        <activity
-            android:name=".ui.schedule.GlobalScheduleActivity"
-            android:screenOrientation="portrait"
-            android:windowSoftInputMode="adjustResize" />
-
-        <activity
-            android:name=".ui.schedule.EntityScheduleActivity"
-            android:screenOrientation="portrait" />
-
-        <activity
-            android:name=".ui.schedule.FreeRoomActivity"
-            android:screenOrientation="portrait" />
-
-        <!-- 今日课程桌面小组件 (4x2) — 使用 ListView + RemoteViewsService -->
+        <!-- 今日课程桌面小组件 (4x2) — 使用 addView 动态布局 -->
         <receiver
             android:name=".widget.TodayCourseWidget"
             android:exported="true"
@@ -92,13 +73,6 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_today_info" />
         </receiver>
-
-
-
-        <service
-            android:name="androidx.work.impl.foreground.SystemForegroundService"
-            android:foregroundServiceType="dataSync"
-            tools:node="merge" />
 
         <!-- 今日课程小组件 (2x2) — 使用 addView 动态布局 -->
         <receiver
@@ -119,7 +93,6 @@
                 android:resource="@xml/widget_next_course_info" />
         </receiver>
 
-        <!-- 系统广播接收器 — 开机/时区/应用更新后刷新小组件（多厂商兼容） -->
         <receiver
             android:name=".widget.WidgetRefreshReceiver"
             android:exported="true">
@@ -127,9 +100,9 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
                 <action android:name="android.intent.action.TIMEZONE_CHANGED" />
-                <action android:name="android.intent.action.LOCALE_CHANGED" />
             </intent-filter>
         </receiver>
 
     </application>
+
 </manifest>

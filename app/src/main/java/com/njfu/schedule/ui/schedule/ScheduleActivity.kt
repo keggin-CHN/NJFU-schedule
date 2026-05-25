@@ -19,12 +19,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.setPadding
-import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
-import androidx.work.WorkInfo
-import androidx.work.WorkManager
 import com.njfu.schedule.App
 import com.njfu.schedule.R
 import com.njfu.schedule.bean.CourseBaseBean
@@ -38,8 +35,6 @@ import com.njfu.schedule.ui.settings.ScheduleSettingsActivity
 import com.njfu.schedule.ui.settings.TimeSettingsActivity
 import com.njfu.schedule.ui.settings.BackgroundSettingsActivity
 import com.njfu.schedule.utils.WeekUtils
-import com.njfu.schedule.worker.GlobalCacheScheduler
-import com.njfu.schedule.worker.GlobalCacheWorker
 import com.njfu.schedule.widget.NextCourseWidget
 import com.njfu.schedule.widget.TodayCourseWidget
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -105,7 +100,6 @@ class ScheduleActivity : AppCompatActivity() {
         bottomNav.setOnItemSelectedListener { item ->
             when (item.itemId) {
                 R.id.nav_schedule -> { showScheduleView(); true }
-                R.id.nav_query -> { showQueryView(); true }
                 else -> false
             }
         }
@@ -117,134 +111,9 @@ class ScheduleActivity : AppCompatActivity() {
     private fun showScheduleView() {
         binding.viewPager.visibility = if (allBases.isNotEmpty()) View.VISIBLE else View.GONE
         binding.emptyView.visibility = if (allBases.isEmpty()) View.VISIBLE else View.GONE
-        findViewById<View>(R.id.query_container)?.visibility = View.GONE
 
         findViewById<View>(R.id.schedule_header)?.visibility = View.VISIBLE
         binding.headerRow.visibility = View.VISIBLE
-    }
-
-    private fun showQueryView() {
-        binding.viewPager.visibility = View.GONE
-        binding.emptyView.visibility = View.GONE
-
-        findViewById<View>(R.id.schedule_header)?.visibility = View.GONE
-        binding.headerRow.visibility = View.GONE
-
-        var queryContainer = findViewById<View>(R.id.query_container)
-        if (queryContainer == null) {
-            val queryView = layoutInflater.inflate(R.layout.fragment_query, null)
-            queryView.id = R.id.query_container
-            val mainContent = findViewById<android.widget.LinearLayout>(R.id.main_content)
-            val params = android.widget.LinearLayout.LayoutParams(
-                android.widget.LinearLayout.LayoutParams.MATCH_PARENT, 0, 1f)
-            mainContent.addView(queryView, mainContent.childCount, params)
-            queryContainer = queryView
-
-            queryView.findViewById<View>(R.id.card_teacher).setOnClickListener {
-                openQuery("教师课表")
-            }
-            queryView.findViewById<View>(R.id.card_course).setOnClickListener {
-                openQuery("课程课表")
-            }
-            queryView.findViewById<View>(R.id.card_class).setOnClickListener {
-                openQuery("班级课表")
-            }
-            queryView.findViewById<View>(R.id.card_classroom).setOnClickListener {
-                openQuery("教室课表")
-            }
-            queryView.findViewById<View>(R.id.card_free_room).setOnClickListener {
-                startActivity(Intent(this, FreeRoomActivity::class.java))
-            }
-            queryView.findViewById<View>(R.id.btn_global_sync).setOnClickListener {
-                triggerBackgroundGlobalSync()
-            }
-        }
-        queryContainer.visibility = View.VISIBLE
-    }
-
-    private fun openQuery(title: String) {
-        val intent = Intent(this, com.njfu.schedule.ui.schedule.GlobalScheduleActivity::class.java)
-        intent.putExtra("title", title)
-        startActivity(intent)
-    }
-
-    private fun triggerBackgroundGlobalSync() {
-        val prefs = com.njfu.schedule.utils.SecurePrefs.get(this)
-        val sid = prefs.getString("student_id", "") ?: ""
-        val pwd = prefs.getString("password", "") ?: ""
-        if (sid.isEmpty() || pwd.isEmpty()) {
-            Toast.makeText(this, "请先在导入课表页保存账号密码", Toast.LENGTH_SHORT).show()
-            return
-        }
-        Toast.makeText(this, "已开始后台同步，进度可在通知栏查看", Toast.LENGTH_SHORT).show()
-        GlobalCacheScheduler.scheduleOneShot(this)
-    }
-
-    private fun syncGlobalCourseCache() {
-        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_sync_progress, null)
-        val tvLog = dialogView.findViewById<TextView>(R.id.tv_log)
-        val progress = dialogView.findViewById<com.google.android.material.progressindicator.LinearProgressIndicator>(R.id.progress)
-
-        val dialog = AlertDialog.Builder(this)
-            .setView(dialogView)
-            .setPositiveButton("后台同步", null)
-            .create()
-        dialog.show()
-
-        fun updateLog(msg: String) {
-            tvLog.text = msg
-        }
-
-        updateLog("正在启动全校课表同步...")
-        GlobalCacheScheduler.scheduleOneShot(this)
-
-        val liveData = WorkManager.getInstance(this)
-            .getWorkInfosForUniqueWorkLiveData(GlobalCacheWorker.WORK_NAME_ONESHOT)
-        val observer = object : Observer<List<WorkInfo>> {
-            override fun onChanged(value: List<WorkInfo>) {
-                val info = value.firstOrNull {
-                    it.state == WorkInfo.State.RUNNING ||
-                        it.state == WorkInfo.State.ENQUEUED ||
-                        it.state == WorkInfo.State.BLOCKED
-                } ?: value.firstOrNull() ?: return
-                when (info.state) {
-                    WorkInfo.State.ENQUEUED,
-                    WorkInfo.State.BLOCKED -> {
-                        progress.isIndeterminate = true
-                        updateLog("等待网络任务启动...")
-                    }
-                    WorkInfo.State.RUNNING -> {
-                        val msg = info.progress.getString(GlobalCacheWorker.KEY_PROGRESS_MSG) ?: "同步中..."
-                        val current = info.progress.getInt(GlobalCacheWorker.KEY_PROGRESS_INDEX, 0)
-                        val total = info.progress.getInt(GlobalCacheWorker.KEY_PROGRESS_TOTAL, 4).coerceAtLeast(1)
-                        progress.isIndeterminate = false
-                        progress.progress = ((current * 100) / total).coerceIn(0, 100)
-                        updateLog("$msg ($current/$total)")
-                    }
-                    WorkInfo.State.SUCCEEDED -> {
-                        progress.isIndeterminate = false
-                        progress.progress = 100
-                        updateLog("同步完成")
-                        Toast.makeText(this@ScheduleActivity, "全校课表同步完成", Toast.LENGTH_SHORT).show()
-                        liveData.removeObserver(this)
-                    }
-                    WorkInfo.State.FAILED -> {
-                        progress.visibility = View.GONE
-                        updateLog("同步失败，请先在导入课表页保存登录信息")
-                        Toast.makeText(this@ScheduleActivity, "全校课表同步失败", Toast.LENGTH_SHORT).show()
-                        liveData.removeObserver(this)
-                    }
-                    WorkInfo.State.CANCELLED -> {
-                        progress.visibility = View.GONE
-                        updateLog("同步已取消")
-                        liveData.removeObserver(this)
-                    }
-                    else -> Unit
-                }
-            }
-        }
-        dialog.setOnDismissListener { liveData.removeObserver(observer) }
-        liveData.observe(this, observer)
     }
 
     private fun loadBackground() {

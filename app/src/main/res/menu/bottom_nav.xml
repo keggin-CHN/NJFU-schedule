@@ -4,8 +4,4 @@
         android:id="@+id/nav_schedule"
         android:icon="@drawable/ic_schedule_nav"
         android:title="课表" />
-    <item
-        android:id="@+id/nav_query"
-        android:icon="@drawable/ic_search_nav"
-        android:title="查询" />
 </menu>

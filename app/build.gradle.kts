@@ -12,7 +12,7 @@ android {
         applicationId = "com.njfu.schedule"
         minSdk = 26
         targetSdk = 34
-        versionCode = 10
+        versionCode = 1
         versionName = "1.0.0"
     }
 
@@ -72,9 +72,6 @@ dependencies {
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
-
-    // WorkManager
-    implementation("androidx.work:work-runtime-ktx:2.9.0")
 
     // ViewPager2
     implementation("androidx.viewpager2:viewpager2:1.0.0")

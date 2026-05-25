@@ -8,21 +8,17 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.njfu.schedule.bean.CourseBaseBean
 import com.njfu.schedule.bean.CourseDetailBean
-import com.njfu.schedule.bean.GlobalCourseEntity
-import com.njfu.schedule.bean.GlobalCourseFts
 import com.njfu.schedule.bean.TableBean
 import com.njfu.schedule.dao.CourseDao
-import com.njfu.schedule.dao.GlobalCourseDao
 
 @Database(
-    entities = [CourseBaseBean::class, CourseDetailBean::class, TableBean::class, GlobalCourseEntity::class, GlobalCourseFts::class],
-    version = 8,
+    entities = [CourseBaseBean::class, CourseDetailBean::class, TableBean::class],
+    version = 9,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun courseDao(): CourseDao
-    abstract fun globalCourseDao(): GlobalCourseDao
 
     companion object {
         @Volatile
@@ -149,6 +145,14 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        /** v8 → v9: 删除全局课表相关表 */
+        private val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("DROP TABLE IF EXISTS `global_courses_fts`")
+                db.execSQL("DROP TABLE IF EXISTS `global_courses`")
+            }
+        }
+
         private fun addColumnIfMissing(
             database: SupportSQLiteDatabase,
             tableName: String,
@@ -174,7 +178,7 @@ abstract class AppDatabase : RoomDatabase() {
                 ).addMigrations(
                     MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4,
                     MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7,
-                    MIGRATION_7_8
+                    MIGRATION_7_8, MIGRATION_8_9
                 ).build()
                 INSTANCE = instance
                 instance
