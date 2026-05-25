@@ -297,7 +297,13 @@ class GlobalScheduleActivity : AppCompatActivity() {
     }
 
     private fun showFilterDialog() {
-        val sortLabels = if (currentType == "jg0101" || currentType == "kc0101" || currentType == "bj0101") arrayOf("按拼音首字母", "按课程数（多→少）", "按学院排序") else arrayOf("按拼音首字母", "按课程数（多→少）")
+        // 班级课表和教室课表不需要拼音排序，教师课表不需要学院排序
+        val sortLabels = when (currentType) {
+            "jg0101" -> arrayOf("按拼音首字母", "按课程数（多→少）")
+            "jx0601" -> arrayOf("按课程数（多→少）")
+            "bj0101" -> arrayOf("按课程数（多→少）", "按学院排序")
+            else -> arrayOf("按拼音首字母", "按课程数（多→少）", "按学院排序")
+        }
         val filterOptions = filterOptionsForType()
 
         val dialogView = layoutInflater.inflate(R.layout.dialog_filter, null)
@@ -335,11 +341,8 @@ class GlobalScheduleActivity : AppCompatActivity() {
             .setTitle("筛选与排序")
             .setView(dialogView)
             .setPositiveButton("确定") { _, _ ->
-                sortMode = when (rgSort.checkedRadioButtonId - SORT_RADIO_ID_BASE) {
-                    1 -> SortMode.COUNT
-                    2 -> SortMode.COLLEGE
-                    else -> SortMode.PINYIN
-                }
+                val checkedIdx = rgSort.checkedRadioButtonId - SORT_RADIO_ID_BASE
+                sortMode = sortModeForIndex(checkedIdx, sortLabels)
                 activeFilters.clear()
                 for (i in 0 until cgFilter.childCount) {
                     val chip = cgFilter.getChildAt(i) as com.google.android.material.chip.Chip
@@ -348,7 +351,7 @@ class GlobalScheduleActivity : AppCompatActivity() {
                 applyListUpdate(binding.etFilter.text?.toString()?.trim().orEmpty())
             }
             .setNeutralButton("重置") { _, _ ->
-                sortMode = SortMode.PINYIN
+                sortMode = defaultSortMode()
                 activeFilters.clear()
                 applyListUpdate(binding.etFilter.text?.toString()?.trim().orEmpty())
             }
@@ -358,8 +361,9 @@ class GlobalScheduleActivity : AppCompatActivity() {
 
     private fun filterTitleForType(): String = when (currentType) {
         "jx0601" -> "校区"
-        "kc0101", "jg0101" -> "校区与学院"
-        "bj0101" -> "校区、年级与学院"
+        "jg0101" -> "学院"
+        "kc0101" -> "校区与学院"
+        "bj0101" -> "年级与学院"
         else -> "筛选"
     }
 
@@ -374,15 +378,33 @@ class GlobalScheduleActivity : AppCompatActivity() {
             .sorted()
         return when (currentType) {
             "jx0601" -> campuses
-            "kc0101", "jg0101" -> campuses + colleges
+            "jg0101" -> colleges          // 教师课表只需要学院筛选
+            "kc0101" -> campuses + colleges
             "bj0101" -> {
                 val years = allEntities.mapNotNull { e ->
                     Regex("^(\\d{2})").find(e.first)?.groupValues?.get(1)
                 }.distinct().sortedDescending().map { "${it}级" }
-                campuses + years + colleges
+                years + colleges           // 班级课表不需要校区筛选
             }
             else -> emptyList()
         }
+    }
+
+    /** 根据排序选项索引返回对应的 SortMode（索引映射因类型不同而异） */
+    private fun sortModeForIndex(idx: Int, labels: Array<String>): SortMode {
+        val label = labels.getOrNull(idx) ?: return defaultSortMode()
+        return when {
+            label.contains("拼音") -> SortMode.PINYIN
+            label.contains("课程数") -> SortMode.COUNT
+            label.contains("学院") -> SortMode.COLLEGE
+            else -> defaultSortMode()
+        }
+    }
+
+    /** 各类型的默认排序模式 */
+    private fun defaultSortMode(): SortMode = when (currentType) {
+        "jx0601", "bj0101" -> SortMode.COUNT
+        else -> SortMode.PINYIN
     }
 
     private fun entityNameOf(row: GlobalCourseEntity): String {

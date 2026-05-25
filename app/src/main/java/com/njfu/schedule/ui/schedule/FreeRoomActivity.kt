@@ -32,6 +32,9 @@ class FreeRoomActivity : AppCompatActivity() {
     /** 当前周次，用于默认选中 */
     private var currentWeek: Int = 1
 
+    /** 查询结果原始分组数据，用于搜索过滤 */
+    private var originalGrouped: Map<String, List<String>> = emptyMap()
+
     private val resultAdapter = FreeRoomAdapter()
 
     companion object {
@@ -162,7 +165,7 @@ class FreeRoomActivity : AppCompatActivity() {
         binding.layoutLoading.visibility = View.VISIBLE
         binding.layoutEmpty.visibility = View.GONE
         binding.rvResults.visibility = View.GONE
-        binding.tvResultSummary.visibility = View.GONE
+        binding.layoutResultHeader.visibility = View.GONE
         binding.tvLoadingText.text = "正在查询空闲教室..."
 
         lifecycleScope.launch {
@@ -223,16 +226,22 @@ class FreeRoomActivity : AppCompatActivity() {
                 if (freeRooms.isEmpty()) {
                     binding.layoutEmpty.visibility = View.VISIBLE
                     binding.tvEmpty.text = "${DAY_LABELS[selectedDay - 1]} ${sectionLabel} ${weekLabel} 没有空闲教室"
+                    binding.layoutResultHeader.visibility = View.GONE
                 } else {
+                    binding.layoutResultHeader.visibility = View.VISIBLE
                     binding.rvResults.visibility = View.VISIBLE
                     binding.rvResults.layoutManager = LinearLayoutManager(this@FreeRoomActivity)
                     binding.rvResults.adapter = resultAdapter
+                    originalGrouped = grouped
                     resultAdapter.setData(grouped)
 
-                    binding.tvResultSummary.visibility = View.VISIBLE
                     val totalOccupied = occupiedRooms.size
                     binding.tvResultSummary.text = "${DAY_LABELS[selectedDay - 1]} ${sectionLabel} ${weekLabel} · " +
                             "共 ${allRooms.size} 间教室，空闲 ${freeRooms.size} 间，占用 ${totalOccupied} 间"
+
+                    // 重置搜索框
+                    binding.etSearch.setText("")
+                    setupSearchFilter()
                 }
 
             } catch (e: Exception) {
@@ -241,6 +250,28 @@ class FreeRoomActivity : AppCompatActivity() {
                 binding.tvEmpty.text = "查询失败: ${e.message ?: "未知错误"}"
             }
         }
+    }
+
+    /**
+     * 设置搜索框的文本监听，实时过滤空闲教室结果。
+     */
+    private fun setupSearchFilter() {
+        binding.etSearch.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                val query = s?.toString()?.trim().orEmpty()
+                if (originalGrouped.isEmpty()) return
+                if (query.isEmpty()) {
+                    resultAdapter.setData(originalGrouped)
+                } else {
+                    val filtered = originalGrouped.mapValues { (_, rooms) ->
+                        rooms.filter { room -> room.contains(query, ignoreCase = true) }
+                    }.filter { it.value.isNotEmpty() }
+                    resultAdapter.setData(filtered)
+                }
+            }
+            override fun afterTextChanged(s: android.text.Editable?) {}
+        })
     }
 
     /**
