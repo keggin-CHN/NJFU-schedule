@@ -661,19 +661,37 @@ class ScheduleActivity : AppCompatActivity() {
 
         view.findViewById<View>(R.id.menu_widget).setOnClickListener {
             dialog.dismiss()
-            AlertDialog.Builder(this)
-                .setTitle("添加桌面小组件")
-                .setMessage("长按手机桌面空白处，选择「小组件」或「Widgets」，找到「南林课程表」即可添加到桌面。\n\n小组件会显示今日课程安排，每30分钟自动刷新。")
-                .setPositiveButton("知道了", null)
-                .show()
+            val widgetView = LayoutInflater.from(this).inflate(R.layout.dialog_confirm_card, null)
+            widgetView.findViewById<TextView>(R.id.tv_title).text = "添加桌面小组件"
+            widgetView.findViewById<TextView>(R.id.tv_message).text = "长按手机桌面空白处，选择「小组件」或「Widgets」，找到「南林课程表」即可添加到桌面。\n\n小组件会显示今日课程安排，每30分钟自动刷新。"
+            val widgetDialog = AlertDialog.Builder(this, com.google.android.material.R.style.ThemeOverlay_Material3_MaterialAlertDialog)
+                .setView(widgetView)
+                .create()
+            widgetDialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+            widgetView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_cancel).visibility = View.GONE
+            widgetView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_confirm).apply {
+                text = "知道了"
+                setOnClickListener { widgetDialog.dismiss() }
+            }
+            widgetDialog.show()
         }
 
         view.findViewById<View>(R.id.menu_delete).setOnClickListener {
             dialog.dismiss()
-            AlertDialog.Builder(this)
-                .setTitle("删除课表")
-                .setMessage("确定要删除当前课表的所有课程吗？此操作不可恢复。")
-                .setPositiveButton("删除") { _, _ ->
+            val deleteView = LayoutInflater.from(this).inflate(R.layout.dialog_confirm_card, null)
+            deleteView.findViewById<TextView>(R.id.tv_title).text = "删除课表"
+            deleteView.findViewById<TextView>(R.id.tv_message).text = "确定要删除当前课表的所有课程吗？此操作不可恢复。"
+            val deleteDialog = AlertDialog.Builder(this, com.google.android.material.R.style.ThemeOverlay_Material3_MaterialAlertDialog)
+                .setView(deleteView)
+                .create()
+            deleteDialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+            deleteView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_cancel).setOnClickListener {
+                deleteDialog.dismiss()
+            }
+            deleteView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_confirm).apply {
+                text = "删除"
+                setOnClickListener {
+                    deleteDialog.dismiss()
                     lifecycleScope.launch {
                         table?.let { t ->
                             withContext(Dispatchers.IO) {
@@ -687,8 +705,8 @@ class ScheduleActivity : AppCompatActivity() {
                         }
                     }
                 }
-                .setNegativeButton("取消", null)
-                .show()
+            }
+            deleteDialog.show()
         }
 
         dialog.show()
@@ -712,7 +730,7 @@ class ScheduleActivity : AppCompatActivity() {
         val recyclerView = dialogView.findViewById<RecyclerView>(R.id.recycler_view)
         recyclerView.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
 
-        val dialog = AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this, com.google.android.material.R.style.ThemeOverlay_Material3_MaterialAlertDialog)
             .setView(dialogView)
             .create()
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
@@ -781,15 +799,19 @@ class ScheduleActivity : AppCompatActivity() {
             return
         }
 
-        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_sync_progress, null)
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_sync_progress_card, null)
         val tvLog = dialogView.findViewById<TextView>(R.id.tv_log)
         val progress = dialogView.findViewById<com.google.android.material.progressindicator.LinearProgressIndicator>(R.id.progress)
+        val btnCloseSync = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_close)
 
-        val dialog = AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this, com.google.android.material.R.style.ThemeOverlay_Material3_MaterialAlertDialog)
             .setView(dialogView)
             .setCancelable(false)
             .create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
         dialog.show()
+
+        btnCloseSync.setOnClickListener { dialog.dismiss() }
 
         fun log(msg: String) {
             runOnUiThread { tvLog.append("$msg\n") }
@@ -814,8 +836,7 @@ class ScheduleActivity : AppCompatActivity() {
                 if (result.courses.isEmpty()) {
                     log("✗ 未获取到课程数据")
                     progress.visibility = View.GONE
-                    dialog.setButton(AlertDialog.BUTTON_POSITIVE, "关闭") { d, _ -> d.dismiss() }
-                    dialog.show()
+                    btnCloseSync.visibility = View.VISIBLE
                     return@launch
                 }
 
@@ -854,8 +875,7 @@ class ScheduleActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 progress.visibility = View.GONE
                 log("✗ 同步失败：${e.message}")
-                dialog.setButton(AlertDialog.BUTTON_POSITIVE, "关闭") { d, _ -> d.dismiss() }
-                dialog.show()
+                btnCloseSync.visibility = View.VISIBLE
             }
         }
     }
@@ -957,54 +977,88 @@ class ScheduleActivity : AppCompatActivity() {
         result: com.njfu.schedule.njfu.NjfuImporter.ImportResult,
         customCourseNames: Set<String>
     ) {
-        val msg = buildString {
-            if (changes.any { it.type == "changed" }) {
-                append("课程变动：\n")
-                changes.filter { it.type == "changed" }.forEach {
-                    append("  ${it.timeDesc}: ${it.oldName} → ${it.newName}\n")
-                }
-                append("\n")
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_sync_result, null)
+        val container = dialogView.findViewById<LinearLayout>(R.id.msg_container)
+        val btnContainer = dialogView.findViewById<LinearLayout>(R.id.btn_container)
+
+        fun addSection(title: String, items: List<String>) {
+            val header = TextView(this).apply {
+                text = title
+                setTextColor(getColor(R.color.text_primary))
+                textSize = 15f
+                setTypeface(null, Typeface.BOLD)
+                if (container.childCount > 0) setPadding(0, dpToPx(12), 0, 0)
             }
-            if (changes.any { it.type == "added" }) {
-                append("新增课程：\n")
-                changes.filter { it.type == "added" }.forEach {
-                    append("  ${it.newName}\n")
+            container.addView(header)
+            items.forEach { item ->
+                val tv = TextView(this).apply {
+                    text = item
+                    setTextColor(getColor(R.color.text_secondary))
+                    textSize = 13f
+                    setPadding(dpToPx(8), dpToPx(4), 0, 0)
                 }
-                append("\n")
-            }
-            if (customCourseNames.isNotEmpty()) {
-                append("保留自定义课程：\n")
-                customCourseNames.forEach { append("  $it\n") }
-                append("\n")
-            }
-            if (conflicts.isNotEmpty()) {
-                append("⚠ 时间冲突：\n")
-                conflicts.forEach {
-                    append("  ${it.timeDesc}: ${it.oldName}(自定义) 与 ${it.newName}(教务) 冲突\n")
-                }
+                container.addView(tv)
             }
         }
 
-        val builder = AlertDialog.Builder(this)
-            .setTitle("同步结果")
-            .setMessage(msg.ifEmpty { "课表已更新" })
+        val changed = changes.filter { it.type == "changed" }
+        if (changed.isNotEmpty()) {
+            addSection("课程变动", changed.map { "${it.timeDesc}: ${it.oldName} → ${it.newName}" })
+        }
+        val added = changes.filter { it.type == "added" }
+        if (added.isNotEmpty()) {
+            addSection("新增课程", added.map { it.newName })
+        }
+        if (customCourseNames.isNotEmpty()) {
+            addSection("保留自定义课程", customCourseNames.toList())
+        }
+        if (conflicts.isNotEmpty()) {
+            addSection("⚠ 时间冲突", conflicts.map { "${it.timeDesc}: ${it.oldName}(自定义) 与 ${it.newName}(教务) 冲突" })
+        }
+        if (container.childCount == 0) {
+            val tv = TextView(this).apply {
+                text = "课表已更新"
+                setTextColor(getColor(R.color.text_secondary))
+                textSize = 14f
+            }
+            container.addView(tv)
+        }
+
+        val dialog = AlertDialog.Builder(this, com.google.android.material.R.style.ThemeOverlay_Material3_MaterialAlertDialog)
+            .setView(dialogView)
+            .create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        fun addButton(text: String, isPrimary: Boolean, onClick: () -> Unit) {
+            val btn = com.google.android.material.button.MaterialButton(this).apply {
+                this.text = text
+                textSize = 13f
+                layoutParams = LinearLayout.LayoutParams(0, dpToPx(40), 1f).apply {
+                    marginStart = dpToPx(if (btnContainer.childCount > 0) 8 else 0)
+                    marginEnd = dpToPx(if (btnContainer.childCount == 0) 8 else 0)
+                }
+                if (!isPrimary) {
+                    setTextColor(getColor(R.color.text_secondary))
+                    setBackgroundColor(Color.TRANSPARENT)
+                    strokeColor = android.content.res.ColorStateList.valueOf(getColor(R.color.chip_stroke))
+                    strokeWidth = dpToPx(1)
+                    cornerRadius = dpToPx(8)
+                }
+                setOnClickListener { onClick() }
+            }
+            btnContainer.addView(btn)
+        }
 
         if (conflicts.isNotEmpty()) {
-            builder.setPositiveButton("更新并覆盖冲突") { _, _ ->
-                doSyncUpdate(result, emptySet())
-            }
-            builder.setNeutralButton("更新但保留自定义") { _, _ ->
-                doSyncUpdate(result, customCourseNames)
-            }
-            builder.setNegativeButton("取消", null)
+            addButton("取消", false) { dialog.dismiss() }
+            addButton("更新并覆盖冲突", true) { dialog.dismiss(); doSyncUpdate(result, emptySet()) }
+            addButton("更新但保留自定义", true) { dialog.dismiss(); doSyncUpdate(result, customCourseNames) }
         } else {
-            builder.setPositiveButton("确认更新") { _, _ ->
-                doSyncUpdate(result, customCourseNames)
-            }
-            builder.setNegativeButton("取消", null)
+            addButton("取消", false) { dialog.dismiss() }
+            addButton("确认更新", true) { dialog.dismiss(); doSyncUpdate(result, customCourseNames) }
         }
 
-        builder.show()
+        dialog.show()
     }
 
     private fun doSyncUpdate(result: com.njfu.schedule.njfu.NjfuImporter.ImportResult, keepNames: Set<String>) {

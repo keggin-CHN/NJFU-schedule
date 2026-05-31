@@ -6,14 +6,17 @@ import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
-import android.widget.EditText
+import android.view.LayoutInflater
+import android.view.View
 import android.widget.SeekBar
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.lifecycle.lifecycleScope
+import com.njfu.schedule.R
 import com.njfu.schedule.databinding.ActivityBackgroundSettingsBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -124,21 +127,31 @@ class BackgroundSettingsActivity : AppCompatActivity() {
     }
 
     private fun showUrlDialog() {
-        val editText = EditText(this).apply {
-            hint = "输入图片URL"
-            setPadding(48, 32, 48, 32)
-        }
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_input_card, null)
+        dialogView.findViewById<TextView>(R.id.tv_title).text = "网络图片"
+        dialogView.findViewById<TextView>(R.id.tv_message).text = "输入图片的完整URL地址"
+        val etInput = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.et_input)
+        etInput.hint = "https://example.com/image.jpg"
 
-        AlertDialog.Builder(this)
-            .setTitle("网络图片")
-            .setMessage("输入图片的完整URL地址")
-            .setView(editText)
-            .setPositiveButton("加载") { _, _ ->
-                val url = editText.text.toString().trim()
-                if (url.isNotEmpty()) loadImageFromUrl(url)
+        val dialog = AlertDialog.Builder(this, com.google.android.material.R.style.ThemeOverlay_Material3_MaterialAlertDialog)
+            .setView(dialogView)
+            .create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_cancel).setOnClickListener {
+            dialog.dismiss()
+        }
+        dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_confirm).apply {
+            text = "加载"
+            setOnClickListener {
+                val url = etInput.text.toString().trim()
+                if (url.isNotEmpty()) {
+                    dialog.dismiss()
+                    loadImageFromUrl(url)
+                }
             }
-            .setNegativeButton("取消", null)
-            .show()
+        }
+        dialog.show()
     }
 
     private fun loadImageFromUrl(url: String) {

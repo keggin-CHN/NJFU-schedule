@@ -2,6 +2,7 @@ package com.njfu.schedule.ui.import_
 
 import android.graphics.Color
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
@@ -83,12 +84,27 @@ class AddCourseActivity : AppCompatActivity() {
             if (prefillDay > 0 && prefillStartNode > 0) {
                 applyPrefill(prefillDay, prefillStartNode)
             }
+            if (timeSlots.isEmpty()) {
+                timeSlots.add(TimeSlot(1, 1, 2, "1-20", "", ""))
+            }
+            showSlotSelector()
+            loadSlot(0)
         }
 
         setupPickers()
 
         binding.btnSave.setOnClickListener { saveCourse() }
         binding.btnDelete.setOnClickListener { deleteCourse() }
+        binding.btnAddSlot.setOnClickListener {
+            saveCurrentSlot()
+            val lastSlot = timeSlots.lastOrNull()
+            val newDay = lastSlot?.day ?: 1
+            val newStart = lastSlot?.startNode ?: 1
+            val newEnd = lastSlot?.endNode ?: 2
+            timeSlots.add(TimeSlot(newDay, newStart, newEnd, "1-20", "", ""))
+            showSlotSelector()
+            loadSlot(timeSlots.size - 1)
+        }
     }
 
     private fun setupPickers() {
@@ -333,7 +349,14 @@ class AddCourseActivity : AppCompatActivity() {
 
         slot.startNode = inferredStart
         slot.endNode = inferredEnd
-        slot.weeks = binding.etWeeks.text?.toString()?.trim() ?: slot.weeks
+        val useDateRange = binding.chipGroupRangeMode.checkedChipId == R.id.chip_range_date
+        slot.weeks = if (useDateRange) {
+            val datesStr = binding.etDates.text?.toString()?.trim() ?: ""
+            val weeks = parseWeeksFromDateRange(datesStr)
+            weeks.joinToString(",")
+        } else {
+            binding.etWeeks.text?.toString()?.trim() ?: slot.weeks
+        }
         slot.customStartTime = customStart
         slot.customEndTime = customEnd
 
@@ -353,98 +376,61 @@ class AddCourseActivity : AppCompatActivity() {
             return
         }
 
-        if (editCourseId >= 0 && timeSlots.isNotEmpty()) {
-            lifecycleScope.launch {
-                withContext(Dispatchers.IO) {
-                    val dao = App.instance.database.courseDao()
+        if (timeSlots.isEmpty()) {
+            Toast.makeText(this, "请至少添加一个时间段", Toast.LENGTH_SHORT).show()
+            return
+        }
 
-                    dao.deleteDetailsByCourseId(editCourseId, tableId)
-
-                    dao.insertCourseBase(CourseBaseBean(editCourseId, name,
-                        selectedColor.ifEmpty { originalColor.ifEmpty { courseColors[editCourseId % courseColors.size] } }, tableId))
-
-                    for (slot in timeSlots) {
-                        val weeks = parseWeeks(slot.weeks)
-                        val step = slot.endNode - slot.startNode + 1
-                        val ranges = toWeekRanges(weeks)
-                        for ((startWeek, endWeek) in ranges) {
-                            dao.insertCourseDetail(CourseDetailBean(
-                                editCourseId, slot.day, slot.room, slot.teacher,
-                                slot.startNode, step, startWeek, endWeek, 0, tableId,
-                                slot.customStartTime.ifEmpty { null },
-                                slot.customEndTime.ifEmpty { null }
-                            ))
-                        }
-                    }
+        for ((idx, slot) in timeSlots.withIndex()) {
+            if (slot.customStartTime.isEmpty() && slot.customEndTime.isEmpty()) {
+                if (slot.startNode < 1 || slot.endNode < slot.startNode) {
+                    Toast.makeText(this, "第${idx + 1}个时间段：请选择有效节次", Toast.LENGTH_SHORT).show()
+                    return
                 }
-                Toast.makeText(this@AddCourseActivity, "保存成功", Toast.LENGTH_SHORT).show()
-                refreshWidgets()
-                setResult(RESULT_OK)
-                finish()
             }
-            return
+            if (slot.weeks.isEmpty()) {
+                Toast.makeText(this, "第${idx + 1}个时间段：请输入周次范围", Toast.LENGTH_SHORT).show()
+                return
+            }
         }
 
-        val teacher = binding.etTeacher.text?.toString()?.trim() ?: ""
-        val room = binding.etRoom.text?.toString()?.trim() ?: ""
-        val startNode = binding.etStartNode.text?.toString()?.toIntOrNull() ?: 0
-        val endNode = binding.etEndNode.text?.toString()?.toIntOrNull() ?: 0
-        val weeksStr = binding.etWeeks.text?.toString()?.trim() ?: ""
-        val datesStr = binding.etDates.text?.toString()?.trim() ?: ""
-        val useCustomTime = binding.chipGroupTimeMode.checkedChipId == R.id.chip_time_custom
-        val useDateRange = binding.chipGroupRangeMode.checkedChipId == R.id.chip_range_date
-        val customStart = if (useCustomTime) binding.etCustomStartTime.text?.toString()?.trim() ?: "" else ""
-        val customEnd = if (useCustomTime) binding.etCustomEndTime.text?.toString()?.trim() ?: "" else ""
-
-        if (!useCustomTime && (startNode < 1 || endNode < startNode)) {
-            Toast.makeText(this, "请选择有效节次", Toast.LENGTH_SHORT).show()
-            return
-        }
-        if (useCustomTime && (customStart.isEmpty() || customEnd.isEmpty())) {
-            Toast.makeText(this, "请输入完整时间", Toast.LENGTH_SHORT).show()
-            return
-        }
-        if (!useDateRange && weeksStr.isEmpty()) {
-            Toast.makeText(this, "请输入周次范围", Toast.LENGTH_SHORT).show()
-            return
-        }
-        if (useDateRange && datesStr.isEmpty()) {
-            Toast.makeText(this, "请输入日期范围", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val checkedId = binding.chipGroupDay.checkedChipId
-        val chip = binding.chipGroupDay.findViewById<Chip>(checkedId)
-        val day = (chip?.tag as? Int) ?: 1
-        val weeks = if (useDateRange) parseWeeksFromDateRange(datesStr) else parseWeeks(weeksStr)
-        if (weeks.isEmpty()) {
-            Toast.makeText(this, "周次格式错误", Toast.LENGTH_SHORT).show()
-            return
-        }
-
-        val inferredStartNode = if (customStart.isNotEmpty()) inferNodeByTime(customStart) else startNode
-        val inferredEndNode = if (customEnd.isNotEmpty()) inferNodeByTime(customEnd).coerceAtLeast(inferredStartNode) else endNode
-        val finalStartNode = if (useCustomTime) inferredStartNode else startNode
-        val finalEndNode = if (useCustomTime) inferredEndNode else endNode
+        val isEdit = editCourseId >= 0 && tableId >= 0
 
         lifecycleScope.launch {
             withContext(Dispatchers.IO) {
                 val dao = App.instance.database.courseDao()
-                var table = dao.getFirstTable()
-                if (table == null) {
-                    val id = dao.insertTable(TableBean(tableName = "我的课表"))
-                    table = dao.getTableById(id.toInt())!!
+                var tid = tableId
+
+                if (isEdit) {
+                    dao.deleteDetailsByCourseId(editCourseId, tid)
+                    dao.insertCourseBase(CourseBaseBean(editCourseId, name,
+                        selectedColor.ifEmpty { originalColor.ifEmpty { courseColors[editCourseId % courseColors.size] } }, tid))
+                } else {
+                    var table = dao.getFirstTable()
+                    if (table == null) {
+                        val id = dao.insertTable(TableBean(tableName = "我的课表"))
+                        table = dao.getTableById(id.toInt())!!
+                    }
+                    tid = table.id
+                    val newId = (dao.getMaxCourseId(tid) ?: -1) + 1
+                    val color = selectedColor.ifEmpty { courseColors[newId % courseColors.size] }
+                    dao.insertCourseBase(CourseBaseBean(newId, name, color, tid))
+                    editCourseId = newId
+                    tableId = tid
                 }
-                val tid = table.id
-                val newId = (dao.getMaxCourseId(tid) ?: -1) + 1
-                val color = selectedColor.ifEmpty { courseColors[newId % courseColors.size] }
-                dao.insertCourseBase(CourseBaseBean(newId, name, color, tid))
-                val step = finalEndNode - finalStartNode + 1
-                val ranges = toWeekRanges(weeks)
-                val cStart = customStart.ifEmpty { null }
-                val cEnd = customEnd.ifEmpty { null }
-                for ((startWeek, endWeek) in ranges) {
-                    dao.insertCourseDetail(CourseDetailBean(newId, day, room, teacher, finalStartNode, step, startWeek, endWeek, 0, tid, cStart, cEnd))
+
+                for (slot in timeSlots) {
+                    val weeks = parseWeeks(slot.weeks)
+                    val step = slot.endNode - slot.startNode + 1
+                    val ranges = toWeekRanges(weeks)
+                    val cStart = slot.customStartTime.ifEmpty { null }
+                    val cEnd = slot.customEndTime.ifEmpty { null }
+                    for ((startWeek, endWeek) in ranges) {
+                        dao.insertCourseDetail(CourseDetailBean(
+                            editCourseId, slot.day, slot.room, slot.teacher,
+                            slot.startNode, step, startWeek, endWeek, 0, tid, cStart, cEnd
+                        ))
+                    }
                 }
             }
             Toast.makeText(this@AddCourseActivity, "保存成功", Toast.LENGTH_SHORT).show()
@@ -455,10 +441,20 @@ class AddCourseActivity : AppCompatActivity() {
     }
 
     private fun deleteCourse() {
-        AlertDialog.Builder(this)
-            .setTitle("确认删除")
-            .setMessage("确定要删除这门课程吗？")
-            .setPositiveButton("删除") { _, _ ->
+        val deleteView = LayoutInflater.from(this).inflate(R.layout.dialog_confirm_card, null)
+        deleteView.findViewById<TextView>(R.id.tv_title).text = "确认删除"
+        deleteView.findViewById<TextView>(R.id.tv_message).text = "确定要删除这门课程吗？"
+        val dialog = AlertDialog.Builder(this, com.google.android.material.R.style.ThemeOverlay_Material3_MaterialAlertDialog)
+            .setView(deleteView)
+            .create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        deleteView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_cancel).setOnClickListener {
+            dialog.dismiss()
+        }
+        deleteView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_confirm).apply {
+            text = "删除"
+            setOnClickListener {
+                dialog.dismiss()
                 lifecycleScope.launch {
                     withContext(Dispatchers.IO) {
                         val dao = App.instance.database.courseDao()
@@ -471,8 +467,8 @@ class AddCourseActivity : AppCompatActivity() {
                     finish()
                 }
             }
-            .setNegativeButton("取消", null)
-            .show()
+        }
+        dialog.show()
     }
 
     private fun refreshWidgets() {

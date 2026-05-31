@@ -87,7 +87,7 @@ class TodayCourseWidget : AppWidgetProvider() {
         private suspend fun updateWidget(context: Context, manager: AppWidgetManager, widgetId: Int) {
             try {
                 val views = RemoteViews(context.packageName, R.layout.widget_today_courses)
-                val courses = WidgetDataHelper.loadTodayCourses(context)
+                val courses = WidgetDataHelper.loadUpcomingCourses(context)
 
                 views.setTextViewText(R.id.tv_widget_date, WidgetDataHelper.todayText())
 
@@ -95,6 +95,10 @@ class TodayCourseWidget : AppWidgetProvider() {
                 bindCourse(views, 1, courses.getOrNull(1))
                 bindCourse(views, 2, courses.getOrNull(2))
                 bindCourse(views, 3, courses.getOrNull(3))
+                bindCourse(views, 4, courses.getOrNull(4))
+                bindCourse(views, 5, courses.getOrNull(5))
+                bindCourse(views, 6, courses.getOrNull(6))
+                bindCourse(views, 7, courses.getOrNull(7))
 
                 views.setViewVisibility(
                     R.id.tv_widget_empty,
@@ -128,19 +132,24 @@ class TodayCourseWidget : AppWidgetProvider() {
 
         private fun bindCourse(views: RemoteViews, index: Int, course: WidgetCourse?) {
             val containerIds = intArrayOf(
-                R.id.widget_course_1, R.id.widget_course_2, R.id.widget_course_3, R.id.widget_course_4
+                R.id.widget_course_1, R.id.widget_course_2, R.id.widget_course_3, R.id.widget_course_4,
+                R.id.widget_course_5, R.id.widget_course_6, R.id.widget_course_7, R.id.widget_course_8
             )
             val colorIds = intArrayOf(
-                R.id.widget_course_color_1, R.id.widget_course_color_2, R.id.widget_course_color_3, R.id.widget_course_color_4
+                R.id.widget_course_color_1, R.id.widget_course_color_2, R.id.widget_course_color_3, R.id.widget_course_color_4,
+                R.id.widget_course_color_5, R.id.widget_course_color_6, R.id.widget_course_color_7, R.id.widget_course_color_8
             )
             val timeIds = intArrayOf(
-                R.id.widget_course_time_1, R.id.widget_course_time_2, R.id.widget_course_time_3, R.id.widget_course_time_4
+                R.id.widget_course_time_1, R.id.widget_course_time_2, R.id.widget_course_time_3, R.id.widget_course_time_4,
+                R.id.widget_course_time_5, R.id.widget_course_time_6, R.id.widget_course_time_7, R.id.widget_course_time_8
             )
             val nameIds = intArrayOf(
-                R.id.widget_course_name_1, R.id.widget_course_name_2, R.id.widget_course_name_3, R.id.widget_course_name_4
+                R.id.widget_course_name_1, R.id.widget_course_name_2, R.id.widget_course_name_3, R.id.widget_course_name_4,
+                R.id.widget_course_name_5, R.id.widget_course_name_6, R.id.widget_course_name_7, R.id.widget_course_name_8
             )
             val infoIds = intArrayOf(
-                R.id.widget_course_info_1, R.id.widget_course_info_2, R.id.widget_course_info_3, R.id.widget_course_info_4
+                R.id.widget_course_info_1, R.id.widget_course_info_2, R.id.widget_course_info_3, R.id.widget_course_info_4,
+                R.id.widget_course_info_5, R.id.widget_course_info_6, R.id.widget_course_info_7, R.id.widget_course_info_8
             )
 
             if (course == null) {
@@ -155,7 +164,7 @@ class TodayCourseWidget : AppWidgetProvider() {
                 val info = buildString {
                     if (course.room.isNotEmpty()) append(course.room)
                     if (course.teacher.isNotEmpty()) {
-                        if (isNotEmpty()) append(" | ")
+                        if (isNotEmpty()) append("   ")
                         append(course.teacher)
                     }
                 }

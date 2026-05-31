@@ -74,7 +74,7 @@
                 android:resource="@xml/widget_today_info" />
         </receiver>
 
-        <!-- 今日课程小组件 (2x2) — 使用 addView 动态布局 -->
+        <!-- 今日课程小组件 (2x2) — 使用 ListView 可滑动布局 -->
         <receiver
             android:name=".widget.NextCourseWidget"
             android:exported="true"
@@ -92,6 +92,11 @@
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_next_course_info" />
         </receiver>
+
+        <service
+            android:name=".widget.CourseListService"
+            android:permission="android.permission.BIND_REMOTEVIEWS"
+            android:exported="false" />
 
         <receiver
             android:name=".widget.WidgetRefreshReceiver"

@@ -87,18 +87,14 @@ class NextCourseWidget : AppWidgetProvider() {
         private suspend fun updateWidget(context: Context, manager: AppWidgetManager, widgetId: Int) {
             try {
                 val views = RemoteViews(context.packageName, R.layout.widget_next_course)
-                val courses = WidgetDataHelper.loadUpcomingCourses(context)
 
                 views.setTextViewText(R.id.tv_widget2_title, WidgetDataHelper.todayText())
 
-                bindCourse(views, 0, courses.getOrNull(0))
-                bindCourse(views, 1, courses.getOrNull(1))
-                bindCourse(views, 2, courses.getOrNull(2))
+                val intent = Intent(context, CourseListService::class.java)
+                views.setRemoteAdapter(R.id.lv_courses, intent)
 
-                views.setViewVisibility(
-                    R.id.tv_widget2_empty,
-                    if (courses.isEmpty()) View.VISIBLE else View.GONE
-                )
+                views.setViewVisibility(R.id.tv_widget2_empty, View.GONE)
+                views.setViewVisibility(R.id.lv_courses, View.VISIBLE)
 
                 try {
                     val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
@@ -114,73 +110,16 @@ class NextCourseWidget : AppWidgetProvider() {
                 } catch (_: Exception) {}
 
                 manager.updateAppWidget(widgetId, views)
+                manager.notifyAppWidgetViewDataChanged(widgetId, R.id.lv_courses)
             } catch (t: Throwable) {
                 try {
                     val views = RemoteViews(context.packageName, R.layout.widget_next_course)
-                    views.setTextViewText(R.id.tv_widget2_title, "加载出错: ${t.javaClass.simpleName} ${t.message}")
+                    views.setTextViewText(R.id.tv_widget2_title, "加载出错")
                     views.setViewVisibility(R.id.tv_widget2_empty, View.GONE)
                     manager.updateAppWidget(widgetId, views)
-                } catch (e2: Throwable) {
-                    // Ignore
-                }
+                } catch (_: Throwable) {}
             }
         }
-
-        private fun bindCourse(views: RemoteViews, index: Int, course: WidgetCourse?) {
-            val containerIds = intArrayOf(
-                R.id.widget2_course_1, R.id.widget2_course_2, R.id.widget2_course_3
-            )
-            val colorIds = intArrayOf(
-                R.id.widget2_course_color_1, R.id.widget2_course_color_2, R.id.widget2_course_color_3
-            )
-            val timeIds = intArrayOf(
-                R.id.widget2_course_time_1, R.id.widget2_course_time_2, R.id.widget2_course_time_3
-            )
-            val nameIds = intArrayOf(
-                R.id.widget2_course_name_1, R.id.widget2_course_name_2, R.id.widget2_course_name_3
-            )
-            val infoIds = intArrayOf(
-                R.id.widget2_course_info_1, R.id.widget2_course_info_2, R.id.widget2_course_info_3
-            )
-
-            if (course == null) {
-                views.setViewVisibility(containerIds[index], View.GONE)
-                return
-            }
-            try {
-                views.setViewVisibility(containerIds[index], View.VISIBLE)
-                val timeText = compactTime(course.time)
-                views.setViewVisibility(timeIds[index], View.GONE)
-                views.setTextViewText(nameIds[index], course.name.ifBlank { "未命名课程" })
-
-                val info = buildString {
-                    append(timeText)
-                    if (course.room.isNotEmpty()) {
-                        append(" | ")
-                        append(course.room)
-                    }
-                    if (course.teacher.isNotEmpty()) {
-                        append(" | ")
-                        append(course.teacher)
-                    }
-                }
-                views.setTextViewText(infoIds[index], info)
-                views.setViewVisibility(infoIds[index], View.VISIBLE)
-
-                views.setInt(
-                    colorIds[index],
-                    "setBackgroundColor",
-                    WidgetDataHelper.parseColor(course.color, "#7986CB")
-                )
-            } catch (_: Exception) {}
-        }
-
-        private fun compactTime(time: String): String {
-            return time
-                .replace(" ", "")
-                .replace("~", "-")
-        }
-
 
         private fun schedulePeriodicRefresh(context: Context) {
             val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager ?: return
