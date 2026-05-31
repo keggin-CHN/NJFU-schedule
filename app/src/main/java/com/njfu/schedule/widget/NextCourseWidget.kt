@@ -87,14 +87,17 @@ class NextCourseWidget : AppWidgetProvider() {
         private suspend fun updateWidget(context: Context, manager: AppWidgetManager, widgetId: Int) {
             try {
                 val views = RemoteViews(context.packageName, R.layout.widget_next_course)
+                val courses = WidgetDataHelper.loadUpcomingCourses(context)
 
                 views.setTextViewText(R.id.tv_widget2_title, WidgetDataHelper.todayText())
 
-                val intent = Intent(context, CourseListService::class.java)
-                views.setRemoteAdapter(R.id.lv_courses, intent)
+                bindCourse(views, 0, courses.getOrNull(0))
+                bindCourse(views, 1, courses.getOrNull(1))
 
-                views.setViewVisibility(R.id.tv_widget2_empty, View.GONE)
-                views.setViewVisibility(R.id.lv_courses, View.VISIBLE)
+                views.setViewVisibility(
+                    R.id.tv_widget2_empty,
+                    if (courses.isEmpty()) View.VISIBLE else View.GONE
+                )
 
                 try {
                     val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)
@@ -106,11 +109,12 @@ class NextCourseWidget : AppWidgetProvider() {
                         views.setOnClickPendingIntent(R.id.widget2_root, pi)
                         views.setOnClickPendingIntent(R.id.tv_widget2_badge, pi)
                         views.setOnClickPendingIntent(R.id.tv_widget2_title, pi)
+                        views.setOnClickPendingIntent(R.id.widget2_course_1, pi)
+                        views.setOnClickPendingIntent(R.id.widget2_course_2, pi)
                     }
                 } catch (_: Exception) {}
 
                 manager.updateAppWidget(widgetId, views)
-                manager.notifyAppWidgetViewDataChanged(widgetId, R.id.lv_courses)
             } catch (t: Throwable) {
                 try {
                     val views = RemoteViews(context.packageName, R.layout.widget_next_course)
@@ -119,6 +123,34 @@ class NextCourseWidget : AppWidgetProvider() {
                     manager.updateAppWidget(widgetId, views)
                 } catch (_: Throwable) {}
             }
+        }
+
+        private fun bindCourse(views: RemoteViews, index: Int, course: WidgetCourse?) {
+            val containerIds = intArrayOf(R.id.widget2_course_1, R.id.widget2_course_2)
+            val colorIds = intArrayOf(R.id.widget2_course_color_1, R.id.widget2_course_color_2)
+            val nameIds = intArrayOf(R.id.widget2_course_name_1, R.id.widget2_course_name_2)
+            val infoIds = intArrayOf(R.id.widget2_course_info_1, R.id.widget2_course_info_2)
+
+            if (course == null) {
+                views.setViewVisibility(containerIds[index], View.GONE)
+                return
+            }
+            try {
+                views.setViewVisibility(containerIds[index], View.VISIBLE)
+                views.setTextViewText(nameIds[index], course.name.ifBlank { "未命名课程" })
+
+                val info = buildString {
+                    append(course.time)
+                    if (course.room.isNotEmpty()) append("   ").append(course.room)
+                    if (course.teacher.isNotEmpty()) append("   ").append(course.teacher)
+                }
+                views.setTextViewText(infoIds[index], info)
+
+                views.setInt(
+                    colorIds[index], "setBackgroundColor",
+                    WidgetDataHelper.parseColor(course.color, "#7986CB")
+                )
+            } catch (_: Exception) {}
         }
 
         private fun schedulePeriodicRefresh(context: Context) {
