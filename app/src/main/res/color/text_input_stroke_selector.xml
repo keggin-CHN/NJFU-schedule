@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:color="?attr/colorPrimary" android:state_focused="true" />
+    <item android:color="@color/text_input_stroke" android:state_hovered="true" />
+    <item android:color="@color/text_input_stroke" android:alpha="0.38" android:state_enabled="false"/>
+    <!-- Default unfocused state -->
+    <item android:color="@color/text_input_stroke" />
+</selector>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primary">#2C2C2C</color>
+    <color name="primary_dark">#1A1A1A</color>
+    <color name="primary_variant">#444444</color>
+    <color name="on_primary">#FFFFFF</color>
+    <color name="secondary">#5B8DEF</color>
+    <color name="background">#F7F8FA</color>
+    <color name="surface">#FFFFFF</color>
+
+    <color name="header_bg">#FFFFFF</color>
+    <color name="today_accent">#5B8DEF</color>
+    <color name="divider">#D9DEE7</color>
+    <color name="text_primary">#15171C</color>
+    <color name="text_secondary">#5F6875</color>
+    <color name="text_hint">#6F7784</color>
+    <color name="text_error">#C62828</color>
+    <color name="field_stroke">#7F8794</color>
+    <color name="surface_variant">#E8ECF3</color>
+    <color name="surface_container">#FFFFFF</color>
+    <color name="chip_bg">#FFFFFF</color>
+    <color name="chip_stroke">#AAB2C0</color>
+    <color name="chip_text">#1D222A</color>
+    <color name="text_input_stroke">#7F8794</color>
+</resources>
