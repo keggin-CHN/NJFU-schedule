@@ -92,7 +92,11 @@ class ScheduleActivity : AppCompatActivity() {
 
         binding.viewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
             override fun onPageSelected(position: Int) {
-                updateWeekHeader(position + 1)
+                binding.root.post {
+                    if (!isFinishing && !isDestroyed) {
+                        updateWeekHeader(position + 1)
+                    }
+                }
             }
         })
 
