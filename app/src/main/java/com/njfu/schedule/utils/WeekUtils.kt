@@ -76,7 +76,8 @@ object WeekUtils {
         cal.set(Calendar.MILLISECOND, 0)
         val today = cal.timeInMillis
 
-        cal.time = sdf.parse(startDate) ?: return 0
+        val monday = snapToMonday(startDate)
+        cal.time = sdf.parse(monday) ?: return 0
         cal.set(Calendar.HOUR_OF_DAY, 0)
         cal.set(Calendar.MINUTE, 0)
         cal.set(Calendar.SECOND, 0)
@@ -95,7 +96,8 @@ object WeekUtils {
     fun getWeekDates(targetWeek: Int, startDate: String): List<String> {
         return try {
             val cal = Calendar.getInstance()
-            cal.time = sdf.parse(startDate) ?: return List(7) { "" }
+            val monday = snapToMonday(startDate)
+            cal.time = sdf.parse(monday) ?: return List(7) { "" }
             cal.set(Calendar.HOUR_OF_DAY, 0)
             cal.set(Calendar.MINUTE, 0)
             cal.set(Calendar.SECOND, 0)
