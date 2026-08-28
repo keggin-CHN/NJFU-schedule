@@ -136,7 +136,12 @@ class ScheduleActivity : AppCompatActivity() {
     }
 
     private fun updateWeekHeader(displayWeek: Int) {
-        val isCurrentWeek = displayWeek == currentWeek
+        val startDate = table?.startDate ?: "2026-08-31"
+        val maxW = table?.maxWeek ?: 20
+        val isStarted = WeekUtils.isSemesterStarted(startDate)
+        val isEnded = WeekUtils.isSemesterEnded(startDate, maxW)
+        val isCurrentWeek = isStarted && !isEnded && displayWeek == currentWeek
+
         binding.tvWeek.text = "第${displayWeek}周"
 
         val tag = findViewById<TextView>(R.id.tv_week_tag)
@@ -147,7 +152,7 @@ class ScheduleActivity : AppCompatActivity() {
             tag.setBackgroundResource(R.drawable.bg_tag)
         } else {
             tag.visibility = View.VISIBLE
-            tag.text = "非本周"
+            tag.text = if (!isStarted) "未开学" else if (isEnded) "已结课" else "非本周"
             tag.setTextColor(resources.getColor(R.color.text_secondary, theme))
             tag.setBackgroundResource(R.drawable.bg_tag_gray)
         }
@@ -160,7 +165,7 @@ class ScheduleActivity : AppCompatActivity() {
         val headerRow = binding.headerRow
         while (headerRow.childCount > 1) headerRow.removeViewAt(1)
 
-        val startDate = table?.startDate ?: "2026-02-24"
+        val startDate = table?.startDate ?: "2026-08-31"
         val dates = WeekUtils.getWeekDates(targetWeek, startDate)
         val dayLabels = arrayOf("一", "二", "三", "四", "五", "六", "日")
 
@@ -168,8 +173,9 @@ class ScheduleActivity : AppCompatActivity() {
         val showSun = table?.showSun ?: true
         val maxDay = if (showSun) 7 else if (showSat) 6 else 5
 
+        val isSemesterActive = WeekUtils.isSemesterActive(startDate, maxWeek)
         for (i in 0 until maxDay) {
-            val isToday = (targetWeek == currentWeek && i + 1 == todayOfWeek)
+            val isToday = (isSemesterActive && targetWeek == currentWeek && i + 1 == todayOfWeek)
             val tv = TextView(this).apply {
                 layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.MATCH_PARENT, 1f)
                 gravity = Gravity.CENTER
@@ -312,10 +318,11 @@ class ScheduleActivity : AppCompatActivity() {
         val showSun = table?.showSun ?: true
         val maxDay = if (showSun) 7 else if (showSat) 6 else 5
 
+        val isSemesterActive = WeekUtils.isSemesterActive(table?.startDate ?: "", maxWeek)
         for (day in 1..maxDay) {
             val dayCourses = weekDetails.filter { it.day == day }.sortedBy { it.startNode }
             val otherDayCourses = otherWeekDetails.filter { it.day == day }.sortedBy { it.startNode }
-            val isToday = (week == currentWeek && day == todayOfWeek)
+            val isToday = (isSemesterActive && week == currentWeek && day == todayOfWeek)
 
             val col = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL

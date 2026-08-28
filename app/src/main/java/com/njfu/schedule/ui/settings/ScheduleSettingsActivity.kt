@@ -37,8 +37,12 @@ class ScheduleSettingsActivity : AppCompatActivity() {
 
     private fun fillData(t: TableBean) {
         binding.etTableName.setText(t.tableName)
-        binding.tvStartDate.text = "${t.startDate}  星期一"
-        binding.tvCurrentWeek.text = "第 ${WeekUtils.getCurrentWeek(t.startDate)} 周"
+        val dow = WeekUtils.getDayOfWeekName(t.startDate)
+        binding.tvStartDate.text = "${t.startDate}  $dow"
+        val statusText = if (!WeekUtils.isSemesterStarted(t.startDate)) "未开学"
+            else if (WeekUtils.isSemesterEnded(t.startDate, t.maxWeek)) "已结课"
+            else "第 ${WeekUtils.getCurrentWeek(t.startDate)} 周"
+        binding.tvCurrentWeek.text = statusText
         binding.etNodes.setText(t.nodes.toString())
         binding.etMaxWeek.setText(t.maxWeek.toString())
         binding.switchSat.isChecked = t.showSat
@@ -48,10 +52,19 @@ class ScheduleSettingsActivity : AppCompatActivity() {
     private fun showDatePicker() {
         val cal = Calendar.getInstance()
         DatePickerDialog(this, { _, year, month, day ->
-            val date = String.format("%04d-%02d-%02d", year, month + 1, day)
+            var date = String.format("%04d-%02d-%02d", year, month + 1, day)
+            val monday = WeekUtils.snapToMonday(date)
+            if (monday != date) {
+                Toast.makeText(this, "开学基准日已自动校准为该周周一 ($monday)", Toast.LENGTH_SHORT).show()
+                date = monday
+            }
             binding.tvStartDate.text = "$date  星期一"
             table?.startDate = date
-            binding.tvCurrentWeek.text = "第 ${WeekUtils.getCurrentWeek(date)} 周"
+            val maxW = table?.maxWeek ?: 20
+            val statusText = if (!WeekUtils.isSemesterStarted(date)) "未开学"
+                else if (WeekUtils.isSemesterEnded(date, maxW)) "已结课"
+                else "第 ${WeekUtils.getCurrentWeek(date)} 周"
+            binding.tvCurrentWeek.text = statusText
         }, cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH)).show()
     }
 

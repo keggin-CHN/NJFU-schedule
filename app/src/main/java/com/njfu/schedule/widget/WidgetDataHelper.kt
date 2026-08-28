@@ -59,6 +59,9 @@ object WidgetDataHelper {
                 val db = AppDatabase.getDatabase(context)
                 val dao = db.courseDao()
                 val table = dao.getFirstTable() ?: return@withContext emptyList()
+                if (!WeekUtils.isSemesterActive(table.startDate, table.maxWeek)) {
+                    return@withContext emptyList()
+                }
                 val currentWeek = WeekUtils.getCurrentWeek(table.startDate)
 
                 // 判断缓存是否有效：同一天、同一周次、同一张课表
