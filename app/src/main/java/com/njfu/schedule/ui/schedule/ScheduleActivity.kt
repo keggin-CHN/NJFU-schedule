@@ -409,9 +409,9 @@ class ScheduleActivity : AppCompatActivity() {
         isOtherWeek: Boolean,
         overlapCount: Int = 1
     ): View {
-        val name = nameMap[course.id] ?: ""
-        val room = course.room ?: ""
-        val teacher = course.teacher ?: ""
+        val name = nameMap[course.id].orEmpty().trim()
+        val room = course.room.orEmpty().trim()
+        val teacher = course.teacher.orEmpty().trim()
         val bgColor = colorMap[course.id] ?: courseColors[course.id % courseColors.size]
 
         val color = try { Color.parseColor(bgColor) } catch (_: Exception) { Color.parseColor("#7986CB") }
@@ -467,26 +467,53 @@ class ScheduleActivity : AppCompatActivity() {
             else -> 9.6f
         }
 
-        // Main text: course name, room, teacher
+        // Keep the teacher outside the flexible text area. Long course names or room names
+        // may consume every available line, but the teacher should still remain visible.
         val mainText = buildString {
             append(name)
             if (room.isNotEmpty()) append("\n").append(room)
-            if (teacher.isNotEmpty() && course.step >= 2) append("\n").append(teacher)
         }
         val tvMain = TextView(this).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.WRAP_CONTENT
+                0,
+                1f
             )
             gravity = Gravity.CENTER
             text = mainText
             setTextSize(TypedValue.COMPLEX_UNIT_SP, mainFontSp)
             setTextColor(normalTextColor)
             maxLines = course.step * 2 + 1
+            ellipsize = android.text.TextUtils.TruncateAt.END
             includeFontPadding = false
             typeface = Typeface.DEFAULT_BOLD
         }
         innerLayout.addView(tvMain)
+
+        if (teacher.isNotEmpty()) {
+            val tvTeacher = TextView(this).apply {
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
+                )
+                gravity = Gravity.CENTER
+                isSingleLine = true
+                ellipsize = android.text.TextUtils.TruncateAt.END
+                text = teacher
+                setTextSize(
+                    TypedValue.COMPLEX_UNIT_SP,
+                    when {
+                        isOtherWeek -> 8f
+                        course.step <= 1 -> 8.5f
+                        else -> 9f
+                    }
+                )
+                setTextColor(normalTextColor)
+                includeFontPadding = false
+                typeface = Typeface.DEFAULT_BOLD
+            }
+            innerLayout.addView(tvTeacher)
+        }
 
         // Time text: separate single-line TextView so it NEVER wraps or breaks mid-string
         if (course.step >= 2) {
@@ -627,8 +654,8 @@ class ScheduleActivity : AppCompatActivity() {
         } catch (_: Exception) {}
 
         view.findViewById<TextView>(R.id.tv_course_name).text = name
-        view.findViewById<TextView>(R.id.tv_teacher).text = course.teacher ?: "未设置"
-        view.findViewById<TextView>(R.id.tv_room).text = course.room ?: "未设置"
+        view.findViewById<TextView>(R.id.tv_teacher).text = course.teacher.orEmpty().ifBlank { "未设置" }
+        view.findViewById<TextView>(R.id.tv_room).text = course.room.orEmpty().ifBlank { "未设置" }
 
         val startTime = course.customStartTime ?: TimeNode.getStartTime(course.startNode)
         val endTime = course.customEndTime ?: TimeNode.getEndTime(course.startNode + course.step - 1)
