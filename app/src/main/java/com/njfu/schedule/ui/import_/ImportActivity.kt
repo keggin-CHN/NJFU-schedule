@@ -46,7 +46,7 @@ class ImportActivity : AppCompatActivity() {
 
     private fun doImport() {
         val studentId = binding.etId.text?.toString()?.trim() ?: ""
-        val password = binding.etPwd.text?.toString()?.trim() ?: ""
+        val password = binding.etPwd.text?.toString() ?: ""
 
         if (studentId.isEmpty()) {
             binding.inputId.error = "请输入学号"

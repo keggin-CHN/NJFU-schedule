@@ -83,7 +83,8 @@ class WebViewActivity : AppCompatActivity() {
             }
         }
 
-        binding.webview.loadUrl("http://jwxt.njfu.edu.cn/sso.jsp")
+        // 教务入口已提供 HTTPS；CAS 的 service 参数仍由入口页面按学校登记值生成。
+        binding.webview.loadUrl("https://jwxt.njfu.edu.cn/sso.jsp")
     }
 
     @Deprecated("Deprecated in Java")

@@ -1,14 +1,19 @@
 package com.njfu.schedule.njfu
 
 import okhttp3.*
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import org.jsoup.Jsoup
-import java.net.URLEncoder
+import org.jsoup.nodes.Entities
+import java.io.IOException
+import java.math.BigInteger
+import java.util.Base64
 import javax.crypto.Cipher
 import javax.crypto.spec.IvParameterSpec
 import javax.crypto.spec.SecretKeySpec
-import android.util.Base64
 
-class NjfuImporter {
+class NjfuImporter internal constructor(private val client: OkHttpClient) {
+
+    constructor() : this(createClient())
 
     data class ImportResult(
         val courses: List<CourseInfo>,
@@ -40,15 +45,31 @@ class NjfuImporter {
 
     companion object {
 
-        private const val APP_URL = "http://jwxt.njfu.edu.cn/sso.jsp"
+        // CAS 中登记的 service 仍是 HTTP。教务站点会把该回调升级到 HTTPS，且会保留 ticket。
+        // 这里不能把 service 直接改成 HTTPS，否则 CAS 会返回“应用未注册”。
+        private const val JWXT_ENTRY_URL = "https://jwxt.njfu.edu.cn/sso.jsp"
+        private const val JWXT_HOST = "jwxt.njfu.edu.cn"
+        private const val UIA_HOST = "uia.njfu.edu.cn"
         private const val UIA_BASE = "https://uia.njfu.edu.cn"
         private const val SCHEDULE_URL = "https://jwxt.njfu.edu.cn/jsxsd/xskb/xskb_list.do"
-    }
+        private const val INFO_URL = "https://jwxt.njfu.edu.cn/jsxsd/framework/xsMainV_new.jsp"
 
-    private val client: OkHttpClient by lazy {
-        OkHttpClient.Builder()
+        private const val CAS_RSA_MODULUS_HEX =
+            "008aed7e057fe8f14c73550b0e6467b023616ddc8fa91846d2613cdb7f7621e3cada4cd5d812d627af6b87727ade4e26d26208b7326815941492b2204c3167ab2d53df1e3a2c9153bdb7c8c2e968df97a5e7e01cc410f92c4c2c2fba529b3ee988ebc1fca99ff5119e036d732c368acf8beba01aa2fdafa45b21e4de4928d0d403"
+        private const val CAS_RSA_EXPONENT_HEX = "010001"
+
+        private fun createClient() = OkHttpClient.Builder()
             .followRedirects(true)
             .cookieJar(SimpleCookieJar())
+            .addNetworkInterceptor { chain ->
+                val url = chain.request().url
+                if (url.host !in setOf(UIA_HOST, JWXT_HOST) ||
+                    (chain.request().method == "POST" && url.scheme != "https")
+                ) {
+                    throw IOException("学校认证返回了不支持的跳转地址")
+                }
+                chain.proceed(chain.request())
+            }
             .addInterceptor { chain ->
                 val req = chain.request().newBuilder()
                     .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
@@ -58,83 +79,161 @@ class NjfuImporter {
             .build()
     }
 
-    data class LoginParams(val lt: String, val salt: String, val dllt: String, val uiaUrl: String)
+    data class LoginParams(
+        val lt: String,
+        val salt: String?,
+        val dllt: String,
+        val uiaUrl: String,
+        val execution: String,
+        val eventId: String = "submit",
+        val hiddenFields: Map<String, String> = emptyMap(),
+        val loginPageUrl: String = uiaUrl,
+        val alreadyAuthenticated: Boolean = false
+    )
 
-    private var studentNameResult = ""
+    private data class Page(val url: String, val code: Int, val html: String)
+
+    private data class CaptchaCheck(val required: Boolean, val salt: String?)
+
+    private val jsRedirectPattern = Regex(
+        """(?:window\.)?location(?:\.href)?\s*=\s*['\"]([^'\"]+)['\"]|(?:window\.)?location\.(?:replace|assign)\(\s*['\"]([^'\"]+)['\"]""",
+        RegexOption.IGNORE_CASE
+    )
+
+    private var preparedLoginPage: Page? = null
+    private var verifiedSchedulePage: Page? = null
 
     fun prepareSession() {
-        val appReq = Request.Builder().url(APP_URL).get().build()
-        client.newCall(appReq).execute().close()
+        verifiedSchedulePage = null
+        preparedLoginPage = loadPage(Request.Builder().url(JWXT_ENTRY_URL).get().build())
+        requireSuccess(preparedLoginPage!!, "教务登录入口")
     }
 
     fun fetchLoginPage(): LoginParams {
-        val uiaUrl = "$UIA_BASE/authserver/login?service=${URLEncoder.encode(APP_URL, "UTF-8")}"
-        val loginPageReq = Request.Builder().url(uiaUrl).get().build()
-        val loginPageResp = client.newCall(loginPageReq).execute()
-        val loginHtml = loginPageResp.body?.string() ?: throw Exception("无法访问登录页面")
+        // 使用教务入口实际返回的 CAS 地址，并复用 prepareSession 得到的表单。
+        val page = preparedLoginPage ?: loadPage(Request.Builder().url(JWXT_ENTRY_URL).get().build())
+        preparedLoginPage = null
+        requireSuccess(page, "统一认证登录页")
 
-        val doc = Jsoup.parse(loginHtml)
-        val lt = doc.select("input[name=lt]").attr("value")
-        val salt = doc.select("input[id=pwdDefaultEncryptSalt]").attr("value")
-        val dllt = doc.select("input[name=dllt]").attr("value")
-
-        if (lt.isEmpty() || salt.isEmpty()) {
-            throw Exception("获取登录参数失败，请检查网络")
+        val doc = Jsoup.parse(page.html)
+        if (page.url.toHttpUrl().host == JWXT_HOST && !hasLoginForm(doc)) {
+            verifiedSchedulePage = readSchedulePage()
+            return LoginParams("", null, "", page.url, "", alreadyAuthenticated = true)
         }
-        return LoginParams(lt, salt, dllt, uiaUrl)
+        requireCasPage(page)
+        val form = doc.selectFirst("form#casLoginForm") ?: doc.select("form").firstOrNull {
+            it.selectFirst("input[name=username]") != null && it.selectFirst("input[type=password]") != null
+        }
+            ?: throw Exception(parseAuthError(doc).ifEmpty { "统一认证未返回密码登录表单" })
+        val execution = form.selectFirst("input[name=execution]")?.attr("value").orEmpty()
+        if (execution.isEmpty()) {
+            throw Exception(parseAuthError(doc).ifEmpty { "统一认证登录参数缺少 execution" })
+        }
+
+        val hiddenFields = linkedMapOf<String, String>()
+        form.select("input[type=hidden]").forEach { input ->
+            val name = input.attr("name")
+            if (name.isNotEmpty()) hiddenFields[name] = input.attr("value")
+        }
+        val action = page.url.toHttpUrl().resolve(form.attr("action").ifBlank { page.url })?.toString()
+            ?: throw Exception("统一认证表单提交地址异常")
+        val actionUrl = action.toHttpUrl()
+        if (actionUrl.scheme != "https" || actionUrl.host != UIA_HOST) {
+            throw Exception("统一认证表单提交地址异常")
+        }
+
+        val salt = form.selectFirst("input#pwdDefaultEncryptSalt")?.attr("value")?.trim()
+            ?.takeIf { it.isNotEmpty() }
+        return LoginParams(
+            lt = hiddenFields["lt"].orEmpty(),
+            salt = salt,
+            dllt = hiddenFields["dllt"].orEmpty(),
+            uiaUrl = action,
+            execution = execution,
+            eventId = hiddenFields["_eventId"].takeIf { !it.isNullOrBlank() } ?: "submit",
+            hiddenFields = hiddenFields,
+            loginPageUrl = page.url
+        )
     }
 
     fun doLogin(studentId: String, password: String, params: LoginParams) {
-
-        val captchaUrl = "$UIA_BASE/authserver/needCaptcha.html?username=$studentId&pwdEncrypt2=pwdEncryptSalt&_=${System.currentTimeMillis()}"
-        val captchaReq = Request.Builder().url(captchaUrl).get().build()
-        val captchaResp = client.newCall(captchaReq).execute()
-        val needCaptcha = captchaResp.body?.string() ?: "true"
-        if (needCaptcha != "false") {
-            throw Exception("需要验证码，请先在浏览器登录一次后重试")
+        if (params.alreadyAuthenticated) {
+            if (verifiedSchedulePage == null) verifiedSchedulePage = readSchedulePage()
+            return
+        }
+        verifiedSchedulePage = null
+        val action = params.uiaUrl.toHttpUrl()
+        if (action.host != UIA_HOST || action.scheme != "https" || params.execution.isBlank()) {
+            throw Exception("统一认证登录参数无效，请重新获取登录页")
+        }
+        val captcha = checkNeedCaptcha(studentId, params.loginPageUrl)
+        if (captcha.required) {
+            throw Exception("统一认证要求验证码，当前自动导入暂不支持，请稍后重试")
         }
 
-        val encryptedPwd = encryptAES(password, params.salt)
-        val formBody = FormBody.Builder()
-            .add("username", studentId)
-            .add("password", encryptedPwd)
-            .add("lt", params.lt)
-            .add("dllt", params.dllt)
-            .add("execution", "e1s1")
-            .add("_eventId", "submit")
-            .add("rmShown", "1")
-            .build()
-
-        val loginReq = Request.Builder().url(params.uiaUrl).post(formBody).build()
-        val loginResp = client.newCall(loginReq).execute()
-        val loginResultUrl = loginResp.request.url.toString()
-
-        if (loginResultUrl.contains("uia.njfu.edu.cn")) {
-            val errorDoc = Jsoup.parse(loginResp.body?.string() ?: "")
-            val errorMsg = errorDoc.select("span#msg").text()
-            throw Exception(if (errorMsg.isNotEmpty()) errorMsg else "账号或密码错误")
+        // needCaptcha.html 可能在响应中返回新的盐值，优先使用它。
+        val salt = captcha.salt ?: params.salt
+        if (salt != null && salt.toByteArray(Charsets.UTF_8).size !in setOf(16, 24, 32)) {
+            throw Exception("统一认证密码加密参数异常，请重新获取登录页")
+        }
+        val fields = LinkedHashMap(params.hiddenFields)
+        fields["username"] = studentId
+        fields["password"] = if (salt != null) {
+            encryptAES(password, salt)
         } else {
-            loginResp.close()
+            fields["encrypted"] = "true"
+            fields.putIfAbsent("loginType", "1")
+            encryptRSA(password)
         }
+        fields["execution"] = params.execution
+        fields["_eventId"] = params.eventId
+        fields.putIfAbsent("rmShown", "1")
+
+        val formBuilder = FormBody.Builder()
+        fields.forEach { (name, value) -> formBuilder.add(name, value) }
+        val loginReq = Request.Builder()
+            .url(params.uiaUrl)
+            .header("Origin", UIA_BASE)
+            .header("Referer", params.loginPageUrl)
+            .post(formBuilder.build())
+            .build()
+        val page = loadPage(loginReq)
+        requireSuccess(page, "统一认证提交")
+        val resultDoc = Jsoup.parse(page.html)
+        val errorMsg = parseAuthError(resultDoc)
+        if (errorMsg.isNotEmpty()) {
+            throw Exception("统一认证提示：$errorMsg")
+        }
+        if (resultDoc.selectFirst("form#casDynamicLoginForm") != null &&
+            resultDoc.selectFirst("form#casLoginForm") == null
+        ) {
+            throw Exception("统一认证需要短信动态验证码，当前导入暂不支持")
+        }
+        if (hasLoginForm(resultDoc) || page.url.toHttpUrl().host == UIA_HOST) {
+            throw Exception("统一认证尚未完成，请重新登录")
+        }
+        // 返回教务域名并不代表已登录；必须取得受保护的课表页面。
+        verifiedSchedulePage = readSchedulePage()
     }
 
     fun fetchAndParseSchedule(): ImportResult {
 
-        var studentName = ""
         var currentTeachingWeek = 12
-        try {
-            val infoReq = Request.Builder().url("https://jwxt.njfu.edu.cn/jsxsd/framework/xsMainV_new.jsp").get().build()
-            val infoResp = client.newCall(infoReq).execute()
-            val infoHtml = infoResp.body?.string() ?: ""
-            val infoDoc = Jsoup.parse(infoHtml)
-            studentName = infoDoc.select("span#Top1_divLoginName, #xhxm, .middletopdwxxdiv span").text()
-                .replace("同学", "").trim()
+        val schedulePage = verifiedSchedulePage ?: readSchedulePage()
+        verifiedSchedulePage = null
+        // 姓名、教学周为辅助信息，页面暂时不可用时仍允许导入已验证的课表。
+        val infoHtml = runCatching {
+            val page = loadPage(Request.Builder().url(INFO_URL).get().build())
+            if (page.code in 200..299 && page.url.toHttpUrl().host == JWXT_HOST) page.html else ""
+        }.getOrDefault("")
+        val infoDoc = Jsoup.parse(infoHtml)
+        val studentName = infoDoc.select("span#Top1_divLoginName, #xhxm, .middletopdwxxdiv span").text()
+            .replace("同学", "").trim()
 
-            val weekMatch = Regex("教学第(\\d+)周").find(infoHtml)
-            if (weekMatch != null) {
-                currentTeachingWeek = weekMatch.groupValues[1].toIntOrNull() ?: 12
-            }
-        } catch (_: Exception) {}
+        val weekMatch = Regex("教学第(\\d+)周").find(infoHtml)
+        if (weekMatch != null) {
+            currentTeachingWeek = weekMatch.groupValues[1].toIntOrNull() ?: 12
+        }
 
         val cal = java.util.Calendar.getInstance()
         val dayOfWeek = cal.get(java.util.Calendar.DAY_OF_WEEK)
@@ -143,9 +242,7 @@ class NjfuImporter {
         cal.add(java.util.Calendar.DAY_OF_YEAR, -daysBack)
         val startDate = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.CHINA).format(cal.time)
 
-        val scheduleReq = Request.Builder().url(SCHEDULE_URL).get().build()
-        val scheduleResp = client.newCall(scheduleReq).execute()
-        val scheduleHtml = scheduleResp.body?.string() ?: throw Exception("获取课表页面失败")
+        val scheduleHtml = schedulePage.html
 
         val remarks = parseRemarks(scheduleHtml)
 
@@ -202,12 +299,165 @@ class NjfuImporter {
         cipher.init(Cipher.ENCRYPT_MODE, keySpec, ivSpec)
 
         val encrypted = cipher.doFinal(plaintext.toByteArray(Charsets.UTF_8))
-        return Base64.encodeToString(encrypted, Base64.NO_WRAP)
+        return Base64.getEncoder().encodeToString(encrypted)
     }
 
     private fun randomString(length: Int): String {
         val chars = "ABCDEFGHJKMNPQRSTWXYZabcdefhijkmnprstwxyz2345678"
         return (1..length).map { chars.random() }.joinToString("")
+    }
+
+    private fun checkNeedCaptcha(username: String, loginPageUrl: String): CaptchaCheck {
+        val url = UIA_BASE.toHttpUrl().newBuilder()
+            .addPathSegments("authserver/needCaptcha.html")
+            .addQueryParameter("username", username)
+            .addQueryParameter("pwdEncrypt2", "pwdEncryptSalt")
+            .addQueryParameter("_", System.currentTimeMillis().toString())
+            .build()
+        val request = Request.Builder()
+            .url(url)
+            .header("X-Requested-With", "XMLHttpRequest")
+            .header("Referer", loginPageUrl)
+            .get()
+            .build()
+        val page = executeRequest(request)
+        if (page.code !in 200..299) {
+            throw Exception("无法确认验证码状态（HTTP ${page.code}）")
+        }
+        val result = page.html.trim()
+        val parts = result.split("::::", limit = 2)
+        val required = when (parts[0].trim().lowercase()) {
+            "true" -> true
+            "false" -> false
+            else -> throw Exception("统一认证验证码状态返回异常")
+        }
+        val salt = parts.getOrNull(1)?.trim()?.takeIf { it.isNotEmpty() }
+        return CaptchaCheck(required, salt)
+    }
+
+    private fun executeRequest(request: Request): Page {
+        client.newCall(request).execute().use { response ->
+            return Page(
+                url = response.request.url.toString(),
+                code = response.code,
+                html = response.body?.string().orEmpty()
+            )
+        }
+    }
+
+    private fun requireSuccess(page: Page, stage: String) {
+        if (page.code !in 200..299) {
+            throw Exception("$stage 访问失败（HTTP ${page.code}）")
+        }
+    }
+
+    private fun requireCasPage(page: Page) {
+        if (page.url.toHttpUrl().host != UIA_HOST) {
+            throw Exception("教务系统未返回统一认证登录页")
+        }
+        val doc = Jsoup.parse(page.html)
+        val error = parseAuthError(doc)
+        if (error.isNotEmpty()) throw Exception("统一认证提示：$error")
+        if (doc.selectFirst("form#casDynamicLoginForm") != null &&
+            doc.selectFirst("form#casLoginForm") == null
+        ) {
+            throw Exception("统一认证需要短信动态验证码，当前自动导入暂不支持")
+        }
+    }
+
+    private fun hasLoginForm(doc: org.jsoup.nodes.Document): Boolean =
+        doc.selectFirst("form#casLoginForm, form#casDynamicLoginForm, input[name=execution], input[type=password]") != null
+
+    private fun readSchedulePage(): Page {
+        val page = loadPage(Request.Builder().url(SCHEDULE_URL).get().build())
+        requireSuccess(page, "教务课表页面")
+        val doc = Jsoup.parse(page.html)
+        if (page.url.toHttpUrl().host != JWXT_HOST || hasLoginForm(doc)) {
+            throw Exception("教务系统会话未建立或已失效，请重新登录")
+        }
+        if (doc.selectFirst("table#timetable") == null) {
+            throw Exception("教务系统未返回有效课表页面，可能登录未完成或页面已变化")
+        }
+        return page
+    }
+
+    /**
+     * OkHttp 会跟随 HTTP 3xx，但 CAS 回调页有时用 JavaScript location 跳转。
+     * 只跟随学校认证和教务域名，避免把登录响应当成任意外部跳转器。
+     */
+    private fun loadPage(initialRequest: Request): Page {
+        var page = executeRequest(initialRequest)
+        repeat(5) {
+            val target = findJavascriptRedirect(page) ?: return page
+            page = executeRequest(
+                Request.Builder()
+                    .url(target)
+                    .header("Referer", page.url)
+                    .get()
+                    .build()
+            )
+        }
+        if (findJavascriptRedirect(page) != null) {
+            throw Exception("学校认证页面重复跳转，登录未完成")
+        }
+        return page
+    }
+
+    private fun findJavascriptRedirect(page: Page): String? {
+        if (page.code !in 200..299 || page.html.isBlank()) return null
+        val doc = Jsoup.parse(page.html)
+        // 登录页和完整业务页面中的 location 可能属于事件处理函数，不能当作立即跳转执行。
+        if (hasLoginForm(doc) ||
+            doc.selectFirst("table#timetable, #Top1_divLoginName, #xhxm, .middletopdwxxdiv span") != null
+        ) return null
+        val script = doc.select("script:not([src])")
+            .joinToString("\n") { it.html() }
+        val match = jsRedirectPattern.find(script) ?: return null
+        val rawTarget = Entities.unescape(match.groupValues[1].ifEmpty { match.groupValues[2] })
+        val target = page.url.toHttpUrl().resolve(rawTarget)
+            ?: throw Exception("学校认证页面返回了无效跳转地址")
+        if (target.host !in setOf(UIA_HOST, JWXT_HOST)) {
+            throw Exception("学校认证返回了不支持的跳转地址")
+        }
+        return if (target.host == JWXT_HOST && target.scheme == "http") {
+            target.newBuilder().scheme("https").build().toString()
+        } else {
+            target.toString()
+        }
+    }
+
+    private fun parseAuthError(doc: org.jsoup.nodes.Document): String {
+        val pageMessage = doc.selectFirst("#msg, div.errors")?.text()?.trim()
+        if (!pageMessage.isNullOrEmpty()) return pageMessage
+        return doc.select(".auth_error")
+            .asSequence()
+            .filter { !it.attr("style").replace(" ", "").contains("display:none") }
+            .map { it.text().trim() }
+            .firstOrNull { it.isNotEmpty() }
+            .orEmpty()
+    }
+
+    /** CAS 页面不提供盐值时使用的已知 RSA 表单，保持 RSAUtils 的分块格式。 */
+    private fun encryptRSA(password: String): String {
+        val modulus = BigInteger(CAS_RSA_MODULUS_HEX, 16)
+        val exponent = BigInteger(CAS_RSA_EXPONENT_HEX, 16)
+        val blockSize = 126
+        val chars = password.toCharArray().toMutableList()
+        while (chars.size % blockSize != 0) chars.add('\u0000')
+
+        val encrypted = mutableListOf<String>()
+        for (offset in chars.indices step blockSize) {
+            var message = BigInteger.ZERO
+            for (i in 0 until blockSize step 2) {
+                val low = chars[offset + i].code
+                val high = chars[offset + i + 1].code
+                val digit = low + high * 256
+                message = message.add(BigInteger.valueOf(digit.toLong()).shiftLeft(i * 8))
+            }
+            val hex = message.modPow(exponent, modulus).toString(16)
+            encrypted.add(hex.padStart((hex.length + 3) / 4 * 4, '0'))
+        }
+        return encrypted.joinToString(" ")
     }
 
     private fun parseSchedule(html: String): List<CourseInfo> {
@@ -310,27 +560,25 @@ class NjfuImporter {
         return Pair(1, 2)
     }
 
-    private class SimpleCookieJar : CookieJar {
-        private val cookieStore = mutableMapOf<String, MutableList<Cookie>>()
+    internal class SimpleCookieJar : CookieJar {
+        private val cookieStore = mutableListOf<Cookie>()
 
+        @Synchronized
         override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
-
-            cookieStore.getOrPut(url.host) { mutableListOf() }.apply {
-                cookies.forEach { cookie ->
-                    removeAll { it.name == cookie.name }
-                    add(cookie)
+            val now = System.currentTimeMillis()
+            cookies.forEach { cookie ->
+                cookieStore.removeAll {
+                    it.expiresAt <= now ||
+                        (it.name == cookie.name && it.domain == cookie.domain && it.path == cookie.path)
                 }
+                if (cookie.expiresAt > now) cookieStore.add(cookie)
             }
         }
 
+        @Synchronized
         override fun loadForRequest(url: HttpUrl): List<Cookie> {
-
-            val host = url.host
-            return cookieStore.entries
-                .filter { (domain, _) ->
-                    host == domain || host.endsWith(".$domain")
-                }
-                .flatMap { it.value }
+            cookieStore.removeAll { it.expiresAt <= System.currentTimeMillis() }
+            return cookieStore.filter { it.matches(url) }.sortedByDescending { it.path.length }
         }
     }
 }
