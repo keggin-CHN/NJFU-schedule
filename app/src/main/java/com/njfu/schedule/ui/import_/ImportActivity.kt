@@ -65,24 +65,11 @@ class ImportActivity : AppCompatActivity() {
             try {
                 val importer = NjfuImporter()
 
-                updateStep("正在连接教务系统...")
-                withContext(Dispatchers.IO) {
-                    importer.prepareSession()
-                }
-
-                updateStep("正在访问统一认证...")
-                val loginParams = withContext(Dispatchers.IO) {
-                    importer.fetchLoginPage()
-                }
-
-                updateStep("正在验证账号密码...")
-                withContext(Dispatchers.IO) {
-                    importer.doLogin(studentId, password, loginParams)
-                }
-
-                updateStep("登录成功，正在获取课表...")
                 val result = withContext(Dispatchers.IO) {
-                    importer.fetchAndParseSchedule()
+                    importer.importSchedule(studentId, password) { step ->
+                        // 进度回调在 IO 线程，post 回主线程更新 UI
+                        binding.tvStatus.post { updateStep(step) }
+                    }
                 }
 
                 if (result.courses.isEmpty()) {

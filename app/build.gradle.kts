@@ -12,8 +12,8 @@ android {
         applicationId = "com.njfu.schedule"
         minSdk = 26
         targetSdk = 34
-        versionCode = 3
-        versionName = "1.11"
+        versionCode = 4
+        versionName = "1.12"
     }
 
     signingConfigs {

@@ -53,6 +53,8 @@ class NjfuImporter internal constructor(private val client: OkHttpClient) {
         private const val UIA_BASE = "https://uia.njfu.edu.cn"
         private const val SCHEDULE_URL = "https://jwxt.njfu.edu.cn/jsxsd/xskb/xskb_list.do"
         private const val INFO_URL = "https://jwxt.njfu.edu.cn/jsxsd/framework/xsMainV_new.jsp"
+        // 2025 版教务首页：学生姓名只在这个页面（li.user 相邻节点）里。
+        private const val HOME_URL = "https://jwxt.njfu.edu.cn/jsxsd/framework/xsMainV.jsp"
 
         private const val CAS_RSA_MODULUS_HEX =
             "008aed7e057fe8f14c73550b0e6467b023616ddc8fa91846d2613cdb7f7621e3cada4cd5d812d627af6b87727ade4e26d26208b7326815941492b2204c3167ab2d53df1e3a2c9153bdb7c8c2e968df97a5e7e01cc410f92c4c2c2fba529b3ee988ebc1fca99ff5119e036d732c368acf8beba01aa2fdafa45b21e4de4928d0d403"
@@ -226,8 +228,19 @@ class NjfuImporter internal constructor(private val client: OkHttpClient) {
             val page = loadPage(Request.Builder().url(INFO_URL).get().build())
             if (page.code in 200..299 && page.url.toHttpUrl().host == JWXT_HOST) page.html else ""
         }.getOrDefault("")
-        val infoDoc = Jsoup.parse(infoHtml)
-        val studentName = infoDoc.select("span#Top1_divLoginName, #xhxm, .middletopdwxxdiv span").text()
+        val homeHtml = runCatching {
+            val page = loadPage(Request.Builder().url(HOME_URL).get().build())
+            if (page.code in 200..299 && page.url.toHttpUrl().host == JWXT_HOST) page.html else ""
+        }.getOrDefault("")
+
+        // 2025 版首页：姓名位于 li.user 相邻的 li 中；兼容旧版选择器。
+        val homeDoc = Jsoup.parse(homeHtml)
+        val studentName = homeDoc.select("li.user + li span").text()
+            .ifEmpty {
+                Jsoup.parse(infoHtml)
+                    .select("span#Top1_divLoginName, #xhxm, .middletopdwxxdiv span")
+                    .text()
+            }
             .replace("同学", "").trim()
 
         val weekMatch = Regex("教学第(\\d+)周").find(infoHtml)
@@ -281,11 +294,44 @@ class NjfuImporter internal constructor(private val client: OkHttpClient) {
         return remarks
     }
 
-    suspend fun importSchedule(studentId: String, password: String): ImportResult {
-        prepareSession()
-        val params = fetchLoginPage()
-        doLogin(studentId, password, params)
-        return fetchAndParseSchedule()
+    /**
+     * 导入课表。部分登录会话会持续 404（负载均衡会话未同步），同一会话内
+     * 重试无效，这里自动清 Cookie 换新会话重登，最多尝试 3 次。
+     *
+     * @param onStep 进度回调，运行在 IO 线程，调用方需自行切换到主线程。
+     */
+    suspend fun importSchedule(
+        studentId: String,
+        password: String,
+        onStep: (String) -> Unit = {}
+    ): ImportResult {
+        var lastError: Exception? = null
+        for (attempt in 1..3) {
+            try {
+                if (attempt > 1) resetSession()
+                onStep("正在连接教务系统...")
+                prepareSession()
+                onStep("正在访问统一认证...")
+                val params = fetchLoginPage()
+                onStep("正在验证账号密码...")
+                doLogin(studentId, password, params)
+                onStep("登录成功，正在获取课表...")
+                return fetchAndParseSchedule()
+            } catch (e: ScheduleSessionBrokenException) {
+                lastError = e
+            }
+        }
+        throw lastError ?: Exception("导入失败")
+    }
+
+    /** 教务会话不可用（如粘性 404），需要重新登录再试。 */
+    private class ScheduleSessionBrokenException(message: String) : Exception(message)
+
+    /** 清空当前会话（Cookie），用于粘性 404 后换新会话重新登录。 */
+    fun resetSession() {
+        (client.cookieJar as? SimpleCookieJar)?.clear()
+        preparedLoginPage = null
+        verifiedSchedulePage = null
     }
 
     private fun encryptAES(data: String, key: String): String {
@@ -321,6 +367,10 @@ class NjfuImporter internal constructor(private val client: OkHttpClient) {
             .get()
             .build()
         val page = executeRequest(request)
+        if (page.code == 404) {
+            // 2025 版统一认证已下线 needCaptcha.html；无法访问接口本身不代表需要验证码。
+            return CaptchaCheck(required = false, salt = null)
+        }
         if (page.code !in 200..299) {
             throw Exception("无法确认验证码状态（HTTP ${page.code}）")
         }
@@ -370,6 +420,10 @@ class NjfuImporter internal constructor(private val client: OkHttpClient) {
 
     private fun readSchedulePage(): Page {
         val page = loadPage(Request.Builder().url(SCHEDULE_URL).get().build())
+        if (page.code == 404) {
+            // 部分登录会话会持续 404，同会话内重试无意义，交给上层重新登录。
+            throw ScheduleSessionBrokenException("教务系统未返回有效课表页面（HTTP 404）")
+        }
         requireSuccess(page, "教务课表页面")
         val doc = Jsoup.parse(page.html)
         if (page.url.toHttpUrl().host != JWXT_HOST || hasLoginForm(doc)) {
@@ -427,9 +481,10 @@ class NjfuImporter internal constructor(private val client: OkHttpClient) {
     }
 
     private fun parseAuthError(doc: org.jsoup.nodes.Document): String {
-        val pageMessage = doc.selectFirst("#msg, div.errors")?.text()?.trim()
+        // 2025 版 CAS 把错误提示放在 #msg1 / .form-error（旧版为 #msg）。
+        val pageMessage = doc.selectFirst("#msg, #msg1, div.errors")?.text()?.trim()
         if (!pageMessage.isNullOrEmpty()) return pageMessage
-        return doc.select(".auth_error")
+        return doc.select(".form-error .form-tab-nav, .auth_error")
             .asSequence()
             .filter { !it.attr("style").replace(" ", "").contains("display:none") }
             .map { it.text().trim() }
@@ -579,6 +634,11 @@ class NjfuImporter internal constructor(private val client: OkHttpClient) {
         override fun loadForRequest(url: HttpUrl): List<Cookie> {
             cookieStore.removeAll { it.expiresAt <= System.currentTimeMillis() }
             return cookieStore.filter { it.matches(url) }.sortedByDescending { it.path.length }
+        }
+
+        @Synchronized
+        fun clear() {
+            cookieStore.clear()
         }
     }
 }

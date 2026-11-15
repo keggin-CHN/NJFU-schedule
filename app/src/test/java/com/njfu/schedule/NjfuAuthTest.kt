@@ -158,6 +158,127 @@ class NjfuAuthTest {
     }
 
     @Test
+    fun needCaptchaNotFoundIsTreatedAsNoCaptcha() {
+        // 2025 版统一认证已下线 needCaptcha.html，404 不应中断登录。
+        val school = School { request ->
+            when {
+                request.url.encodedPath.endsWith("needCaptcha.html") -> response(request, "Not Found", code = 404)
+                request.method == "POST" -> {
+                    val form = request.body as FormBody
+                    val fields = (0 until form.size).associate { form.name(it) to form.value(it) }
+                    assertEquals("true", fields["encrypted"])
+                    callback(request)
+                }
+                request.url.toString() == schedule -> response(request, table)
+                else -> response(request, loginPage(), cas)
+            }
+        }
+        val params = school.importer.fetchLoginPage()
+        school.importer.doLogin("test", "testPassword", params)
+        assertTrue(school.importer.fetchAndParseSchedule().courses.isNotEmpty())
+    }
+
+    @Test
+    fun stickySchedule404IsRetriedWithFreshSession() {
+        // 部分登录会话对课表页持续 404，importSchedule 应清 Cookie 重新登录。
+        var scheduleHits = 0
+        var logins = 0
+        val school = School { request ->
+            when {
+                request.url.encodedPath.endsWith("needCaptcha.html") -> response(request, "false")
+                request.method == "POST" -> {
+                    logins++
+                    callback(request)
+                }
+                request.url.toString() == schedule -> {
+                    scheduleHits++
+                    if (scheduleHits == 1) response(request, "", code = 404) else response(request, table)
+                }
+                else -> response(request, loginPage(), cas)
+            }
+        }
+        val result = school.importer.importSchedule("test", "testPassword").let {
+            kotlinx.coroutines.runBlocking { it }
+        }
+        assertEquals(1, result.courses.size)
+        assertEquals(2, logins)
+    }
+
+    @Test
+    fun persistentSchedule404SurfacesAfterRetries() {
+        var scheduleHits = 0
+        val school = School { request ->
+            when {
+                request.url.encodedPath.endsWith("needCaptcha.html") -> response(request, "false")
+                request.method == "POST" -> callback(request)
+                request.url.toString() == schedule -> {
+                    scheduleHits++
+                    response(request, "", code = 404)
+                }
+                else -> response(request, loginPage(), cas)
+            }
+        }
+        val error = assertThrows(Exception::class.java) {
+            kotlinx.coroutines.runBlocking { school.importer.importSchedule("test", "test") }
+        }
+        assertTrue(error.message.orEmpty().contains("404"))
+        assertEquals(3, scheduleHits)
+    }
+
+    @Test
+    fun newCasPageStructureIsAccepted() {
+        // 2025 版表单：id=fm1，错误提示在 .form-error > #msg1，hidden 含 loginType。
+        val html = """
+            <form id="fm1" action="/authserver/login?service=http%3A%2F%2Fjwxt.njfu.edu.cn%2Fsso.jsp" method="post">
+              <input id="username" name="username" type="text">
+              <input id="passwordShow" type="password">
+              <input id="password" name="password" type="hidden">
+              <input type="hidden" name="execution" value="e2e1">
+              <input type="hidden" id="encrypted" name="encrypted" value="true">
+              <input type="hidden" name="_eventId" value="submit">
+              <input type="hidden" name="loginType" value="1">
+            </form>
+        """.trimIndent()
+        val school = School { request ->
+            when {
+                request.url.encodedPath.endsWith("needCaptcha.html") -> response(request, "false")
+                request.method == "POST" -> {
+                    val form = request.body as FormBody
+                    val fields = (0 until form.size).associate { form.name(it) to form.value(it) }
+                    assertEquals("e2e1", fields["execution"])
+                    assertEquals("true", fields["encrypted"])
+                    assertEquals("1", fields["loginType"])
+                    callback(request)
+                }
+                request.url.toString() == schedule -> response(request, table)
+                else -> response(request, html, cas)
+            }
+        }
+        val params = school.importer.fetchLoginPage()
+        assertEquals("e2e1", params.execution)
+        school.importer.doLogin("test", "testPassword", params)
+        assertTrue(school.importer.fetchAndParseSchedule().courses.isNotEmpty())
+    }
+
+    @Test
+    fun newCasErrorMessageIsParsed() {
+        val html = """
+            <div class="form-error"><span id="msg1" name="error_fm1" class="form-tab-nav">账号或密码错误。</span></div>
+            <form id="fm1" action="/authserver/login" method="post">
+              <input name="username"><input type="password">
+              <input type="hidden" name="execution" value="e9s1">
+            </form>
+        """.trimIndent()
+        val school = School { request ->
+            if (request.url.encodedPath.endsWith("needCaptcha.html")) response(request, "false")
+            else response(request, html, cas)
+        }
+        val params = school.importer.fetchLoginPage()
+        val error = assertThrows(Exception::class.java) { school.importer.doLogin("test", "test", params) }
+        assertTrue(error.message.orEmpty().contains("账号或密码错误"))
+    }
+
+    @Test
     fun jwxtCallbackAloneIsNotProofOfAnAuthenticatedSession() {
         val school = School { request ->
             when {
